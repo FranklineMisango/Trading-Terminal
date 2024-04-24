@@ -1,5 +1,6 @@
-#The Necessary imports 
+#Library imports
 import streamlit as st
+from bs4 import BeautifulSoup
 import os
 import yfinance as yf
 import pandas as pd
@@ -21,10 +22,15 @@ import tickers as ti
 import time
 import smtplib
 from email.message import EmailMessage
-import yfinance as yf
 import datetime as dt
 from pandas_datareader import data as pdr
 import time
+from time import sleep
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 st.title('Comprehensive Lite Algorithmic Trading Terminal : Identify, Visualize, Predict and Trade')
 st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
@@ -212,7 +218,6 @@ def main():
             print(normalized_df.sort_values(by=['ranking'], ascending=False))
 
         if options == "RSI_Stock_tickers":
-
             st.success("This program allows you to view which tickers are overbrought and which ones are over sold")
             col1, col2 = st.columns([2, 2])
             with col1:
@@ -327,6 +332,7 @@ def main():
                 df.sort_values(by='GLV % Difference', inplace=True, key=abs)
                 st.write('Watchlist:')
                 st.write(df)
+
         if options == "Minervini_screener":
             # Setting up variables
             st.success("This program allows you to view which tickers are overbrought and which ones are over sold")
@@ -466,7 +472,214 @@ def main():
 
                 # Wait for 60 seconds before the next check
                 time.sleep(60)
+        if options=="Trading View Signals":
+            st.success("This program allows you to view the Trading view signals of a particular ticker")
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Simulate signals"):
+                pd.set_option('display.max_rows', None)
+                interval = '1m'
 
+                # Initialize WebDriver for Chrome
+                options = Options()
+                options.add_argument("--headless")
+
+                #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+                #driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+                driver = webdriver.Firefox()
+                # List of tickers and initialization of lists for data
+                tickers = ['SCHB', 'AAPL', 'AMZN', 'TSLA', 'AMD', 'MSFT', 'NFLX']
+                signals, sells, buys, neutrals, valid_tickers, prices = [], [], [], [], [], []
+
+                # Today's date for file naming
+                today = end_date
+
+                # Process each ticker for trading signals
+                for ticker in tickers:
+                    try:
+                        driver.get(f"https://s.tradingview.com/embed-widget/technical-analysis/?symbol={ticker}&interval={interval}")
+                        driver.refresh()
+                        sleep(2)  # Adjust the sleep time if necessary
+
+                        # Extract recommendation and counter values
+                        recommendation = driver.find_element(By.CLASS_NAME, "speedometerSignal-pyzN--tL").text
+                        counters = [element.text for element in driver.find_elements(By.CLASS_NAME, "counterNumber-3l14ys0C")]
+                        # Append data to lists
+                        signals.append(recommendation)
+                        sells.append(float(counters[0]))
+                        neutrals.append(float(counters[1]))
+                        buys.append(float(counters[2]))
+                        price = pdr.get_data_yahoo(ticker)['Adj Close'][-1]
+                        prices.append(price)
+                        valid_tickers.append(ticker)
+
+                        st.write(f"{ticker} recommendation: {recommendation}")
+
+                    except Exception as e:
+                        st.write(f"Error with {ticker}: {e}")
+
+                # Close WebDriver
+                driver.close()
+
+                # Create and print DataFrame
+                dataframe = pd.DataFrame({'Tickers': valid_tickers, 'Current Price': prices, 'Signals': signals, 'Buys': buys, 'Sells': sells, 'Neutrals': neutrals}).set_index('Tickers')
+                dataframe.sort_values('Signals', ascending=False, inplace=True)
+                #dataframe.to_csv(f'{today}_{interval}.csv')
+                st.write(dataframe)
+        if options == "Twittter Screener":
+            # Set pandas option to display all columns
+            pd.set_option('display.max_columns', None)
+
+            # Function to scrape most active stocks from Yahoo Finance
+            def scrape_most_active_stocks():
+                url = 'https://finance.yahoo.com/most-active/'
+                response = requests.get(url)
+                soup = BeautifulSoup(response.text, 'html.parser')
+                df = pd.read_html(str(soup), attrs={'class': 'W(100%)'})[0]
+                df = df.drop(columns=['52 Week High'])
+                return df
+
+            # Scrape and filter most active stocks
+            movers = scrape_most_active_stocks()
+            movers = movers[movers['% Change'] >= 0]
+
+            # Scrape sentiment data from Sentdex
+            def scrape_sentdex():
+                res = requests.get('http://www.sentdex.com/financial-analysis/?tf=30d')
+                soup = BeautifulSoup(res.text, 'html.parser')
+                table = soup.find_all('tr')
+                data = {'Symbol': [], 'Sentiment': [], 'Direction': [], 'Mentions': []}
+
+                for ticker in table:
+                    ticker_info = ticker.find_all('td')
+                    try:
+                        data['Symbol'].append(ticker_info[0].get_text())
+                        data['Sentiment'].append(ticker_info[3].get_text())
+                        data['Mentions'].append(ticker_info[2].get_text())
+                        trend = 'up' if ticker_info[4].find('span', {"class": "glyphicon glyphicon-chevron-up"}) else 'down'
+                        data['Direction'].append(trend)
+                    except:
+                        continue
+                
+                return pd.DataFrame(data)
+
+            sentdex_data = scrape_sentdex()
+
+            # Merge most active stocks with sentiment data
+            top_stocks = movers.merge(sentdex_data, on='Symbol', how='left')
+            top_stocks.drop(['Market Cap', 'PE Ratio (TTM)'], axis=1, inplace=True)
+
+            # Function to scrape Twitter data from Trade Followers
+            def scrape_twitter(url):
+                res = requests.get(url)
+                soup = BeautifulSoup(res.text, 'html.parser')
+                stock_twitter = soup.find_all('tr')
+                data = {'Symbol': [], 'Sector': [], 'Score': []}
+
+                for stock in stock_twitter:
+                    try:
+                        score = stock.find_all("td", {"class": "datalistcolumn"})
+                        data['Symbol'].append(score[0].get_text().replace('$', '').strip())
+                        data['Sector'].append(score[2].get_text().strip())
+                        data['Score'].append(score[4].get_text().strip())
+                    except:
+                        continue
+                
+                return pd.DataFrame(data).dropna().drop_duplicates(subset="Symbol").reset_index(drop=True)
+
+            # Scrape Twitter data and merge with previous data
+            twitter_data = scrape_twitter("https://www.tradefollowers.com/strength/twitter_strongest.jsp?tf=1m")
+            final_list = top_stocks.merge(twitter_data, on='Symbol', how='left')
+
+            # Further scrape and merge Twitter data
+            twitter_data2 = scrape_twitter("https://www.tradefollowers.com/active/twitter_active.jsp?tf=1m")
+            recommender_list = final_list.merge(twitter_data2, on='Symbol', how='left')
+            recommender_list.drop(['Volume', 'Avg Vol (3 month)'], axis=1, inplace=True)
+
+            # Print final recommended list
+            st.write('\nFinal Recommended List: ')
+            st.write(recommender_list.set_index('Symbol'))
+
+        if options=="Yahoo Recommendations":
+            st.success("This segment returns the stocks recommended by ")
+            if st.button("Check Recommendations"):
+                # Set pandas option to display all columns
+                pd.set_option('display.max_columns', None)
+
+                # Function to scrape most active stocks from Yahoo Finance
+                def scrape_most_active_stocks():
+                    url = 'https://finance.yahoo.com/most-active/'
+                    response = requests.get(url)
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    df = pd.read_html(str(soup), attrs={'class': 'W(100%)'})[0]
+                    #df = df.drop(columns=['52 Week High'])
+                    return df
+
+                # Scrape and filter most active stocks
+                movers = scrape_most_active_stocks()
+                movers = movers[movers['% Change'] >= 0]
+
+                # Scrape sentiment data from Sentdex
+                def scrape_sentdex():
+                    res = requests.get('http://www.sentdex.com/financial-analysis/?tf=30d')
+                    soup = BeautifulSoup(res.text, 'html.parser')
+                    table = soup.find_all('tr')
+                    data = {'Symbol': [], 'Sentiment': [], 'Direction': [], 'Mentions': []}
+
+                    for ticker in table:
+                        ticker_info = ticker.find_all('td')
+                        try:
+                            data['Symbol'].append(ticker_info[0].get_text())
+                            data['Sentiment'].append(ticker_info[3].get_text())
+                            data['Mentions'].append(ticker_info[2].get_text())
+                            trend = 'up' if ticker_info[4].find('span', {"class": "glyphicon glyphicon-chevron-up"}) else 'down'
+                            data['Direction'].append(trend)
+                        except:
+                            continue
+                    
+                    return pd.DataFrame(data)
+
+                sentdex_data = scrape_sentdex()
+
+                # Merge most active stocks with sentiment data
+                top_stocks = movers.merge(sentdex_data, on='Symbol', how='left')
+                top_stocks.drop(['Market Cap', 'PE Ratio (TTM)'], axis=1, inplace=True)
+
+                # Function to scrape Twitter data from Trade Followers
+                def scrape_twitter(url):
+                    res = requests.get(url)
+                    soup = BeautifulSoup(res.text, 'html.parser')
+                    stock_twitter = soup.find_all('tr')
+                    data = {'Symbol': [], 'Sector': [], 'Score': []}
+
+                    for stock in stock_twitter:
+                        try:
+                            score = stock.find_all("td", {"class": "datalistcolumn"})
+                            data['Symbol'].append(score[0].get_text().replace('$', '').strip())
+                            data['Sector'].append(score[2].get_text().strip())
+                            data['Score'].append(score[4].get_text().strip())
+                        except:
+                            continue
+                    
+                    return pd.DataFrame(data).dropna().drop_duplicates(subset="Symbol").reset_index(drop=True)
+
+                # Scrape Twitter data and merge with previous data
+                twitter_data = scrape_twitter("https://www.tradefollowers.com/strength/twitter_strongest.jsp?tf=1m")
+                final_list = top_stocks.merge(twitter_data, on='Symbol', how='left')
+
+                # Further scrape and merge Twitter data
+                twitter_data2 = scrape_twitter("https://www.tradefollowers.com/active/twitter_active.jsp?tf=1m")
+                recommender_list = final_list.merge(twitter_data2, on='Symbol', how='left')
+                recommender_list.drop(['Volume', 'Avg Vol (3 month)'], axis=1, inplace=True)
+
+                # Print final recommended list
+                st.write('\nFinal Recommended List: ')
+                st.write(recommender_list.set_index('Symbol'))
+    
                 
     elif option == 'Recent Data':
         pass
