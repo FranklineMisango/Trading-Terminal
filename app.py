@@ -417,30 +417,26 @@ def main():
         if options == "Pricing Alert Email":
             # Email credentials from environment variables
             st.success("This segment allows you to track the pricing of a certain stock to your email if it hits your target price")
-            stock = st.chat_input("Enter the ticker you want to monitor")
+            stock = st.text_input("Enter the ticker you want to monitor")
             if stock:
                 message = (f"Ticker captured : {stock}")
                 st.success(message)
-            
-            stock = "NVDA"
-
             from config import EMAIL_ADDRESS
             from config import EMAIL_PASSWORD
-
-            #Uncomment to make the segments better
-            '''
-            EMAIL_PASSWORD = os.environ.get('EMAIL_PASS')
-            EMAIL_ADDRESS = os.environ.get('EMAIL_USER')
-
-            '''
             # Stock and target price settings
             target_price = st.number_input("Enter the target price")
-
+            if target_price:
+                message_two = (f"Target price captured at : {target_price}")
+                st.success(message_two)
+            email_address = st.text_input("Enter your Email address")
+            if email_address:
+                message_three = (f"Email address captured is {email_address}")
+                st.success(message_three)
             # Email setup
             msg = EmailMessage()
-            msg['Subject'] = f'Alert on {stock}!'
+            msg['Subject'] = f'Alert on {stock} from Frank & Co. Trading Terminal!'
             msg['From'] = EMAIL_ADDRESS
-            msg['To'] = 'franklinemisango@gmail.con'  # Set the recipient email address (this is mine for testing )
+            msg['To'] = email_address # Set the recipient email address (this is mine for testing )
 
             col1, col2 = st.columns([2, 2])
             with col1:
@@ -454,19 +450,18 @@ def main():
                 # Fetch stock data
                 df = pdr.get_data_yahoo(stock, start_date, end_date)
                 current_close = df["Adj Close"][-1]
-
                 # Check if the target price is reached
                 if current_close > target_price and not alerted:
                     alerted = True
-                    message = f"{stock} has reached the alert price of {target_price}\nCurrent Price: {current_close}"
-                    print(message)
-                    msg.set_content(message)
+                    message_three = f"Your Monitored {stock} has reached the alert price of {target_price}\nCurrent Price: {current_close}\nContact Our Trading Partners to Buy\n Automated Message by Trading Terminal"
+                    st.write(message_three)
+                    msg.set_content(message_three)
 
                     # Send email
                     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
                         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
                         smtp.send_message(msg)
-                        print("Email sent successfully.")
+                        st.write("Email sent successfully, User Alerted.")
                 else:
                     print("No new alerts.")
 
