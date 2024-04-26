@@ -40,6 +40,8 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import datetime  
 import math
 import warnings
+import plotly.graph_objects as go
+
 
 warnings.filterwarnings("ignore")
 
@@ -691,7 +693,7 @@ def main():
 
         pred_option = st.selectbox('Make a choice', ['Arima_Time_Series'])
         if pred_option == "Arima_Time_Series":
-            st.success("This segment allows you to Backest using Arima")
+            st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -707,14 +709,12 @@ def main():
                 # Fetch data
                 data = yf.download(ticker, start_date, end_date)
 
-                # Plot the closing price
-                plt.figure(figsize=(10,6))
-                plt.grid(True)
-                plt.xlabel('Dates')
-                plt.ylabel('Close Prices')
-                plt.plot(data['Close'])
-                plt.title(f"{ticker} Closing Price")
-                plt.show()
+                # Create closing price plot with Plotly
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Prices'))
+                fig.update_layout(title=f"{ticker} Closing Price", xaxis_title='Dates', yaxis_title='Close Prices')
+                # Display the closing price plot using Streamlit
+                st.plotly_chart(fig)
 
                 # Test for stationarity
                 def test_stationarity(timeseries):
@@ -722,14 +722,22 @@ def main():
                     rolmean = timeseries.rolling(12).mean()
                     rolstd = timeseries.rolling(12).std()
                     
-                    # Plot rolling statistics
-                    plt.plot(timeseries, color='blue', label='Original')
-                    plt.plot(rolmean, color='red', label='Rolling Mean')
-                    plt.plot(rolstd, color='black', label='Rolling Std')
-                    plt.legend(loc='best')
-                    plt.title('Rolling Mean & Standard Deviation')
-                    plt.show(block=False)
-                    
+                    fig = go.Figure()
+                    # Add traces for the original series, rolling mean, and rolling standard deviation
+                    fig.add_trace(go.Scatter(x=timeseries.index, y=timeseries.values, mode='lines', name='Original', line=dict(color='blue')))
+                    fig.add_trace(go.Scatter(x=timeseries.index, y=rolmean.values, mode='lines', name='Rolling Mean', line=dict(color='red')))
+                    fig.add_trace(go.Scatter(x=timeseries.index, y=rolstd.values, mode='lines', name='Rolling Std', line=dict(color='black')))
+
+                    # Update layout
+                    fig.update_layout(
+                        title='Rolling Mean & Standard Deviation',
+                        xaxis_title='Dates',
+                        yaxis_title='Values'
+                    )
+
+                    # Display the rolling statistics plot using Streamlit
+                    st.plotly_chart(fig)
+                                        
                     # Dickey-Fuller Test
                     st.write("Results of Dickey Fuller Test")
                     adft = adfuller(timeseries, autolag='AIC')
@@ -739,9 +747,6 @@ def main():
                     st.write(output)
                     
                 test_stationarity(data['Close'])
-
-                st.write(start_date)
-                st.write(end_date)
 
                 # Decompose the series
                 def days_between_dates(dt1, dt2):
@@ -755,21 +760,45 @@ def main():
                 #difference = days_between_dates(start_date, end_date)
                 #st.write(difference)
 
-                result = seasonal_decompose(data['Close'], model='multiplicative', period=9)
+
+                def business_days_between_dates(start_date, end_date):
+                    business_days = np.busday_count(start_date, end_date)
+                    return business_days
+
+                # Example usage:
+                business_days = business_days_between_dates(start_date, end_date)
+                st.write("Business days between the two dates:", business_days)
+
+
+                result = seasonal_decompose(data['Close'], model='multiplicative', period=int(business_days/2))
                 fig = result.plot()  
                 fig.set_size_inches(16, 9)
 
+                st.write(data['Close'])
                 # Log transform
-                df_log = np.log(data['Close'])
+                df_log = data['Close']
+                #df_log = np.log(data['Close'])
+                #st.write(df_log)
                 moving_avg = df_log.rolling(12).mean()
                 std_dev = df_log.rolling(12).std()
 
                 # Plot moving average
-                plt.plot(std_dev, color='black', label='Standard Deviation')
-                plt.plot(moving_avg, color='red', label='Mean')
-                plt.legend()
-                plt.title('Moving Average')
-                plt.show()
+                fig = go.Figure()
+
+                # Add traces for the moving average and standard deviation
+                fig.add_trace(go.Scatter(x=std_dev.index, y=std_dev.values, mode='lines', name='Standard Deviation', line=dict(color='black')))
+                fig.add_trace(go.Scatter(x=moving_avg.index, y=moving_avg.values, mode='lines', name='Mean', line=dict(color='red')))
+
+                # Update layout
+                fig.update_layout(
+                    title='Moving Average',
+                    xaxis_title='Dates',
+                    yaxis_title='Values',
+                    legend=dict(x=0, y=1)
+                )
+
+                # Display the moving average plot using Streamlit
+                st.plotly_chart(fig)
 
                 # Split data into train and test sets
                 train_data, test_data = df_log[3:int(len(df_log)*0.9)], df_log[int(len(df_log)*0.9):]
@@ -780,23 +809,43 @@ def main():
                 st.write(fitted.summary())
 
                 # Forecast
-                fc, se, conf = fitted.forecast(len(test_data), alpha=0.05)
+                
+                #fc, se, conf = fitted.forecast(len(test_data), alpha=0.05)
+                fc = fitted.forecast(len(test_data), alpha=0.05)
 
                 # Plot forecast
                 fc_series = pd.Series(fc, index=test_data.index)
-                lower_series = pd.Series(conf[:, 0], index=test_data.index)
-                upper_series = pd.Series(conf[:, 1], index=test_data.index)
+                st.write(fc_series)
+                lower_series = pd.Series(index=test_data.index)
+                upper_series = pd.Series(index=test_data.index)
 
-                plt.figure(figsize=(10,5), dpi=100)
-                plt.plot(train_data, label='Training')
-                plt.plot(test_data, color='blue', label='Actual Price')
-                plt.plot(fc_series, color='orange', label='Predicted Price')
-                plt.fill_between(lower_series.index, lower_series, upper_series, color='k', alpha=.10)
-                plt.title(f'{ticker} Stock Price Prediction')
-                plt.xlabel('Time')
-                plt.ylabel('Price')
-                plt.legend(loc='upper left', fontsize=8)
-                plt.show()
+                # Create stock price prediction plot with Plotly
+                fig = go.Figure()
+
+                # Plot training data
+                fig.add_trace(go.Scatter(x=train_data.index, y=train_data.values, mode='lines', name='Training'))
+
+                # Plot actual price
+                fig.add_trace(go.Scatter(x=test_data.index, y=test_data.values, mode='lines', name='Actual Price', line=dict(color='blue')))
+
+                # Plot predicted price
+                fig.add_trace(go.Scatter(x=test_data.index, y=fc, mode='lines', name='Predicted Price', line=dict(color='orange')))
+
+                # Add shaded region for confidence interval
+                fig.add_trace(go.Scatter(x=lower_series.index, y=lower_series.values, mode='lines', fill=None, line=dict(color='rgba(0,0,0,0)'), showlegend=False))
+                fig.add_trace(go.Scatter(x=lower_series.index, y=upper_series.values, mode='lines', fill='tonexty', line=dict(color='rgba(0,0,0,0)'), name='Confidence Interval'))
+
+                # Update layout
+                fig.update_layout(
+                    title=f'{ticker} Stock Price Prediction',
+                    xaxis_title='Time',
+                    yaxis_title='Price',
+                    legend=dict(x=0, y=1),
+                    margin=dict(l=0, r=0, t=30, b=0),
+                )
+
+                # Display the stock price prediction plot using Streamlit
+                st.plotly_chart(fig)
 
                 # Performance metrics
                 mse = mean_squared_error(test_data, fc)
