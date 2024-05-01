@@ -76,7 +76,7 @@ def visualize_correlation_heatmap(correlation):
     st.plotly_chart(fig)
 
 def main():
-    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies'])
+    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "AI Trading"])
     if option == 'Find stocks':
         options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
         if options == "IDB_RS_Rating":
@@ -811,7 +811,8 @@ def main():
                 model_autoARIMA.plot_diagnostics(figsize=(15,8))
                 plt.show()
         
-    else:
+    elif options == "AI Trading":
+        st.write("This bot allows you to initate a trade")
         pass
 
 if __name__ == "__main__":
