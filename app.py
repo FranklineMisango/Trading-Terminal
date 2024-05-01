@@ -41,6 +41,22 @@ import datetime
 import math
 import warnings
 import plotly.graph_objects as go
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from matplotlib.pylab import rcParams
+from fastai.tabular.all import add_datepart
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from scipy import stats
+import numpy as np
+
 
 
 warnings.filterwarnings("ignore")
@@ -859,6 +875,169 @@ def main():
                 print(model_autoARIMA.summary())
                 model_autoARIMA.plot_diagnostics(figsize=(15,8))
                 plt.show()
+        if options == "Stock price predictions":
+            # Set plot size
+            rcParams['figure.figsize'] = 20, 10
+
+            # Download historical data for Google stock
+            data = yf.download('GOOGL', '2015-09-08', '2020-09-08')
+
+            # Moving Average and other calculations
+            data['MA50'] = data['Close'].rolling(50).mean()
+            data['MA200'] = data['Close'].rolling(200).mean()
+
+            # Plotting stock prices with moving averages
+            plt.figure(figsize=(16, 8))
+            plt.plot(data['Close'], label='GOOGL Close Price')
+            plt.plot(data['MA50'], label='50 Day MA')
+            plt.plot(data['MA200'], label='200 Day MA')
+            plt.legend()
+            plt.show()
+
+            # Preprocessing for Linear Regression and k-Nearest Neighbors
+            data.reset_index(inplace=True)
+            data['Date'] = pd.to_datetime(data['Date'])
+            data = add_datepart(data, 'Date')
+            data.drop('Elapsed', axis=1, inplace=True)  # Remove Elapsed column
+
+            # Scaling data
+            scaler = MinMaxScaler(feature_range=(0, 1))
+            data_scaled = scaler.fit_transform(data.drop(['Close'], axis=1))
+
+            # Train-test split
+            train_size = int(len(data) * 0.8)
+            train_data = data_scaled[:train_size]
+            test_data = data_scaled[train_size:]
+
+            # Separate features and target variable
+            X_train, y_train = train_data[:, 1:], train_data[:, 0]
+            X_test, y_test = test_data[:, 1:], test_data[:, 0]
+
+            # Linear Regression model
+            lr_model = LinearRegression()
+            lr_model.fit(X_train, y_train)
+            lr_predictions = lr_model.predict(X_test)
+
+            # k-Nearest Neighbors model
+            knn_model = GridSearchCV(KNeighborsRegressor(), {'n_neighbors': range(1, 10)}, cv=5)
+            knn_model.fit(X_train, y_train)
+            knn_predictions = knn_model.predict(X_test)
+
+            # TensorFlow Keras model (Multilayer Perceptron)
+            mlp_model = tf.keras.models.Sequential([
+                tf.keras.layers.Dense(50, activation='relu', input_dim=X_train.shape[1]),
+                tf.keras.layers.Dense(50, activation='relu'),
+                tf.keras.layers.Dense(1)
+            ])
+            mlp_model.compile(optimizer='adam', loss='mean_squared_error')
+            mlp_model.fit(X_train, y_train, epochs=100)
+            mlp_predictions = mlp_model.predict(X_test)
+
+            # Plot predictions from each model
+            plt.figure(figsize=(16, 8))
+            plt.plot(y_test, label='Actual')
+            plt.plot(lr_predictions, label='Linear Regression Predictions')
+            plt.plot(knn_predictions, label='kNN Predictions')
+            plt.plot(mlp_predictions, label='MLP Predictions')
+            plt.legend()
+            plt.show()
+
+        if options == "Stock regression Analysis":
+            # Set parameters for stock data
+            stock = 'AAPL'
+            start_date = dt.date.today() - dt.timedelta(days=3650)  # 10 years of data
+            end_date = dt.date.today()
+
+            # Download historical data for the specified stock
+            data = yf.download(stock, start_date, end_date)
+
+            # Drop columns that won't be used in the regression model
+            data = data.drop(columns=['Adj Close'])
+
+            # Prepare the features (X) and target (y)
+            X = data.drop(['Close'], axis=1)
+            y = data['Adj Close']
+
+            # Split the data into training and testing sets
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+
+            # Initialize and train a Linear Regression model
+            regression_model = LinearRegression()
+            regression_model.fit(X_train, y_train)
+
+            # Output the intercept of the model
+            intercept = regression_model.intercept_
+            print(f"The intercept for our model is: {intercept}")
+
+            # Evaluate the model's performance
+            score = regression_model.score(X_test, y_test)
+            print(f"The score for our model is: {score}")
+
+            # Predict the next day's closing price using the latest data
+            latest_data = data.tail(1).drop(['Close'], axis=1)
+            next_day_price = regression_model.predict(latest_data)[0]
+            print(f"The predicted price for the next trading day is: {next_day_price}")
+
+        if options == "Stock Probability Analysis":
+
+
+            # Download historical data for AMD stock
+            data = yfinance.download('AMD', '2015-09-08', '2020-09-08')
+
+            def calculate_prereq(values):
+                # Calculate standard deviation and mean
+                std = np.std(values)
+                mean = np.mean(values)
+                return std, mean
+
+            def calculate_distribution(mean, std):
+                # Create normal distribution with given mean and std
+                return stats.norm(mean, std)
+
+            def extrapolate(norm, x):
+                # Probability density function
+                return norm.pdf(x)
+
+            def values_to_norm(dicts):
+                # Convert lists of values to normal distributions
+                for dictionary in dicts:
+                    for term in dictionary:
+                        std, mean = calculate_prereq(dictionary[term])
+                        dictionary[term] = calculate_distribution(mean, std)
+                return dicts
+
+            def compare_possibilities(dicts, x):
+                # Compare normal distributions and return index of higher probability
+                probabilities = []
+                for dictionary in dicts:
+                    dict_probs = [extrapolate(dictionary[i], x[i]) for i in range(len(x))]
+                    probabilities.append(np.prod(dict_probs))
+                return probabilities.index(max(probabilities))
+
+            # Prepare data for increase and drop scenarios
+            drop = {}
+            increase = {}
+            for day in range(10, len(data) - 1):
+                previous_close = data['Close'][day - 10:day]
+                ratios = [previous_close[i] / previous_close[i - 1] for i in range(1, len(previous_close))]
+                if data['Close'][day + 1] > data['Close'][day]:
+                    for i, ratio in enumerate(ratios):
+                        increase[i] = increase.get(i, ()) + (ratio,)
+                elif data['Close'][day + 1] < data['Close'][day]:
+                    for i, ratio in enumerate(ratios):
+                        drop[i] = drop.get(i, ()) + (ratio,)
+
+            # Add new ratios for prediction
+            new_close = data['Close'][-11:-1]
+            new_ratios = [new_close[i] / new_close[i - 1] for i in range(1, len(new_close))]
+            for i, ratio in enumerate(new_ratios):
+                increase[i] = increase.get(i, ()) + (ratio,)
+
+            # Convert ratio lists to normal distributions and make prediction
+            dicts = [increase, drop]
+            dicts = values_to_norm(dicts)
+            prediction = compare_possibilities(dicts, new_ratios)
+            print("Predicted Movement: ", "Increase" if prediction == 0 else "Drop")
         
     elif options == "AI Trading":
         st.write("This bot allows you to initate a trade")
