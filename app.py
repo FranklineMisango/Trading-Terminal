@@ -2,6 +2,7 @@
 import streamlit as st
 from bs4 import BeautifulSoup
 import os
+from pylab import rcParams
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -19,6 +20,7 @@ parent_dir = os.path.dirname(os.getcwd())
 sys.path.append(parent_dir)
 import ta_functions as ta
 import tickers as ti
+from tickers import tickers_sp500
 import time
 import smtplib
 from email.message import EmailMessage
@@ -32,6 +34,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.arima.model import ARIMA
@@ -708,7 +711,7 @@ def main():
                 
     elif option == 'Stock Predictions':
 
-        pred_option = st.selectbox('Make a choice', ['Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions'])
+        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1094,7 +1097,98 @@ def main():
                 dicts = values_to_norm(dicts)
                 prediction = compare_possibilities(dicts, new_ratios)
                 st.write("Predicted Movement: ", "Increase" if prediction == 0 else "Drop")
-        
+                
+        if pred_option == "sp500 PCA Analysis":
+            st.write("This segment analyzes the s&p 500 stocks and identifies those with high/low PCA weights")
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+
+            # Set parameters and retrieve stock tickers
+                '''
+                num_years = 1
+                start_date = datetime.date.today() - datetime.timedelta(days=365.25 * num_years)
+                end_date = datetime.date.today()
+                '''
+
+                # Get tickers of S&P 500 stocks
+                PCA_tickers =  ti.tickers_sp500()
+                sp500_tickers = yf.download(PCA_tickers, start=start_date, end=end_date)
+                tickers = ' '.join(PCA_tickers)
+
+                # Set parameters and retrieve stock tickers
+                num_years = 1
+                start_date = datetime.date.today() - datetime.timedelta(days=365.25 * num_years)
+                end_date = datetime.date.today()
+
+                # Calculate log differences of prices for market index and stocks
+                market_prices = yf.download(tickers='^GSPC', start=start_date, end=end_date)['Adj Close']
+                market_log_returns = np.log(market_prices).diff()
+                stock_prices = yf.download(tickers=tickers, start=start_date, end=end_date)['Adj Close']
+                stock_log_returns = np.log(stock_prices).diff()
+
+                # Check if DataFrame is empty
+                # Check if DataFrame is empty
+                if stock_log_returns.empty:
+                    st.error("No data found for selected tickers. Please try again with different dates or tickers.")
+                else:
+                    # Plot daily returns of S&P 500 stocks
+                    st.write("## Daily Returns of S&P 500 Stocks")
+                    fig = go.Figure()
+                    for column in stock_log_returns.columns:
+                        fig.add_trace(go.Scatter(x=stock_log_returns.index, y=stock_log_returns[column], mode='lines', name=column))
+                    fig.update_layout(title='Daily Returns of S&P 500 Stocks', xaxis_title='Date', yaxis_title='Returns')
+                    st.plotly_chart(fig)
+
+                    # Plot cumulative returns of S&P 500 stocks
+                    st.write("## Cumulative Returns of S&P 500 Stocks")
+                    cumulative_returns = stock_log_returns.cumsum().apply(np.exp)
+                    fig = go.Figure()
+                    for column in cumulative_returns.columns:
+                        fig.add_trace(go.Scatter(x=cumulative_returns.index, y=cumulative_returns[column], mode='lines', name=column))
+                    fig.update_layout(title='Cumulative Returns of S&P 500 Stocks', xaxis_title='Date', yaxis_title='Cumulative Returns')
+                    st.plotly_chart(fig)
+
+                    # Perform PCA on stock returns
+                    pca = PCA(n_components=1)
+                    pca.fit(stock_log_returns.fillna(0))
+                    pc1 = pd.Series(index=stock_log_returns.columns, data=pca.components_[0])
+
+                    # Plot the first principal component
+                    st.write("## First Principal Component of S&P 500 Stocks")
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=pc1.index, y=pc1.values, mode='lines', name='First Principal Component'))
+                    fig.update_layout(title='First Principal Component of S&P 500 Stocks', xaxis_title='Stocks', yaxis_title='PC1')
+                    st.plotly_chart(fig)
+
+                    # Calculate weights for PCA portfolio and compare with market index
+                    weights = abs(pc1) / sum(abs(pc1))
+                    pca_portfolio_returns = (weights * stock_log_returns).sum(axis=1)
+                    combined_returns = pd.concat([pca_portfolio_returns, market_log_returns], axis=1)
+                    combined_returns.columns = ['PCA Portfolio', 'S&P 500']
+                    cumulative_combined_returns = combined_returns.cumsum().apply(np.exp)
+
+                    # Plot PCA portfolio vs S&P 500
+                    st.write("## PCA Portfolio vs S&P 500")
+                    fig = go.Figure()
+                    for column in cumulative_combined_returns.columns:
+                        fig.add_trace(go.Scatter(x=cumulative_combined_returns.index, y=cumulative_combined_returns[column], mode='lines', name=column))
+                    fig.update_layout(title='PCA Portfolio vs S&P 500', xaxis_title='Date', yaxis_title='Cumulative Returns')
+                    st.plotly_chart(fig)
+
+                    # Plot stocks with most and least significant PCA weights
+                    st.write("## Stocks with Most and Least Significant PCA Weights")
+                    fig = go.Figure(data=[
+                        go.Bar(x=pc1.nsmallest(10).index, y=pc1.nsmallest(10), name='Most Negative PCA Weights', marker_color='red'),
+                        go.Bar(x=pc1.nlargest(10).index, y=pc1.nlargest(10), name='Most Positive PCA Weights', marker_color='green')
+                    ])
+                    fig.update_layout(title='Stocks with Most and Least Significant PCA Weights', xaxis_title='Stocks', yaxis_title='PCA Weights')
+                    st.plotly_chart(fig)
+
     elif pred_option == "AI Trading":
         st.write("This bot allows you to initate a trade")
         pass
