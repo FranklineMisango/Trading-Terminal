@@ -42,7 +42,6 @@ import math
 import warnings
 import plotly.graph_objects as go
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 import matplotlib.pyplot as plt
@@ -51,13 +50,16 @@ import numpy as np
 from matplotlib.pylab import rcParams
 from fastai.tabular.all import add_datepart
 import tensorflow as tf
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from scipy import stats
 import numpy as np
 
-
+#Config imports
+from config import EMAIL_ADDRESS
+from config import EMAIL_PASSWORD
 
 warnings.filterwarnings("ignore")
 
@@ -450,8 +452,6 @@ def main():
             if stock:
                 message = (f"Ticker captured : {stock}")
                 st.success(message)
-            from config import EMAIL_ADDRESS
-            from config import EMAIL_PASSWORD
             # Stock and target price settings
             target_price = st.number_input("Enter the target price")
             if target_price:
@@ -629,6 +629,7 @@ def main():
             st.write(recommender_list.set_index('Symbol'))
 
         if options=="Yahoo Recommendations":
+
             st.success("This segment returns the stocks recommended by ")
             if st.button("Check Recommendations"):
                 # Set pandas option to display all columns
@@ -707,7 +708,7 @@ def main():
                 
     elif option == 'Stock Predictions':
 
-        pred_option = st.selectbox('Make a choice', ['Arima_Time_Series'])
+        pred_option = st.selectbox('Make a choice', ['Arima_Time_Series', 'Stock price predictions'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -875,74 +876,115 @@ def main():
                 print(model_autoARIMA.summary())
                 model_autoARIMA.plot_diagnostics(figsize=(15,8))
                 plt.show()
-        if options == "Stock price predictions":
-            # Set plot size
-            rcParams['figure.figsize'] = 20, 10
 
-            # Download historical data for Google stock
-            data = yf.download('GOOGL', '2015-09-08', '2020-09-08')
+        if pred_option == "Stock price predictions":
+            st.success("This segment allows you to predict the pricing using LInear Regression")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
 
-            # Moving Average and other calculations
-            data['MA50'] = data['Close'].rolling(50).mean()
-            data['MA200'] = data['Close'].rolling(200).mean()
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
 
-            # Plotting stock prices with moving averages
-            plt.figure(figsize=(16, 8))
-            plt.plot(data['Close'], label='GOOGL Close Price')
-            plt.plot(data['MA50'], label='50 Day MA')
-            plt.plot(data['MA200'], label='200 Day MA')
-            plt.legend()
-            plt.show()
+            if st.button("Check"):
+                # Set plot size
+                rcParams['figure.figsize'] = 20, 10
 
-            # Preprocessing for Linear Regression and k-Nearest Neighbors
-            data.reset_index(inplace=True)
-            data['Date'] = pd.to_datetime(data['Date'])
-            data = add_datepart(data, 'Date')
-            data.drop('Elapsed', axis=1, inplace=True)  # Remove Elapsed column
+                # Download historical data for Google stock
+                data = yf.download(ticker, start_date, end_date)
 
-            # Scaling data
-            scaler = MinMaxScaler(feature_range=(0, 1))
-            data_scaled = scaler.fit_transform(data.drop(['Close'], axis=1))
+                # Moving Average and other calculations
+                data['MA50'] = data['Close'].rolling(50).mean()
+                data['MA200'] = data['Close'].rolling(200).mean()
 
-            # Train-test split
-            train_size = int(len(data) * 0.8)
-            train_data = data_scaled[:train_size]
-            test_data = data_scaled[train_size:]
+                # Create a Plotly figure
+                fig = go.Figure()
 
-            # Separate features and target variable
-            X_train, y_train = train_data[:, 1:], train_data[:, 0]
-            X_test, y_test = test_data[:, 1:], test_data[:, 0]
+                # Add traces for close price, 50-day MA, and 200-day MA
+                fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name=f'{ticker} Close Price'))
+                fig.add_trace(go.Scatter(x=data.index, y=data['MA50'], mode='lines', name='50 Day MA'))
+                fig.add_trace(go.Scatter(x=data.index, y=data['MA200'], mode='lines', name='200 Day MA'))
 
-            # Linear Regression model
-            lr_model = LinearRegression()
-            lr_model.fit(X_train, y_train)
-            lr_predictions = lr_model.predict(X_test)
+                # Update layout
+                fig.update_layout(
+                    title=f'{ticker} Stock Prices with Moving Averages',
+                    xaxis_title='Date',
+                    yaxis_title='Price',
+                    legend=dict(x=0, y=1),
+                    margin=dict(l=0, r=0, t=30, b=0),
+                )
 
-            # k-Nearest Neighbors model
-            knn_model = GridSearchCV(KNeighborsRegressor(), {'n_neighbors': range(1, 10)}, cv=5)
-            knn_model.fit(X_train, y_train)
-            knn_predictions = knn_model.predict(X_test)
+                # Display the interactive chart using Streamlit
+                st.plotly_chart(fig)        
 
-            # TensorFlow Keras model (Multilayer Perceptron)
-            mlp_model = tf.keras.models.Sequential([
-                tf.keras.layers.Dense(50, activation='relu', input_dim=X_train.shape[1]),
-                tf.keras.layers.Dense(50, activation='relu'),
-                tf.keras.layers.Dense(1)
-            ])
-            mlp_model.compile(optimizer='adam', loss='mean_squared_error')
-            mlp_model.fit(X_train, y_train, epochs=100)
-            mlp_predictions = mlp_model.predict(X_test)
+                # Preprocessing for Linear Regression
+                data.reset_index(inplace=True)
+                data['Date'] = pd.to_datetime(data['Date'])
+                #data = add_datepart(data, 'Date')
+                data = add_datepart(data, 'Date', drop=False)
+                st.write(data)
+                data.drop('Elapsed', axis=1, inplace=False)  # Remove Elapsed column
+                st.write(data['Date'])
+                # Assuming 'Date' is the name of your datetime column
+                date_column = data['Date']  # Extract the datetime column
+                data = data.drop(columns=['Date'])  # Drop the datetime column before scaling
 
-            # Plot predictions from each model
-            plt.figure(figsize=(16, 8))
-            plt.plot(y_test, label='Actual')
-            plt.plot(lr_predictions, label='Linear Regression Predictions')
-            plt.plot(knn_predictions, label='kNN Predictions')
-            plt.plot(mlp_predictions, label='MLP Predictions')
-            plt.legend()
-            plt.show()
+                # Scaling data to fit in graph
+                scaler = MinMaxScaler(feature_range=(0, 1))
+                data_scaled = scaler.fit_transform(data.drop(['Close'], axis=1))
 
-        if options == "Stock regression Analysis":
+                # Train-test split
+                train_size = int(len(data) * 0.8)
+                train_data = data_scaled[:train_size]
+                test_data = data_scaled[train_size:]
+
+                # Separate features and target variable
+                X_train, y_train = train_data[:, 1:], train_data[:, 0]
+                X_test, y_test = test_data[:, 1:], test_data[:, 0]
+
+                # Initialize SimpleImputer to handle missing values
+                imputer = SimpleImputer(strategy='mean')
+
+                # Fit and transform the imputer on the training data
+                X_train_imputed = imputer.fit_transform(X_train)
+
+                # Transform the testing data using the fitted imputer
+                X_test_imputed = imputer.transform(X_test)
+
+                # Initialize and fit Linear Regression model on the imputed data
+                lr_model = LinearRegression()
+                lr_model.fit(X_train_imputed, y_train)
+                lr_score = lr_model.score(X_test_imputed, y_test)
+                lr_predictions = lr_model.predict(X_test_imputed)
+                lr_printing_score = f"Linear Regression Score: {lr_score}"
+                st.write(lr_printing_score)
+
+               # Create a Plotly figure
+                fig = go.Figure()
+
+                # Add traces for actual and predicted values
+                fig.add_trace(go.Scatter(x=data.index[train_size:], y=y_test, mode='lines', name='Actual'))
+                fig.add_trace(go.Scatter(x=data.index[train_size:], y=lr_predictions, mode='lines', name='Linear Regression Predictions'))
+
+                # Update layout
+                fig.update_layout(
+                    title='Actual vs. Predicted Prices (Linear Regression)',
+                    xaxis_title='Date',
+                    yaxis_title='Price',
+                    legend=dict(x=0, y=1),
+                    margin=dict(l=0, r=0, t=30, b=0),
+                )
+
+                # Display the interactive chart using Streamlit
+                st.plotly_chart(fig)
+                
+                fig = go.Figure()
+
+        if pred_option == "Stock regression Analysis":
             # Set parameters for stock data
             stock = 'AAPL'
             start_date = dt.date.today() - dt.timedelta(days=3650)  # 10 years of data
@@ -978,11 +1020,9 @@ def main():
             next_day_price = regression_model.predict(latest_data)[0]
             print(f"The predicted price for the next trading day is: {next_day_price}")
 
-        if options == "Stock Probability Analysis":
-
-
+        if pred_option == "Stock Probability Analysis":
             # Download historical data for AMD stock
-            data = yfinance.download('AMD', '2015-09-08', '2020-09-08')
+            data = yf.download('AMD', '2015-09-08', '2020-09-08')
 
             def calculate_prereq(values):
                 # Calculate standard deviation and mean
@@ -1039,7 +1079,7 @@ def main():
             prediction = compare_possibilities(dicts, new_ratios)
             print("Predicted Movement: ", "Increase" if prediction == 0 else "Drop")
         
-    elif options == "AI Trading":
+    elif pred_option == "AI Trading":
         st.write("This bot allows you to initate a trade")
         pass
 
