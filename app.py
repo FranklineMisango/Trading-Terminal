@@ -45,8 +45,9 @@ import math
 import warnings
 import plotly.graph_objects as go
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.cluster import KMeans
+import plotly.express as px
+from sklearn.mixture import GaussianMixture
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -59,7 +60,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from scipy import stats
 import numpy as np
-
+from bs4 import BeautifulSoup
 #Config imports
 from config import EMAIL_ADDRESS
 from config import EMAIL_PASSWORD
@@ -711,7 +712,7 @@ def main():
                 
     elif option == 'Stock Predictions':
 
-        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions'])
+        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions','Technical Indicators Clustering'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1108,13 +1109,6 @@ def main():
 
             if st.button("Check"):
 
-            # Set parameters and retrieve stock tickers
-                '''
-                num_years = 1
-                start_date = datetime.date.today() - datetime.timedelta(days=365.25 * num_years)
-                end_date = datetime.date.today()
-                '''
-
                 # Get tickers of S&P 500 stocks
                 PCA_tickers =  ti.tickers_sp500()
                 sp500_tickers = yf.download(PCA_tickers, start=start_date, end=end_date)
@@ -1188,6 +1182,117 @@ def main():
                     ])
                     fig.update_layout(title='Stocks with Most and Least Significant PCA Weights', xaxis_title='Stocks', yaxis_title='PCA Weights')
                     st.plotly_chart(fig)
+        
+        if pred_option == "Technical Indicators Clustering":
+
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+                # Function to fetch S&P 100 tickers from Wikipedia
+                def fetch_sp100_tickers():
+                    response = requests.get("https://en.wikipedia.org/wiki/S%26P_100")
+                    soup = BeautifulSoup(response.text, "lxml")
+                    table = soup.find("table", {"class": "wikitable sortable"})
+                    tickers = [row.findAll("td")[0].text.strip() for row in table.findAll("tr")[1:]]
+                    return tickers
+
+                # Download historical data for each ticker
+                def download_stock_data(tickers):
+                    start_date = dt.datetime(1990, 1, 1)
+                    end_date = dt.date.today()
+                    all_data = pd.DataFrame()
+
+                    for ticker in tickers:
+                        try:
+                            data = yf.download(ticker, start=start_date, end=end_date)
+                            data['Symbol'] = ticker
+                            all_data = all_data.append(data)
+                        except Exception as e:
+                            print(f"Error downloading {ticker}: {e}")
+                    
+                    return all_data
+
+                # Add technical indicators to the data
+                def add_technical_indicators(data):
+                    # Example implementation for Simple Moving Average (SMA)
+                    data['SMA_5'] = data['Close'].rolling(window=5).mean()
+                    data['SMA_15'] = data['Close'].rolling(window=15).mean()
+                    # Additional technical indicators can be added here
+                    return data
+
+                # Get list of S&P 100 tickers
+                sp100_tickers = fetch_sp100_tickers()
+
+                # Download stock data
+                stock_data = download_stock_data(sp100_tickers)
+
+                # Add technical indicators to the data
+                stock_data_with_indicators = add_technical_indicators(stock_data)
+
+                # Clustering based on technical indicators
+                # This part of the script would involve applying clustering algorithms
+                # such as KMeans or Gaussian Mixture Models to the technical indicators
+                # Clustering based on technical indicators
+                def perform_clustering(data, n_clusters=10):
+                    # Selecting only the columns with technical indicators
+                    indicators = data[['SMA_5', 'SMA_15']].copy()  # Add other indicators as needed
+                    
+                    # Impute missing values
+                    imputer = SimpleImputer(strategy='mean')  # You can choose another strategy if needed
+                    indicators = imputer.fit_transform(indicators)
+                    
+                    # KMeans Clustering
+                    kmeans = KMeans(n_clusters=n_clusters)
+                    kmeans.fit(indicators)
+                    data['Cluster'] = kmeans.labels_
+
+                    # Gaussian Mixture Model Clustering
+                    gmm = GaussianMixture(n_components=n_clusters)
+                    gmm.fit(indicators)
+                    data['GMM_Cluster'] = gmm.predict(indicators)
+
+                    return data
+
+                # Perform clustering on the stock data
+                clustered_data = perform_clustering(stock_data_with_indicators)
+
+                # Visualization of Clusters
+                def plot_clusters(data):
+                    fig = px.scatter(data, x='SMA_5', y='SMA_15', color='Cluster', title='Stock Data Clusters', labels={'SMA_5': 'SMA 5', 'SMA_15': 'SMA 15'})
+                    fig.show()
+                # Plotting the clusters
+                plot_clusters(clustered_data)
+
+                # Analyze and interpret the clusters
+                # This step involves understanding the characteristics of each cluster
+                # and how they differ from each other based on the stock movement patterns they represent
+                # Analyzing Clusters
+                def analyze_clusters(data):
+                    # Group data by clusters
+                    grouped = data.groupby('Cluster')
+
+                    # Analyze clusters
+                    cluster_analysis = pd.DataFrame()
+                    for name, group in grouped:
+                        analysis = {
+                            'Cluster': name,
+                            'Average_SMA_5': group['SMA_5'].mean(),
+                            'Average_SMA_15': group['SMA_15'].mean(),
+                            # Add more analysis as needed
+                        }
+                        cluster_analysis = cluster_analysis.append(analysis, ignore_index=True)
+                    
+                    return cluster_analysis
+
+                # Perform cluster analysis
+                cluster_analysis = analyze_clusters(clustered_data)
+
+                # Display analysis results
+                st.write(cluster_analysis)
 
     elif pred_option == "AI Trading":
         st.write("This bot allows you to initate a trade")
