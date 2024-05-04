@@ -708,7 +708,7 @@ def main():
                 
     elif option == 'Stock Predictions':
 
-        pred_option = st.selectbox('Make a choice', ['Arima_Time_Series', 'Stock price predictions'])
+        pred_option = st.selectbox('Make a choice', ['Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -878,7 +878,7 @@ def main():
                 plt.show()
 
         if pred_option == "Stock price predictions":
-            st.success("This segment allows you to predict the pricing using LInear Regression")
+            st.success("This segment allows you to predict the pricing using Linear Regression")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -921,17 +921,11 @@ def main():
                 # Display the interactive chart using Streamlit
                 st.plotly_chart(fig)        
 
-                # Preprocessing for Linear Regression
+                # Preprocessing for Linear Regression and k-Nearest Neighbors
                 data.reset_index(inplace=True)
                 data['Date'] = pd.to_datetime(data['Date'])
-                #data = add_datepart(data, 'Date')
-                data = add_datepart(data, 'Date', drop=False)
-                st.write(data)
-                data.drop('Elapsed', axis=1, inplace=False)  # Remove Elapsed column
-                st.write(data['Date'])
-                # Assuming 'Date' is the name of your datetime column
-                date_column = data['Date']  # Extract the datetime column
-                data = data.drop(columns=['Date'])  # Drop the datetime column before scaling
+                data = add_datepart(data, 'Date')
+                data.drop('Elapsed', axis=1, inplace=True)  # Remove Elapsed column
 
                 # Scaling data to fit in graph
                 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -981,103 +975,125 @@ def main():
 
                 # Display the interactive chart using Streamlit
                 st.plotly_chart(fig)
-                
-                fig = go.Figure()
-
         if pred_option == "Stock regression Analysis":
-            # Set parameters for stock data
-            stock = 'AAPL'
-            start_date = dt.date.today() - dt.timedelta(days=3650)  # 10 years of data
-            end_date = dt.date.today()
 
-            # Download historical data for the specified stock
-            data = yf.download(stock, start_date, end_date)
+            st.success("This segment allows you to predict the next day price of a stock")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
 
-            # Drop columns that won't be used in the regression model
-            data = data.drop(columns=['Adj Close'])
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
 
-            # Prepare the features (X) and target (y)
-            X = data.drop(['Close'], axis=1)
-            y = data['Adj Close']
+            if st.button("Check"):
 
-            # Split the data into training and testing sets
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+                # Set parameters for stock data
+                stock = ticker
 
-            # Initialize and train a Linear Regression model
-            regression_model = LinearRegression()
-            regression_model.fit(X_train, y_train)
+                # Download historical data for the specified stock
+                data = yf.download(stock, start_date, end_date)
 
-            # Output the intercept of the model
-            intercept = regression_model.intercept_
-            print(f"The intercept for our model is: {intercept}")
+                
+                # Prepare the features (X) and target (y)
+                X = data.drop(['Close'], axis=1)
+                y = data['Adj Close']
 
-            # Evaluate the model's performance
-            score = regression_model.score(X_test, y_test)
-            print(f"The score for our model is: {score}")
+                # Split the data into training and testing sets
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
 
-            # Predict the next day's closing price using the latest data
-            latest_data = data.tail(1).drop(['Close'], axis=1)
-            next_day_price = regression_model.predict(latest_data)[0]
-            print(f"The predicted price for the next trading day is: {next_day_price}")
+                # Initialize and train a Linear Regression model
+                regression_model = LinearRegression()
+                regression_model.fit(X_train, y_train)
+
+                # Output the intercept of the model
+                intercept = regression_model.intercept_
+                st.write(f"The intercept for our model is: {intercept}")
+
+                # Evaluate the model's performance
+                score = regression_model.score(X_test, y_test)
+                st.write(f"The score for our model is: {score}")
+
+                # Predict the next day's closing price using the latest data
+                latest_data = data.tail(1).drop(['Close'], axis=1)
+                next_day_price = regression_model.predict(latest_data)[0]
+                st.write(f"The predicted price for the next trading day is: {next_day_price}")
 
         if pred_option == "Stock Probability Analysis":
-            # Download historical data for AMD stock
-            data = yf.download('AMD', '2015-09-08', '2020-09-08')
 
-            def calculate_prereq(values):
-                # Calculate standard deviation and mean
-                std = np.std(values)
-                mean = np.mean(values)
-                return std, mean
+            st.success("This segment allows you to predict the movement of a stock ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
 
-            def calculate_distribution(mean, std):
-                # Create normal distribution with given mean and std
-                return stats.norm(mean, std)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
 
-            def extrapolate(norm, x):
-                # Probability density function
-                return norm.pdf(x)
+            if st.button("Check"):
 
-            def values_to_norm(dicts):
-                # Convert lists of values to normal distributions
-                for dictionary in dicts:
-                    for term in dictionary:
-                        std, mean = calculate_prereq(dictionary[term])
-                        dictionary[term] = calculate_distribution(mean, std)
-                return dicts
+                # Download historical data for AMD stock
+                data = yf.download(ticker, start_date, end_date)
+                def calculate_prereq(values):
+                    # Calculate standard deviation and mean
+                    std = np.std(values)
+                    mean = np.mean(values)
+                    return std, mean
 
-            def compare_possibilities(dicts, x):
-                # Compare normal distributions and return index of higher probability
-                probabilities = []
-                for dictionary in dicts:
-                    dict_probs = [extrapolate(dictionary[i], x[i]) for i in range(len(x))]
-                    probabilities.append(np.prod(dict_probs))
-                return probabilities.index(max(probabilities))
+                def calculate_distribution(mean, std):
+                    # Create normal distribution with given mean and std
+                    return stats.norm(mean, std)
 
-            # Prepare data for increase and drop scenarios
-            drop = {}
-            increase = {}
-            for day in range(10, len(data) - 1):
-                previous_close = data['Close'][day - 10:day]
-                ratios = [previous_close[i] / previous_close[i - 1] for i in range(1, len(previous_close))]
-                if data['Close'][day + 1] > data['Close'][day]:
-                    for i, ratio in enumerate(ratios):
-                        increase[i] = increase.get(i, ()) + (ratio,)
-                elif data['Close'][day + 1] < data['Close'][day]:
-                    for i, ratio in enumerate(ratios):
-                        drop[i] = drop.get(i, ()) + (ratio,)
+                def extrapolate(norm, x):
+                    # Probability density function
+                    return norm.pdf(x)
 
-            # Add new ratios for prediction
-            new_close = data['Close'][-11:-1]
-            new_ratios = [new_close[i] / new_close[i - 1] for i in range(1, len(new_close))]
-            for i, ratio in enumerate(new_ratios):
-                increase[i] = increase.get(i, ()) + (ratio,)
+                def values_to_norm(dicts):
+                    # Convert lists of values to normal distributions
+                    for dictionary in dicts:
+                        for term in dictionary:
+                            std, mean = calculate_prereq(dictionary[term])
+                            dictionary[term] = calculate_distribution(mean, std)
+                    return dicts
 
-            # Convert ratio lists to normal distributions and make prediction
-            dicts = [increase, drop]
-            dicts = values_to_norm(dicts)
-            prediction = compare_possibilities(dicts, new_ratios)
-            print("Predicted Movement: ", "Increase" if prediction == 0 else "Drop")
+                def compare_possibilities(dicts, x):
+                    # Compare normal distributions and return index of higher probability
+                    probabilities = []
+                    for dictionary in dicts:
+                        dict_probs = [extrapolate(dictionary[i], x[i]) for i in range(len(x))]
+                        probabilities.append(np.prod(dict_probs))
+                    return probabilities.index(max(probabilities))
+
+                # Prepare data for increase and drop scenarios
+                drop = {}
+                increase = {}
+                for day in range(10, len(data) - 1):
+                    previous_close = data['Close'][day - 10:day]
+                    ratios = [previous_close[i] / previous_close[i - 1] for i in range(1, len(previous_close))]
+                    if data['Close'][day + 1] > data['Close'][day]:
+                        for i, ratio in enumerate(ratios):
+                            increase[i] = increase.get(i, ()) + (ratio,)
+                    elif data['Close'][day + 1] < data['Close'][day]:
+                        for i, ratio in enumerate(ratios):
+                            drop[i] = drop.get(i, ()) + (ratio,)
+
+                # Add new ratios for prediction
+                new_close = data['Close'][-11:-1]
+                new_ratios = [new_close[i] / new_close[i - 1] for i in range(1, len(new_close))]
+                for i, ratio in enumerate(new_ratios):
+                    increase[i] = increase.get(i, ()) + (ratio,)
+
+                # Convert ratio lists to normal distributions and make prediction
+                dicts = [increase, drop]
+                dicts = values_to_norm(dicts)
+                prediction = compare_possibilities(dicts, new_ratios)
+                st.write("Predicted Movement: ", "Increase" if prediction == 0 else "Drop")
         
     elif pred_option == "AI Trading":
         st.write("This bot allows you to initate a trade")
