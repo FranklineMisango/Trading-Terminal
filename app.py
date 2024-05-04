@@ -5,6 +5,7 @@ import os
 from pylab import rcParams
 import yfinance as yf
 import pandas as pd
+import seaborn as sns
 import numpy as np
 import plotly.figure_factory as ff
 import tickers as ti
@@ -61,13 +62,28 @@ from sklearn.metrics import mean_squared_error
 from scipy import stats
 import numpy as np
 from bs4 import BeautifulSoup
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from pandas_datareader import data as pdr
+import yfinance as yf
+from keras.src.optimizers import Adam
+#keras
+from keras import Sequential
+from keras._tf_keras.keras.preprocessing import sequence
+from keras.src.layers import Embedding, LSTM, Dense, Dropout 
+from keras.src.metrics.metrics_utils import confusion_matrix
+from keras.src.utils import to_categorical
+import networkx as nx
+from sklearn.covariance import GraphicalLassoCV
 #Config imports
 from config import EMAIL_ADDRESS
 from config import EMAIL_PASSWORD
 
+
 warnings.filterwarnings("ignore")
 
-st.title('Comprehensive Lite Algorithmic Trading Terminal : Identify, Visualize, Predict and Trade')
+st.title('Frankline & Associates LLC. Comprehensive Lite Algorithmic Trading Terminal')
+st.success('Identify, Visualize, Predict and Trade')
 st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
 st.sidebar.info("This application features over 100 programmes for different roles")
 
@@ -712,7 +728,7 @@ def main():
                 
     elif option == 'Stock Predictions':
 
-        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions','Technical Indicators Clustering'])
+        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1184,7 +1200,7 @@ def main():
                     st.plotly_chart(fig)
         
         if pred_option == "Technical Indicators Clustering":
-
+            #Fix the segmentation of all tickers on the graph
             col1, col2 = st.columns([2, 2])
             with col1:
                 start_date = st.date_input("Start date:")
@@ -1202,10 +1218,7 @@ def main():
 
                 # Download historical data for each ticker
                 def download_stock_data(tickers):
-                    start_date = dt.datetime(1990, 1, 1)
-                    end_date = dt.date.today()
                     all_data = pd.DataFrame()
-
                     for ticker in tickers:
                         try:
                             data = yf.download(ticker, start=start_date, end=end_date)
@@ -1259,14 +1272,21 @@ def main():
 
                 # Perform clustering on the stock data
                 clustered_data = perform_clustering(stock_data_with_indicators)
+                st.write(clustered_data)
 
-                # Visualization of Clusters
-                def plot_clusters(data):
-                    fig = px.scatter(data, x='SMA_5', y='SMA_15', color='Cluster', title='Stock Data Clusters', labels={'SMA_5': 'SMA 5', 'SMA_15': 'SMA 15'})
-                    fig.show()
-                # Plotting the clusters
-                plot_clusters(clustered_data)
+                # Create the figure
+                fig = go.Figure()
+                for cluster_num in clustered_data['Cluster'].unique():
+                    cluster = clustered_data[clustered_data['Cluster'] == cluster_num]
+                    for _, row in cluster.iterrows():
+                        fig.add_trace(go.Scatter(x=[row['SMA_5']], y=[row['SMA_15']], mode='markers', name=f'{row["Symbol"]} - Cluster {cluster_num}'))
 
+                # Update the layout
+                fig.update_layout(title='Stock Data Clusters', xaxis_title='SMA 5', yaxis_title='SMA 15')
+
+                # Display the Plotly chart inline
+                st.plotly_chart(fig)
+               
                 # Analyze and interpret the clusters
                 # This step involves understanding the characteristics of each cluster
                 # and how they differ from each other based on the stock movement patterns they represent
@@ -1293,6 +1313,150 @@ def main():
 
                 # Display analysis results
                 st.write(cluster_analysis)
+        if pred_option == "LSTM Predictions":
+
+            st.success("This segment allows you to predict the movement of a stock ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+            # Prompt user to enter a stock ticker
+                # Fetch stock data
+                df = yf.download(ticker, start=start_date, end=end_date)
+                data = df.filter(['Close'])
+                dataset = data.values
+                train_data_len = math.ceil(len(dataset) * .8)
+                st.write(train_data_len)
+
+                # Scale data
+                scaler = MinMaxScaler(feature_range=(0,1))
+                scaled_data = scaler.fit_transform(dataset)
+
+                # Create training data
+                x_train, y_train = [], []
+                for i in range(60, len(scaled_data)):
+                    x_train.append(scaled_data[i-60:i, 0])
+                    y_train.append(scaled_data[i, 0])
+                x_train, y_train = np.array(x_train), np.array(y_train)
+
+                st.write("Values of x_train:", x_train)
+
+                # LSTM network
+                model = Sequential([
+                    LSTM(50, return_sequences=True, input_shape=(x_train.shape[1], 1)),
+                    LSTM(50, return_sequences=False),
+                    Dense(25),
+                    Dense(1)
+                ])
+                model.compile(optimizer="adam", loss='mean_squared_error')
+
+                # Train the model
+                model.fit(x_train, y_train, batch_size=1, epochs=5)
+
+                # Create testing dataset
+                test_data = scaled_data[train_data_len - 60:, :]
+                x_test = [test_data[i-60:i, 0] for i in range(60, len(test_data))]
+                x_test = np.array(x_test)
+                x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+
+                # Predictions
+                predictions = model.predict(x_test)
+                predictions = scaler.inverse_transform(predictions)
+                rmse = np.sqrt(mean_squared_error(data[train_data_len:].values, predictions))
+
+                # Plot the data
+                train = data[:train_data_len]
+                valid = data[train_data_len:].assign(Predictions=predictions)
+                plt.figure(figsize=(16,8))
+                plt.title(f"{stock.upper()} Close Price")
+                plt.xlabel('Date', fontsize=16)
+                plt.ylabel('Close Price (USD)', fontsize=16)
+                plt.plot(train['Close'])
+                plt.plot(valid[['Close', 'Predictions']])
+                plt.legend(['Train', 'Valid', 'Prediction'], loc='lower right')
+                plt.show()
+
+                # Predict next day price
+                last_60_days = data[-60:].values
+                last_60_days_scaled = scaler.transform(last_60_days)
+                X_test_next = np.array([last_60_days_scaled])
+                X_test_next = np.reshape(X_test_next, (X_test_next.shape[0], X_test_next.shape[1], 1))
+                predicted_price_next_day = scaler.inverse_transform(model.predict(X_test_next))[0][0]
+                print(f"The predicted price for the next trading day is: {predicted_price_next_day:.2f}")
+        
+        if pred_option == "ETF Graphical Lasso":
+
+    
+            # Set parameters for data retrieval
+            num_years = 10
+            start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
+            end_date = dt.datetime.now()
+
+            # ETF symbols and their respective countries
+            etfs = {"EWJ": "Japan", "EWZ": "Brazil", "FXI": "China",
+                    "EWY": "South Korea", "EWT": "Taiwan", "EWH": "Hong Kong",
+                    "EWC": "Canada", "EWG": "Germany", "EWU": "United Kingdom",
+                    "EWA": "Australia", "EWW": "Mexico", "EWL": "Switzerland",
+                    "EWP": "Spain", "EWQ": "France", "EIDO": "Indonesia",
+                    "ERUS": "Russia", "EWS": "Singapore", "EWM": "Malaysia",
+                    "EZA": "South Africa", "THD": "Thailand", "ECH": "Chile",
+                    "EWI": "Italy", "TUR": "Turkey", "EPOL": "Poland",
+                    "EPHE": "Philippines", "EWD": "Sweden", "EWN": "Netherlands",
+                    "EPU": "Peru", "ENZL": "New Zealand", "EIS": "Israel",
+                    "EWO": "Austria", "EIRL": "Ireland", "EWK": "Belgium"}
+
+            # Retrieve adjusted close prices for ETFs
+            symbols = list(etfs.keys())
+            etf_data = pdr.get_data_yahoo(symbols, start=start_date, end=end_date)['Adj Close']
+
+            # Convert prices to log returns
+            log_returns = np.log1p(etf_data.pct_change()).dropna()
+
+            # Normalize and fit Graphical Lasso model
+            log_returns_normalized = log_returns / log_returns.std(axis=0)
+            edge_model = GraphicalLassoCV(cv=10)
+            edge_model.fit(log_returns_normalized)
+
+            # Plot precision matrix as heatmap
+            precision_df = pd.DataFrame(edge_model.precision_, index=etfs.keys(), columns=etfs.keys())
+
+            # Display heatmap using Streamlit
+            st.write("Precision Matrix Heatmap")
+            st.write(sns.heatmap(precision_df, xticklabels=etfs.values(), yticklabels=etfs.values()).figure)
+
+            # Prepare data for network graph
+            links = precision_df.stack().reset_index()
+            links.columns = ['ETF1', 'ETF2', 'Value']
+            links_filtered = links[(abs(links['Value']) > 0.17) & (links['ETF1'] != links['ETF2'])]
+
+            # Build and display the network graph
+            G = nx.from_pandas_edgelist(links_filtered, 'ETF1', 'ETF2')
+            pos = nx.spring_layout(G, k=0.2 * 1 / np.sqrt(len(G.nodes())), iterations=20)
+            nx.draw(G, pos=pos, with_labels=True, node_color='lightblue', edge_color='grey')
+            st.pyplot()
+
+            # Save network graph to file
+            nx.write_gexf(G, 'etf_network_graph.gexf')
+
+
+        if pred_option == "Kmeans Clustering":
+            pass
+        if pred_option == "Compiled ML Accuracy":
+            pass
+        if pred_option == "Neural Network prediction":
+            pass
+        if pred_option == "Prophet Price Prediction":
+            pass
+
+
 
     elif pred_option == "AI Trading":
         st.write("This bot allows you to initate a trade")
