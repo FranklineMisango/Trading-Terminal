@@ -2,7 +2,9 @@
 import streamlit as st
 from bs4 import BeautifulSoup
 import os
+from math import sqrt
 from pylab import rcParams
+import pylab as pl
 import yfinance as yf
 import pandas as pd
 import seaborn as sns
@@ -26,7 +28,6 @@ import time
 import smtplib
 from email.message import EmailMessage
 import datetime as dt
-from pandas_datareader import data as pdr
 import time
 from time import sleep
 from selenium import webdriver
@@ -66,22 +67,23 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from pandas_datareader import data as pdr
 import yfinance as yf
-from keras.src.optimizers import Adam
-#keras
-from keras import Sequential
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from keras import Sequential, layers
 from keras._tf_keras.keras.preprocessing import sequence
-from keras.src.layers import Embedding, LSTM, Dense, Dropout 
+from keras.src.layers import Embedding, LSTM, Dense, Dropout
 from keras.src.metrics.metrics_utils import confusion_matrix
 from keras.src.utils import to_categorical
 import networkx as nx
 from sklearn.covariance import GraphicalLassoCV
-#Config imports
+##from fbprophet import Prophet
+
 from config import EMAIL_ADDRESS
 from config import EMAIL_PASSWORD
-
-
 warnings.filterwarnings("ignore")
+import prophet
 
+st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLC. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
 st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
@@ -728,7 +730,9 @@ def main():
                 
     elif option == 'Stock Predictions':
 
-        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis','Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso'])
+        pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis',
+                                                     'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
+                                                     'Prophet Price Prediction', 'ETF Graphical Lasso', 'Kmeans Clustering', 'ML Compiled Accuracy'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1393,70 +1397,274 @@ def main():
                 print(f"The predicted price for the next trading day is: {predicted_price_next_day:.2f}")
         
         if pred_option == "ETF Graphical Lasso":
+            st.success("This segment allows you to predict the relations of various ETFS")
+            number_of_years = st.text_input("How many years do you want to investigate the ETF correlations(min 10)")
+            if number_of_years:
+                st.success(f"The number of years captured : {number_of_years}")
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                end_date = st.date_input("End date:")
+         
+            if st.button("Check"):
+                num_years = int(number_of_years)
+                start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
+                end_date = dt.datetime.now()
+                # ETF symbols and their respective countries
+                etfs = {"EWJ": "Japan", "EWZ": "Brazil", "FXI": "China",
+                        "EWY": "South Korea", "EWT": "Taiwan", "EWH": "Hong Kong",
+                        "EWC": "Canada", "EWG": "Germany", "EWU": "United Kingdom",
+                        "EWA": "Australia", "EWW": "Mexico", "EWL": "Switzerland",
+                        "EWP": "Spain", "EWQ": "France", "EIDO": "Indonesia",
+                        "ERUS": "Russia", "EWS": "Singapore", "EWM": "Malaysia",
+                        "EZA": "South Africa", "THD": "Thailand", "ECH": "Chile",
+                        "EWI": "Italy", "TUR": "Turkey", "EPOL": "Poland",
+                        "EPHE": "Philippines", "EWD": "Sweden", "EWN": "Netherlands",
+                        "EPU": "Peru", "ENZL": "New Zealand", "EIS": "Israel",
+                        "EWO": "Austria", "EIRL": "Ireland", "EWK": "Belgium"}
 
-    
-            # Set parameters for data retrieval
-            num_years = 10
-            start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
-            end_date = dt.datetime.now()
+                # Retrieve adjusted close prices for ETFs
+                symbols = list(etfs.keys())
+                etf_data = yf.download(symbols, start=start_date, end=end_date)['Adj Close']
 
-            # ETF symbols and their respective countries
-            etfs = {"EWJ": "Japan", "EWZ": "Brazil", "FXI": "China",
-                    "EWY": "South Korea", "EWT": "Taiwan", "EWH": "Hong Kong",
-                    "EWC": "Canada", "EWG": "Germany", "EWU": "United Kingdom",
-                    "EWA": "Australia", "EWW": "Mexico", "EWL": "Switzerland",
-                    "EWP": "Spain", "EWQ": "France", "EIDO": "Indonesia",
-                    "ERUS": "Russia", "EWS": "Singapore", "EWM": "Malaysia",
-                    "EZA": "South Africa", "THD": "Thailand", "ECH": "Chile",
-                    "EWI": "Italy", "TUR": "Turkey", "EPOL": "Poland",
-                    "EPHE": "Philippines", "EWD": "Sweden", "EWN": "Netherlands",
-                    "EPU": "Peru", "ENZL": "New Zealand", "EIS": "Israel",
-                    "EWO": "Austria", "EIRL": "Ireland", "EWK": "Belgium"}
+                # Convert prices to log returns
+                log_returns = np.log1p(etf_data.pct_change()).dropna()
 
-            # Retrieve adjusted close prices for ETFs
-            symbols = list(etfs.keys())
-            etf_data = pdr.get_data_yahoo(symbols, start=start_date, end=end_date)['Adj Close']
+                # Replace NaN values with the mean of each column
+                imputer = SimpleImputer(strategy='mean')
+                log_returns_normalized = log_returns / log_returns.std(axis=0)
+                log_returns_normalized_imputed = imputer.fit_transform(log_returns_normalized)
+                edge_model = GraphicalLassoCV(cv=10)
+                edge_model.fit(log_returns_normalized_imputed)
 
-            # Convert prices to log returns
-            log_returns = np.log1p(etf_data.pct_change()).dropna()
+                # Ensure the shape of the precision matrix matches the number of ETF symbols
+                precision_matrix = edge_model.precision_
+                # Compare the number of ETF symbols with the precision matrix dimensions
+                if precision_matrix.shape[0] != len(etfs):
+                    # If there's a mismatch, print additional information for debugging
+                    st.write("Mismatch between the number of ETF symbols and precision matrix dimensions")
 
-            # Normalize and fit Graphical Lasso model
-            log_returns_normalized = log_returns / log_returns.std(axis=0)
-            edge_model = GraphicalLassoCV(cv=10)
-            edge_model.fit(log_returns_normalized)
+                # Verify that the number of indices and columns matches the number of ETF symbols
+                #assert precision_matrix.shape[0] == len(etfs), "Number of ETF symbols does not match precision matrix dimensions"
 
-            # Plot precision matrix as heatmap
-            precision_df = pd.DataFrame(edge_model.precision_, index=etfs.keys(), columns=etfs.keys())
+                # Create DataFrame with appropriate indices and columns
+                precision_df = pd.DataFrame(precision_matrix, index=etfs.keys(), columns=etfs.keys())
 
-            # Display heatmap using Streamlit
-            st.write("Precision Matrix Heatmap")
-            st.write(sns.heatmap(precision_df, xticklabels=etfs.values(), yticklabels=etfs.values()).figure)
+                fig = go.Figure(data=go.Heatmap(
+                    z=precision_df.values,
+                    x=list(etfs.values()),
+                    y=list(etfs.values()),
+                    colorscale='Viridis'))
 
-            # Prepare data for network graph
-            links = precision_df.stack().reset_index()
-            links.columns = ['ETF1', 'ETF2', 'Value']
-            links_filtered = links[(abs(links['Value']) > 0.17) & (links['ETF1'] != links['ETF2'])]
+                fig.update_layout(title="Precision Matrix Heatmap")
+                st.plotly_chart(fig)
 
-            # Build and display the network graph
-            G = nx.from_pandas_edgelist(links_filtered, 'ETF1', 'ETF2')
-            pos = nx.spring_layout(G, k=0.2 * 1 / np.sqrt(len(G.nodes())), iterations=20)
-            nx.draw(G, pos=pos, with_labels=True, node_color='lightblue', edge_color='grey')
-            st.pyplot()
+                # Prepare data for network graph
+                links = precision_df.stack().reset_index()
+                links.columns = ['ETF1', 'ETF2', 'Value']
+                links_filtered = links[(abs(links['Value']) > 0.17) & (links['ETF1'] != links['ETF2'])]
 
-            # Save network graph to file
-            nx.write_gexf(G, 'etf_network_graph.gexf')
-
+                 # Build and display the network graph
+                st.set_option('deprecation.showPyplotGlobalUse', False)
+                G = nx.from_pandas_edgelist(links_filtered, 'ETF1', 'ETF2')
+                pos = nx.spring_layout(G, k=0.2 * 1 / np.sqrt(len(G.nodes())), iterations=20)
+                nx.draw(G, pos=pos, with_labels=True, node_color='lightblue', edge_color='grey')
+                st.pyplot()
 
         if pred_option == "Kmeans Clustering":
-            pass
+            st.success("This segment allows you to predict the price of a stock ticker using Kmeans clustering")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+                # Load stock data from Dow Jones Index
+                stocks = ti.tickers_dow()
+  
+
+                # Retrieve adjusted closing prices
+                data = yf.download(stocks, start=start_date, end=end_date)['Close']
+
+                # Calculate annual mean returns and variances
+                annual_returns = data.pct_change().mean() * 252
+                annual_variances = data.pct_change().std() * sqrt(252)
+
+                # Combine returns and variances into a DataFrame
+                ret_var = pd.concat([annual_returns, annual_variances], axis=1).dropna()
+                ret_var.columns = ["Returns", "Variance"]
+
+                # KMeans clustering
+                X = ret_var.values
+                sse = [KMeans(n_clusters=k).fit(X).inertia_ for k in range(2, 15)]
+
+                # Convert range to list
+                k_values = list(range(2, 15))
+
+                # Plotting the elbow curve using Plotly
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=k_values, y=sse, mode='lines+markers'))
+                fig1.update_layout(title="Elbow Curve", xaxis_title="Number of Clusters", yaxis_title="SSE")
+                st.plotly_chart(fig1)
+
+                # Apply KMeans with chosen number of clusters
+                kmeans = KMeans(n_clusters=5).fit(X)
+
+                # Plotting the clustering result using Plotly
+                fig2 = go.Figure()
+                fig2.add_trace(go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', marker=dict(color=kmeans.labels_, colorscale="Rainbow")))
+                fig2.update_layout(title="KMeans Clustering of Stocks", xaxis_title="Annual Return", yaxis_title="Annual Variance")
+                st.plotly_chart(fig2)
+
+                # Creating a DataFrame with tickers and their cluster labels
+                df = pd.DataFrame({'Stock': ret_var.index, 'Cluster': kmeans.labels_})
+                df.set_index('Stock', inplace=True)
+
+                st.write(df)
+
         if pred_option == "Compiled ML Accuracy":
-            pass
+            # Define the stock and date range for analysis
+            stock = "AAPL"
+            start_date = datetime.datetime.now() - datetime.timedelta(days=365)
+            end_date = datetime.date.today()
+
+            # Fetch stock data
+            df = yf.download(stock, start_date, end_date)
+
+            # Prepare the dataset for prediction
+            forecast_out = 30
+            df['Prediction'] = df[['Close']].shift(-forecast_out)
+            X = np.array(df.drop(['Prediction'], 1))[:-forecast_out]
+            y = np.array(df['Prediction'])[:-forecast_out]
+
+            # Split data into training and testing sets
+            x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+            # Define and train multiple machine learning models
+            models = {
+                "Linear Regression": LinearRegression(),
+                "SVR": SVR(kernel="rbf", C=1e3, gamma=0.1),
+                "Random Forest": RandomForestRegressor(n_estimators=100),
+                "Gradient Boosting": GradientBoostingRegressor(n_estimators=200)
+            }
+            predictions = {}
+            for name, model in models.items():
+                model.fit(x_train, y_train)
+                predictions[name] = model.predict(x_test)
+
+            # Predict future values
+            x_forecast = np.array(df.drop(['Prediction'], 1))[-forecast_out:]
+            future_predictions = {name: model.predict(x_forecast) for name, model in models.items()}
+
+            # Compute and display model accuracies
+            accuracies = {name: model.score(x_test, y_test) for name, model in models.items()}
+            for name, accuracy in accuracies.items():
+                print(f"Accuracy of {name}: {accuracy:.2f}")
+
+            # Plot the predictions
+            plt.figure(figsize=(15, 10))
+            for name, preds in future_predictions.items():
+                plt.plot(preds, label=f"{name} ({accuracies[name]:.2f})")
+            plt.legend(loc="upper left")
+            plt.title(f"Future Predictions by ML Models for {stock}")
+            plt.xlabel("Days")
+            plt.ylabel("Predicted Close Price")
+            plt.grid(True)
+            plt.show()
+
+            # Plot each ML model's performance on test data
+            fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+            for ax, (name, preds) in zip(axs.flatten(), predictions.items()):
+                ax.scatter(range(len(y_test)), y_test, label="Data", color='gray')
+                ax.plot(range(len(y_test)), preds, label=f"{name}", color='orange')
+                ax.set_title(f"{name} Model")
+                ax.legend()
+            plt.tight_layout()
+            plt.show()
         if pred_option == "Neural Network prediction":
-            pass
+
+            # Download and prepare stock data
+            symbol = 'AAPL'
+            start = dt.date.today() - dt.timedelta(days=394)
+            end = dt.date.today()
+            df = yf.download(symbol, start, end)
+            df['Open_Close'] = (df['Open'] - df['Adj Close']) / df['Open']
+            df['High_Low'] = (df['High'] - df['Low']) / df['Low']
+            df['Increase_Decrease'] = np.where(df['Volume'].shift(-1) > df['Volume'], 1, 0)
+            df['Buy_Sell_on_Open'] = np.where(df['Open'].shift(-1) > df['Open'], 1, 0)
+            df['Buy_Sell'] = np.where(df['Adj Close'].shift(-1) > df['Adj Close'], 1, 0)
+            df['Returns'] = df['Adj Close'].pct_change()
+            df = df.dropna()
+
+            # Normalize data
+            scaler = MinMaxScaler()
+            X = scaler.fit_transform(df[['Returns']])
+            Y = scaler.fit_transform(df[['Adj Close']])
+
+            # Build a neural network model
+            model = tf.keras.Sequential([
+                layers.Dense(64, activation='relu', input_shape=[X.shape[1]]),
+                layers.Dense(64, activation='relu'),
+                layers.Dense(1)
+            ])
+            model.compile(optimizer='rmsprop', loss='mean_squared_error',
+                        metrics=['mean_absolute_error', 'mean_squared_error'])
+
+            # Train the model
+            model.fit(X, Y, epochs=100)
+
+            # Predict future stock price
+            predicted_price = scaler.inverse_transform(model.predict([[0]]))[0][0]
+            print(f'Predicted Price: {predicted_price}')
+
+            # Optional: Plotting the model's predictions (for visualization purposes)
+            plt.figure(figsize=(10,6))
+            predicted_prices = model.predict(X)
+            plt.plot(df['Adj Close'].index, scaler.inverse_transform(predicted_prices), label='Predicted')
+            plt.plot(df['Adj Close'], label='Actual')
+            plt.title(f'{symbol} Stock Price Prediction')
+            plt.xlabel('Date')
+            plt.ylabel('Price')
+            plt.legend()
+            plt.show()
         if pred_option == "Prophet Price Prediction":
-            pass
+            '''
+            # Set ticker symbol and data retrieval duration
+            ticker = 'AAPL'
+            num_years = 20
+            start_date = dt.datetime.now() - dt.timedelta(days=365.25 * num_years)
+            end_date = dt.datetime.now()
 
+            # Fetch stock data
+            data = yf.download(ticker, start_date, end_date)
 
+            # Prepare data for Prophet model
+            data.reset_index(inplace=True)
+            data = data[['Date', 'Close']].rename(columns={'Date': 'ds', 'Close': 'y'})
+
+            # Initialize and fit Prophet model
+            model = prophet(daily_seasonality=True)
+            model.fit(data)
+
+            # Prepare future dataframe for prediction
+            future = model.make_future_dataframe(periods=30)
+
+            # Make predictions
+            forecast = model.predict(future)
+
+            # Plot predictions
+            model.plot(forecast)
+            plt.title(f"Predicted Stock Price of {ticker} using Prophet")
+            plt.xlabel("Date")
+            plt.ylabel("Close Price")
+            plt.show()
+
+            '''
 
     elif pred_option == "AI Trading":
         st.write("This bot allows you to initate a trade")
