@@ -76,13 +76,13 @@ from keras.src.metrics.metrics_utils import confusion_matrix
 from keras.src.utils import to_categorical
 import networkx as nx
 from sklearn.covariance import GraphicalLassoCV
-##from fbprophet import Prophet
-
 from config import EMAIL_ADDRESS
 from config import EMAIL_PASSWORD
 warnings.filterwarnings("ignore")
-import prophet
+from autoscraper import AutoScraper
 
+
+#Page config
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLC. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
@@ -732,7 +732,7 @@ def main():
 
         pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis',
                                                      'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
-                                                     'Prophet Price Prediction', 'ETF Graphical Lasso', 'Kmeans Clustering', 'ML Compiled Accuracy'])
+                                                     'ETF Graphical Lasso', 'Kmeans Clustering'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1527,146 +1527,46 @@ def main():
 
                 st.write(df)
 
-        if pred_option == "Compiled ML Accuracy":
-            # Define the stock and date range for analysis
-            stock = "AAPL"
-            start_date = datetime.datetime.now() - datetime.timedelta(days=365)
-            end_date = datetime.date.today()
+    elif option =='Stock Data':
+        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper"])
 
-            # Fetch stock data
-            df = yf.download(stock, start_date, end_date)
+        if pred_option_data == "Finviz Autoscraper":
 
-            # Prepare the dataset for prediction
-            forecast_out = 30
-            df['Prediction'] = df[['Close']].shift(-forecast_out)
-            X = np.array(df.drop(['Prediction'], 1))[:-forecast_out]
-            y = np.array(df['Prediction'])[:-forecast_out]
+            # Fetches financial data for a list of tickers from Finviz using AutoScraper.
+            def fetch_finviz_data(tickers, scraper_rule_path):
+                # Create an instance of AutoScraper
+                scraper = AutoScraper()
 
-            # Split data into training and testing sets
-            x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+                # Load scraper rules from the specified file path
+                scraper.load(scraper_rule_path)
 
-            # Define and train multiple machine learning models
-            models = {
-                "Linear Regression": LinearRegression(),
-                "SVR": SVR(kernel="rbf", C=1e3, gamma=0.1),
-                "Random Forest": RandomForestRegressor(n_estimators=100),
-                "Gradient Boosting": GradientBoostingRegressor(n_estimators=200)
-            }
-            predictions = {}
-            for name, model in models.items():
-                model.fit(x_train, y_train)
-                predictions[name] = model.predict(x_test)
+                # Iterate over the tickers and scrape data
+                for ticker in tickers:
+                    url = f'https://finviz.com/quote.ashx?t={ticker}'
+                    result = scraper.get_result(url)[0]
 
-            # Predict future values
-            x_forecast = np.array(df.drop(['Prediction'], 1))[-forecast_out:]
-            future_predictions = {name: model.predict(x_forecast) for name, model in models.items()}
+                    # Extract attributes and values
+                    index = result.index('Index')
+                    attributes, values = result[index:], result[:index]
 
-            # Compute and display model accuracies
-            accuracies = {name: model.score(x_test, y_test) for name, model in models.items()}
-            for name, accuracy in accuracies.items():
-                print(f"Accuracy of {name}: {accuracy:.2f}")
+                    # Create a DataFrame and display data
+                    df = pd.DataFrame(zip(attributes, values), columns=['Attributes', 'Values'])
+                    st.write(f'\n{ticker} Data:')
+                    st.write(df.set_index('Attributes'))
 
-            # Plot the predictions
-            plt.figure(figsize=(15, 10))
-            for name, preds in future_predictions.items():
-                plt.plot(preds, label=f"{name} ({accuracies[name]:.2f})")
-            plt.legend(loc="upper left")
-            plt.title(f"Future Predictions by ML Models for {stock}")
-            plt.xlabel("Days")
-            plt.ylabel("Predicted Close Price")
-            plt.grid(True)
-            plt.show()
-
-            # Plot each ML model's performance on test data
-            fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-            for ax, (name, preds) in zip(axs.flatten(), predictions.items()):
-                ax.scatter(range(len(y_test)), y_test, label="Data", color='gray')
-                ax.plot(range(len(y_test)), preds, label=f"{name}", color='orange')
-                ax.set_title(f"{name} Model")
-                ax.legend()
-            plt.tight_layout()
-            plt.show()
-        if pred_option == "Neural Network prediction":
-
-            # Download and prepare stock data
-            symbol = 'AAPL'
-            start = dt.date.today() - dt.timedelta(days=394)
-            end = dt.date.today()
-            df = yf.download(symbol, start, end)
-            df['Open_Close'] = (df['Open'] - df['Adj Close']) / df['Open']
-            df['High_Low'] = (df['High'] - df['Low']) / df['Low']
-            df['Increase_Decrease'] = np.where(df['Volume'].shift(-1) > df['Volume'], 1, 0)
-            df['Buy_Sell_on_Open'] = np.where(df['Open'].shift(-1) > df['Open'], 1, 0)
-            df['Buy_Sell'] = np.where(df['Adj Close'].shift(-1) > df['Adj Close'], 1, 0)
-            df['Returns'] = df['Adj Close'].pct_change()
-            df = df.dropna()
-
-            # Normalize data
-            scaler = MinMaxScaler()
-            X = scaler.fit_transform(df[['Returns']])
-            Y = scaler.fit_transform(df[['Adj Close']])
-
-            # Build a neural network model
-            model = tf.keras.Sequential([
-                layers.Dense(64, activation='relu', input_shape=[X.shape[1]]),
-                layers.Dense(64, activation='relu'),
-                layers.Dense(1)
-            ])
-            model.compile(optimizer='rmsprop', loss='mean_squared_error',
-                        metrics=['mean_absolute_error', 'mean_squared_error'])
-
-            # Train the model
-            model.fit(X, Y, epochs=100)
-
-            # Predict future stock price
-            predicted_price = scaler.inverse_transform(model.predict([[0]]))[0][0]
-            print(f'Predicted Price: {predicted_price}')
-
-            # Optional: Plotting the model's predictions (for visualization purposes)
-            plt.figure(figsize=(10,6))
-            predicted_prices = model.predict(X)
-            plt.plot(df['Adj Close'].index, scaler.inverse_transform(predicted_prices), label='Predicted')
-            plt.plot(df['Adj Close'], label='Actual')
-            plt.title(f'{symbol} Stock Price Prediction')
-            plt.xlabel('Date')
-            plt.ylabel('Price')
-            plt.legend()
-            plt.show()
-        if pred_option == "Prophet Price Prediction":
-            '''
-            # Set ticker symbol and data retrieval duration
-            ticker = 'AAPL'
-            num_years = 20
-            start_date = dt.datetime.now() - dt.timedelta(days=365.25 * num_years)
-            end_date = dt.datetime.now()
-
-            # Fetch stock data
-            data = yf.download(ticker, start_date, end_date)
-
-            # Prepare data for Prophet model
-            data.reset_index(inplace=True)
-            data = data[['Date', 'Close']].rename(columns={'Date': 'ds', 'Close': 'y'})
-
-            # Initialize and fit Prophet model
-            model = prophet(daily_seasonality=True)
-            model.fit(data)
-
-            # Prepare future dataframe for prediction
-            future = model.make_future_dataframe(periods=30)
-
-            # Make predictions
-            forecast = model.predict(future)
-
-            # Plot predictions
-            model.plot(forecast)
-            plt.title(f"Predicted Stock Price of {ticker} using Prophet")
-            plt.xlabel("Date")
-            plt.ylabel("Close Price")
-            plt.show()
-
-            '''
-
-    elif pred_option == "AI Trading":
+            tickers = ['SCHB', 'AMZN', 'AAPL', 'MSFT', 'TSLA', 'AMD', 'NFLX']
+            scraper_rule_path = '../finviz_table'
+            fetch_finviz_data(tickers, scraper_rule_path)                    
+        
+    elif option =='Stock Analysis':
+        pass
+    elif option =='Technical Indicators':
+        pass
+    elif option =='Stock Predictions':
+        pass
+    elif option =='Portfolio Strategies':
+        pass
+    elif option == "AI Trading":
         st.write("This bot allows you to initate a trade")
         pass
 
