@@ -84,7 +84,7 @@ import requests
 from datetime import datetime, timedelta
 #Page config
 st.set_page_config(layout="wide")
-st.title('Frankline & Associates LLC. Comprehensive Lite Algorithmic Trading Terminal')
+st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
 st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
 st.sidebar.info("This application features over 100 programmes for different roles")
@@ -1532,7 +1532,8 @@ def main():
 
     elif option =='Stock Data':
         pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "High Dividend yield","Dividend History", "Fibonacci Retracement", 
-                                                                          "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", "Get Dividend calendar"])
+                                                                          "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", 
+                                                                          "Get Dividend calendar", "Green Line Test"])
         if pred_option_data == "Finviz Autoscraper":
 
             # Fetches financial data for a list of tickers from Finviz using AutoScraper.
@@ -1954,13 +1955,94 @@ def main():
                     except Exception as e:
                         return e
                     
-                # Assuming date_obj is a datetime.date object
 
-
-                st.write(get_dividends(2023,12))
+                st.write(get_dividends(int(year),int(month)))
             
         if pred_option_data == "Green Line Test":
-            pass
+
+            st.success("This segment allows you to see if a ticker hit a greenline")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            
+            min_date = datetime(1980, 1, 1)
+
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            # Button to trigger the simulation
+            if st.button("Simulate"):
+                st.success("Simulation started...")
+
+                # Set the start and end dates for historical data retrieval
+                start = dt.datetime.combine(start_date, dt.datetime.min.time())
+                end = dt.datetime.combine(end_date, dt.datetime.min.time())
+
+                # Fetch historical stock data
+                df = yf.download(ticker, start, end)
+                price = df['Adj Close'][-1]
+
+                # Filter out days with very low trading volume
+                df.drop(df[df["Volume"] < 1000].index, inplace=True)
+
+                # Get the monthly maximum of the 'High' column
+                df_month = df.groupby(pd.Grouper(freq="M"))["High"].max()
+
+                # Initialize variables for the green line analysis
+                glDate, lastGLV, currentDate, currentGLV, counter = 0, 0, "", 0, 0
+
+                # Loop through monthly highs to determine the most recent green line value
+                for index, value in df_month.items():
+                    if value > currentGLV:
+                        currentGLV = value
+                        currentDate = index
+                        counter = 0
+                    if value < currentGLV:
+                        counter += 1
+                        if counter == 3 and ((index.month != end_date.month) or (index.year != end_date.year)):
+                            if currentGLV != lastGLV:
+                                print(currentGLV)
+                            glDate = currentDate
+                            lastGLV = currentGLV
+                            counter = 0
+
+                # Determine the message to display based on green line value and current price
+                if lastGLV == 0:
+                    message = f"{ticker} has not formed a green line yet"
+                else:
+                    diff = price/lastGLV - 1
+                    diff = round(diff * 100, 3)
+                    if lastGLV > 1.15 * price:
+                        message = f"\n{ticker.upper()}'s current price ({round(price, 2)}) is {diff}% away from its last green line value ({round(lastGLV, 2)})"
+                    else:
+                        if lastGLV < 1.05 * price:
+                            st.write(f"\n{ticker.upper()}'s last green line value ({round(lastGLV, 2)}) is {diff}% greater than its current price ({round(price, 2)})")
+                            message = ("Last Green Line: "+str(round(lastGLV, 2))+" on "+str(glDate.strftime('%Y-%m-%d')))
+                            
+                            # Plot interactive graph with Plotly
+                            fig = go.Figure()
+                            fig.add_trace(go.Scatter(x=df.index[-120:], y=df['Close'].tail(120), mode='lines', name='Close Price'))
+                            fig.add_hline(y=lastGLV, line_dash="dash", line_color="green", name='Last Green Line')
+                            fig.update_layout(title=f"{ticker.upper()}'s Close Price Green Line Test", xaxis_title='Dates', yaxis_title='Close Price')
+                            st.plotly_chart(fig)
+                        else:
+                            message = ("Last Green Line: "+str(round(lastGLV, 2))+" on "+str(glDate.strftime('%Y-%m-%d')))
+                            # Plot interactive graph with Plotly
+                            fig = go.Figure()
+                            fig.add_trace(go.Scatter(x=df.index, y=df['Close'], mode='lines', name='Close Price'))
+                            fig.add_hline(y=lastGLV, line_dash="dash", line_color="green", name='Last Green Line')
+                            fig.update_layout(title=f"{ticker.upper()}'s Close Price Green Line Test", xaxis_title='Dates', yaxis_title='Close Price')
+                            st.plotly_chart(fig)
+                
+                st.write(message)
+
+
+
+
         if pred_option_data == "High Dividend yield":
             st.success("This program allows you to simulate the Dividends given by a company")
             if st.button("Check"):
