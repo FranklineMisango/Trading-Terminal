@@ -1528,8 +1528,7 @@ def main():
                 st.write(df)
 
     elif option =='Stock Data':
-        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "Dividend History"])
-
+        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "Dividend History", "Fibonacci Retracement"])
         if pred_option_data == "Finviz Autoscraper":
 
             # Fetches financial data for a list of tickers from Finviz using AutoScraper.
@@ -1553,10 +1552,14 @@ def main():
                     df = pd.DataFrame(zip(attributes, values), columns=['Attributes', 'Values'])
                     st.write(f'\n{ticker} Data:')
                     st.write(df.set_index('Attributes'))
-
-            tickers = ['SCHB', 'AMZN', 'AAPL', 'MSFT', 'TSLA', 'AMD', 'NFLX']
-            scraper_rule_path = '../finviz_table'
-            fetch_finviz_data(tickers, scraper_rule_path)
+            st.warning("This segmenent is under construction. The overall idea is building the finviz scraper rule table to allow us to get what we want specifically")
+            num_tickers = st.number_input("Enter the number of stock tickers you want to monitor:", value=1, min_value=1, step=1)
+            monitored_tickers = []
+            for i in range(num_tickers):
+                ticker = st.text_input(f"Enter the company's stock ticker {i+1}:")
+                monitored_tickers.append(ticker)
+            #scraper_rule_path = '../finviz_table'
+            #fetch_finviz_data(tickers, scraper_rule_path)
 
         if pred_option_data == "Dividend History":
 
@@ -1622,6 +1625,68 @@ def main():
                 dividends = clean_dividends(symbol, dividends_df)
 
                 st.write(dividends)
+        
+        if pred_option_data == "Fibonacci Retracement":
+            st.success("This segment allows you to do Fibonnacci retracement max price of a particular ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Simulate"):
+                # Fetch stock data from Yahoo Finance
+                def fetch_stock_data(ticker, start, end):
+                    return yf.download(ticker, start, end)
+
+                # Calculate Fibonacci retracement levels
+                def fibonacci_levels(price_min, price_max):
+                    diff = price_max - price_min
+                    return {
+                        '0%': price_max,
+                        '23.6%': price_max - 0.236 * diff,
+                        '38.2%': price_max - 0.382 * diff,
+                        '61.8%': price_max - 0.618 * diff,
+                        '100%': price_min
+                    }
+
+                def plot_fibonacci_retracement(stock_data, fib_levels):
+                    # Create trace for stock close price
+                    trace_stock = go.Scatter(x=stock_data.index, y=stock_data['Close'], mode='lines', name='Close', line=dict(color='black'))
+
+                    # Create traces for Fibonacci levels
+                    fib_traces = []
+                    for level, price in fib_levels.items():
+                        fib_trace = go.Scatter(x=stock_data.index, y=[price] * len(stock_data), mode='lines', name=f'{level} level at {price:.2f}', line=dict(color='blue', dash='dash'))
+                        fib_traces.append(fib_trace)
+
+                    # Combine traces
+                    data = [trace_stock] + fib_traces
+
+                    # Define layout
+                    layout = go.Layout(
+                        title=f'{ticker} Fibonacci Retracement',
+                        yaxis=dict(title='Price'),
+                        xaxis=dict(title='Date'),
+                        legend=dict(x=0, y=1, traceorder='normal')
+                    )
+
+                    # Create figure
+                    fig = go.Figure(data=data, layout=layout)
+
+                    return fig
+                            
+                stock_data = fetch_stock_data(ticker, start_date, end_date)
+                price_min = stock_data['Close'].min()
+                price_max = stock_data['Close'].max()
+                fib_levels = fibonacci_levels(price_min, price_max)
+                fig = plot_fibonacci_retracement(stock_data, fib_levels)
+                st.plotly_chart(fig)
 
         
     elif option =='Stock Analysis':
