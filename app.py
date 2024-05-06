@@ -46,7 +46,8 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.arima.model import ARIMA
 from pmdarima.arima import auto_arima
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import datetime  
+import datetime
+import dateutil.parser
 import math
 import warnings
 import plotly.graph_objects as go
@@ -2469,83 +2470,227 @@ def main():
                 get_data(ticker)
 
         if pred_option_data == "Stock Earnings":
-            yf.pdr_override()
+            st.success("This segment allows us to get the stock data SMS")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            email_address = st.text_input("Enter your Email address")
+            if email_address:
+                message_three = (f"Email address captured is {email_address}")
+                st.success(message_three)
 
-            # Setting pandas display options
-            pd.set_option('display.max_columns', None)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
 
-            # Download earnings report for a specific date
-            report_date = datetime.now().date()
-            yec = YahooEarningsCalendar()
+                yf.pdr_override()
 
-            # Fetch earnings data for the specified date
-            earnings_df_list = yec.earnings_on(report_date)
+                # Setting pandas display options
+                pd.set_option('display.max_columns', None)
 
-            # Create a DataFrame from the earnings data and drop unnecessary columns
-            earnings_day_df = pd.DataFrame(earnings_df_list)
-            earnings_day_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName'], inplace=True)
+                # Download earnings report for a specific date
+                report_date = datetime.now().date()
+                yec = YahooEarningsCalendar()
 
-            # Rename columns for clarity and reorganize them
-            earnings_day_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
-            earnings_day_df = earnings_day_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
+                # Fetch earnings data for the specified date
+                earnings_df_list = yec.earnings_on(report_date)
 
-            # Adjust datetime to local timezone
-            earnings_day_df['DateTime'] = pd.to_datetime(earnings_day_df['DateTime']).dt.tz_localize(None)
+                # Create a DataFrame from the earnings data and drop unnecessary columns
+                earnings_day_df = pd.DataFrame(earnings_df_list)
+                earnings_day_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName'], inplace=True)
 
-            # Print the DataFrame
-            st.write(earnings_day_df)
+                # Rename columns for clarity and reorganize them
+                earnings_day_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
+                earnings_day_df = earnings_day_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
 
-            # Download earnings for a range of dates
-            DAYS_AHEAD = 7
-            start_date = datetime.now().date()
-            end_date = (datetime.now().date() + timedelta(days=DAYS_AHEAD))
+                # Adjust datetime to local timezone
+                earnings_day_df['DateTime'] = pd.to_datetime(earnings_day_df['DateTime']).dt.tz_localize(None)
 
-            # Fetch earnings data between specified dates
-            earnings_range_list = yec.earnings_between(start_date, end_date)
+                # Print the DataFrame
+                st.write(earnings_day_df)
 
-            # Create a DataFrame from the fetched data and drop unnecessary columns
-            earnings_range_df = pd.DataFrame(earnings_range_list)
-            earnings_range_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName'], inplace=True)
+                # Download earnings for a range of dates
+                DAYS_AHEAD = 7
+                start_date = datetime.now().date()
+                end_date = (datetime.now().date() + timedelta(days=DAYS_AHEAD))
 
-            # Rename columns for clarity and reorganize them
-            earnings_range_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
-            earnings_range_df = earnings_range_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
+                # Fetch earnings data between specified dates
+                earnings_range_list = yec.earnings_between(start_date, end_date)
 
-            # Adjust datetime to local timezone
-            earnings_range_df['DateTime'] = pd.to_datetime(earnings_range_df['DateTime']).dt.tz_localize(None)
+                # Create a DataFrame from the fetched data and drop unnecessary columns
+                earnings_range_df = pd.DataFrame(earnings_range_list)
+                earnings_range_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName'], inplace=True)
 
-            # Print the DataFrame
-            print(earnings_range_df)
+                # Rename columns for clarity and reorganize them
+                earnings_range_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
+                earnings_range_df = earnings_range_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
 
-            # Download earnings for a specific ticker within a date range
-            TICKER = 'AAPL'
-            DAYS_AHEAD = 180
-            start_date = datetime.now().date()
-            end_date = (datetime.now().date() + timedelta(days=DAYS_AHEAD))
+                # Adjust datetime to local timezone
+                earnings_range_df['DateTime'] = pd.to_datetime(earnings_range_df['DateTime']).dt.tz_localize(None)
 
-            # Fetch earnings data for the specified ticker
-            earnings_ticker_list = yec.get_earnings_of(TICKER)
+                # Print the DataFrame
+                print(earnings_range_df)
 
-            # Create a DataFrame from the fetched data and filter by date range
-            earnings_ticker_df = pd.DataFrame(earnings_ticker_list)
-            earnings_ticker_df['report_date'] = earnings_ticker_df['startdatetime'].apply(lambda x: dateutil.parser.isoparse(x).date())
-            earnings_ticker_df = earnings_ticker_df[earnings_ticker_df['report_date'].between(start_date, end_date)].sort_values('report_date')
-            earnings_ticker_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName', 'report_date'], inplace=True)
+                # Download earnings for a specific ticker within a date range
+                TICKER = 'AAPL'
+                DAYS_AHEAD = 180
+                start_date = datetime.now().date()
+                end_date = (datetime.now().date() + timedelta(days=DAYS_AHEAD))
 
-            # Rename columns for clarity and reorganize them
-            earnings_ticker_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
-            earnings_ticker_df = earnings_ticker_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
+                # Fetch earnings data for the specified ticker
+                earnings_ticker_list = yec.get_earnings_of(TICKER)
 
-            # Adjust datetime to local timezone
-            earnings_ticker_df['DateTime'] = pd.to_datetime(earnings_ticker_df['DateTime']).dt.tz_localize(None)
+                # Create a DataFrame from the fetched data and filter by date range
+                earnings_ticker_df = pd.DataFrame(earnings_ticker_list)
+                earnings_ticker_df['report_date'] = earnings_ticker_df['startdatetime'].apply(lambda x: dateutil.parser.isoparse(x).date())
+                earnings_ticker_df = earnings_ticker_df[earnings_ticker_df['report_date'].between(start_date, end_date)].sort_values('report_date')
+                earnings_ticker_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName', 'report_date'], inplace=True)
 
-            print(earnings_ticker_df)
+                # Rename columns for clarity and reorganize them
+                earnings_ticker_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
+                earnings_ticker_df = earnings_ticker_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
+
+                # Adjust datetime to local timezone
+                earnings_ticker_df['DateTime'] = pd.to_datetime(earnings_ticker_df['DateTime']).dt.tz_localize(None)
+
+                print(earnings_ticker_df)
 
 
         if pred_option_data == "Trading View Intraday Analysis":
             pass
-        if pred_option_data == "Trading View Recommendations":
-            pass
+
+        if pred_option_data == "Trading view Recommendations":
+            st.success("This segment allows us to get recommendations fro Trading View")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            email_address = st.text_input("Enter your Email address")
+            if email_address:
+                message_three = (f"Email address captured is {email_address}")
+                st.success(message_three)
+
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+            # Importing necessary libraries
+           
+                interval = '1D'
+
+                # Getting lists of tickers from NASDAQ, NYSE, and AMEX
+                nasdaq = ti.tickers_nasdaq()
+                nyse = ti.tickers_nyse()
+                amex = ti.tickers_amex()
+
+                # Define valid time intervals
+                type_intervals = ['1m', '5m', '15m', '30m', '1h', '2h', '4h', '1D', '1W', '1M']
+
+                # Set up Selenium WebDriver
+                options = Options()
+                options.add_argument("--headless")
+                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+                # Helper function to parse recommendation data
+                def parse_recommendation(recommendation_elements, counter_elements, rec_index, sell_index, buy_index):
+                    rec = recommendation_elements[rec_index].get_attribute('innerHTML')
+                    sell_signals = int(counter_elements[sell_index].get_attribute('innerHTML'))
+                    neutral_signals = int(counter_elements[sell_index + 1].get_attribute('innerHTML'))
+                    buy_signals = int(counter_elements[buy_index].get_attribute('innerHTML'))
+                    return rec, sell_signals, neutral_signals, buy_signals
+
+                # Helper function to display recommendations
+                def display_recommendations(analysis):
+                    for key in analysis:
+                        st.write(f"\n{key} Recommendation: ")
+                        rec, sell, neutral, buy = analysis[key]
+                        st.write(f"Recommendation: {rec}")
+                        st.write(f"Sell Signals: {sell}")
+                        st.write(f"Neutral Signals: {neutral}")
+                        st.write(f"Buy Signals: {buy}")
+
+                # Helper function to scrape tables
+                def scrape_tables(html):
+                    tables = pd.read_html(html, attrs = {'class': 'table-hvDpy38G'})
+                    return tables[0], tables[1], tables[2]  # Oscillator, Moving Averages, and Pivots tables
+
+                # Helper function to print tables
+                def print_tables(oscillator_table, ma_table, pivots_table):
+                    st.write("\nOscillator Table:")
+                    st.write(oscillator_table)
+                    st.write("\nMoving Average Table:")
+                    st.write(ma_table)
+                    st.write("\nPivots Table:")
+                    st.write(pivots_table)
+
+                # Process each ticker 
+                try:
+                    # Determine the exchange of the ticker
+                    if ticker in nasdaq:
+                        exchange = 'NASDAQ'
+                    elif ticker in nyse:
+                        exchange = 'NYSE'
+                    elif ticker in amex:
+                        exchange = 'AMEX'
+                    else:
+                        print(f"Could not find the exchange for {ticker}")
+                        
+                    # Get the current price of the ticker
+                    df = pdr.get_data_yahoo(ticker)
+                    price = round(df["Adj Close"][-1], 2)
+
+                    # Open TradingView page for the ticker
+                    driver.get(f"https://www.tradingview.com/symbols/{exchange}-{ticker}/technicals")
+                    time.sleep(1)
+
+                    # Display ticker, interval, and price information
+                    st.write('\nTicker: ' + ticker)
+                    st.write('Interval: ' + interval)
+                    st.write('Price: ' + str(price))
+
+                    # Switch to the specified interval on TradingView page
+                    for type_interval in type_intervals:
+                        if interval == type_interval:
+                            # n = type_intervals.index(type_interval)
+                            element = driver.find_element(By.XPATH, f'//*[@id="{interval}"]')
+                            # print (len(element))
+                            element.click()
+                            break
+
+                    time.sleep(1)
+
+                    # Scrape and display Overall, Oscillator, and Moving Average Recommendations
+                    recommendation_elements = driver.find_elements(By.CLASS_NAME, "speedometerText-Tat_6ZmA")
+                    counter_elements = driver.find_elements(By.CLASS_NAME, "counterNumber-kg4MJrFB")
+                    analysis = {
+                        'Overall': parse_recommendation(recommendation_elements, counter_elements, 1, 3, 5),
+                        'Oscillator': parse_recommendation(recommendation_elements, counter_elements, 0, 0, 2),
+                        'Moving Average': parse_recommendation(recommendation_elements, counter_elements, 2, 6, 8)
+                    }
+                    display_recommendations(analysis)
+
+                    # Scrape and display tables for Oscillator, Moving Averages, and Pivots
+                    html = driver.page_source
+                    oscillator_table, ma_table, pivots_table = scrape_tables(html)
+                    print_tables(oscillator_table, ma_table, pivots_table)
+
+                except Exception as e:
+                    st.write(f'Could not retrieve stats for {ticker} due to {e}')
+
+                driver.close()
+            
         if pred_option_data == "Yahoo Finance Intraday Data":
             pass
         
