@@ -5,6 +5,7 @@ import os
 from math import sqrt
 from pylab import rcParams
 import pylab as pl
+import calendar
 import yfinance as yf
 import pandas as pd
 import seaborn as sns
@@ -15,7 +16,6 @@ import pandas as pd
 from bs4 import BeautifulSoup as soup
 from urllib.request import Request, urlopen
 import requests
-from config import financial_model_prep
 from pandas_datareader import data as pdr
 import sys
 import os
@@ -76,8 +76,7 @@ from keras.src.metrics.metrics_utils import confusion_matrix
 from keras.src.utils import to_categorical
 import networkx as nx
 from sklearn.covariance import GraphicalLassoCV
-from config import EMAIL_ADDRESS
-from config import EMAIL_PASSWORD
+from config import EMAIL_ADDRESS, EMAIL_PASSWORD , API_FMPCLOUD
 warnings.filterwarnings("ignore")
 from autoscraper import AutoScraper
 from lxml import html
@@ -207,69 +206,73 @@ def main():
             st.write('\nList of Tickers:')
             st.write(tickers)
         if options == "Fundamental_screener":
+            st.success("This portion allows you to sp500 for base overview")
+            if st.button("Scan"):
 
-            # Get the API key
-            demo = financial_model_prep()
+                # Get the API key
+                demo = API_FMPCLOUD
 
-            # Define search criteria for the stock screener
-            marketcap = str(1000000000)
-            url = f'https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan={marketcap}&betaMoreThan=1&volumeMoreThan=10000&sector=Technology&exchange=NASDAQ&dividendMoreThan=0&limit=1000&apikey={demo}'
 
-            # Fetch list of companies meeting criteria
-            screener = requests.get(url).json()
+                # Define search criteria for the stock screener
+                marketcap = str(1000000000)
+                url = f'https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan={marketcap}&betaMoreThan=1&volumeMoreThan=10000&sector=Technology&exchange=NASDAQ&dividendMoreThan=0&limit=1000&apikey={demo}'
 
-            # Extract symbols of companies
-            companies = [item['symbol'] for item in screener]
+                # Fetch list of companies meeting criteria
+                screener = requests.get(url).json()
+                st.write(screener)
 
-            # Initialize dictionary for storing financial ratios
-            value_ratios = {}
+                # Extract symbols of companies
+                companies = [item['symbol'] for item in screener]
 
-            # Limit the number of companies for ratio extraction
-            max_companies = 30
+                # Initialize dictionary for storing financial ratios
+                value_ratios = {}
 
-            # Process financial ratios for each company
-            for count, company in enumerate(companies):
-                if count >= max_companies:
-                    break
+                # Limit the number of companies for ratio extraction
+                max_companies = 30
 
-                try:
-                    # Fetch financial and growth ratios
-                    fin_url = f'https://financialmodelingprep.com/api/v3/ratios/{company}?apikey={demo}'
-                    growth_url = f'https://financialmodelingprep.com/api/v3/financial-growth/{company}?apikey={demo}'
+                # Process financial ratios for each company
+                for count, company in enumerate(companies):
+                    if count >= max_companies:
+                        break
 
-                    fin_ratios = requests.get(fin_url).json()
-                    growth_ratios = requests.get(growth_url).json()
+                    try:
+                        # Fetch financial and growth ratios
+                        fin_url = f'https://financialmodelingprep.com/api/v3/ratios/{company}?apikey={demo}'
+                        growth_url = f'https://financialmodelingprep.com/api/v3/financial-growth/{company}?apikey={demo}'
 
-                    # Store required ratios
-                    ratios = { 'ROE': fin_ratios[0]['returnOnEquity'], 
-                            'ROA': fin_ratios[0]['returnOnAssets'], 
-                            # Additional ratios can be added here
-                            }
+                        fin_ratios = requests.get(fin_url).json()
+                        growth_ratios = requests.get(growth_url).json()
 
-                    growth = { 'Revenue_Growth': growth_ratios[0]['revenueGrowth'],
-                            'NetIncome_Growth': growth_ratios[0]['netIncomeGrowth'],
-                            # Additional growth metrics can be added here
-                            }
+                        # Store required ratios
+                        ratios = { 'ROE': fin_ratios[0]['returnOnEquity'], 
+                                'ROA': fin_ratios[0]['returnOnAssets'], 
+                                # Additional ratios can be added here
+                                }
 
-                    value_ratios[company] = {**ratios, **growth}
-                except Exception as e:
-                    print(f"Error processing {company}: {e}")
+                        growth = { 'Revenue_Growth': growth_ratios[0]['revenueGrowth'],
+                                'NetIncome_Growth': growth_ratios[0]['netIncomeGrowth'],
+                                # Additional growth metrics can be added here
+                                }
 
-            # Convert to DataFrame and display
-            df = pd.DataFrame.from_dict(value_ratios, orient='index')
-            print(df.head())
+                        value_ratios[company] = {**ratios, **growth}
+                    except Exception as e:
+                        st.write(f"Error processing {company}: {e}")
 
-            # Define and apply ranking criteria
-            criteria = { 'ROE': 1.2, 'ROA': 1.1, 'Debt_Ratio': -1.1, # etc.
-                        'Revenue_Growth': 1.25, 'NetIncome_Growth': 1.10 }
+                # Convert to DataFrame and display
+                df = pd.DataFrame.from_dict(value_ratios, orient='index')
+                st.write(df.head())
 
-            # Normalize and rank companies
-            mean_values = df.mean()
-            normalized_df = df / mean_values
-            normalized_df['ranking'] = sum(normalized_df[col] * weight for col, weight in criteria.items())
+                # Define and apply ranking criteria
+                criteria = { 'ROE': 1.2, 'ROA': 1.1, 'Debt_Ratio': -1.1, # etc.
+                            'Revenue_Growth': 1.25, 'NetIncome_Growth': 1.10 }
 
-            # Print ranked companies
-            print(normalized_df.sort_values(by=['ranking'], ascending=False))
+                # Normalize and rank companies
+                mean_values = df.mean()
+                normalized_df = df / mean_values
+                normalized_df['ranking'] = sum(normalized_df[col] * weight for col, weight in criteria.items())
+
+                # Print ranked companies
+                st.write(normalized_df.sort_values(by=['ranking'], ascending=False))
 
         if options == "RSI_Stock_tickers":
             st.success("This program allows you to view which tickers are overbrought and which ones are over sold")
@@ -1528,7 +1531,8 @@ def main():
                 st.write(df)
 
     elif option =='Stock Data':
-        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "Dividend History", "Fibonacci Retracement", "Finviz Home scraper"])
+        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "High Dividend yield","Dividend History", "Fibonacci Retracement", 
+                                                                          "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", "Get Dividend calendar"])
         if pred_option_data == "Finviz Autoscraper":
 
             # Fetches financial data for a list of tickers from Finviz using AutoScraper.
@@ -1744,6 +1748,282 @@ def main():
                 st.write('\nForex Rates: ')
                 st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed is-tabular-nums'}, 
                                     ['Index', 'Last', 'Change', 'Change (%)'], [], 'Index', idx=3))
+
+        if pred_option_data == "Finviz Insider Trading scraper":
+            st.success("This segment allows you to check the latest insider trades of the market and relevant parties")
+            # Set display options for pandas
+            if st.button("Check"):
+                pd.set_option('display.max_colwidth', 60)
+                pd.set_option('display.max_columns', None)
+                pd.set_option('display.max_rows', None)
+
+                # Function to fetch HTML content from URL
+                def fetch_html(url):
+                    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                    webpage = urlopen(req).read()
+                    return soup(webpage, "html.parser")
+
+                # Function to extract insider trades table
+                def extract_insider_trades(html_soup):
+                    trades = pd.read_html(str(html_soup), attrs={'class': 'styled-table-new is-rounded is-condensed mt-2 w-full'})[0]
+                    return trades
+
+                # Process the insider trades data
+                def process_insider_trades(trades):
+                    # Rename columns and sort by date
+                    trades.columns = ['Ticker', 'Owner', 'Relationship', 'Date', 'Transaction', 'Cost', '#Shares', 'Value ($)', '#Shares Total', 'SEC Form 4']
+                    trades.sort_values('Date', ascending=False, inplace=True)
+
+                    # Set the date column as index and drop unnecessary rows
+                    trades.set_index('Date', inplace=True)
+
+                    return trades
+
+                # Main function to scrape insider trades
+                def scrape_insider_trades():
+                    try:
+                        url = "https://finviz.com/insidertrading.ashx"
+                        html_soup = fetch_html(url)
+                        trades = extract_insider_trades(html_soup)
+                        processed_trades = process_insider_trades(trades)
+                        return processed_trades
+                    except Exception as e:
+                        return e
+
+                # Call the function and print the result
+                st.write('\nInsider Trades:')
+                st.write(scrape_insider_trades())
+
+        if pred_option_data == "Finviz stock scraper":
+
+            st.success("This segment allows to analyze overview a ticker from finviz")
+            stock = st.text_input("Please type the stock ticker")
+            if stock:
+                st.success(f"Stock ticker captured : {stock}")
+            if st.button("check"):
+                # Set display options for pandas dataframes
+                pd.set_option('display.max_colwidth', 25)
+                pd.set_option('display.max_columns', None)
+                pd.set_option('display.max_rows', None)
+
+
+                # Set up scraper
+                url = f"https://finviz.com/quote.ashx?t={stock.strip().upper()}&p=d"
+                req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                webpage = urlopen(req).read()
+                html_content = soup(webpage, "html.parser")
+
+                # Function to get fundamental ratios
+                def get_fundamentals():
+                    try:
+                        # Get data from finviz and convert to pandas dataframe
+                        df = pd.read_html(str(html_content), attrs = {"class":"js-snapshot-table snapshot-table2 screener_snapshot-table-body"})[0]
+
+                        # Resetting the combined columns lists 
+                        combined_column1 = []
+                        combined_column2 = []
+
+                        # Looping through the DataFrame to combine data with adjustment for odd number of columns
+                        for i in range(0, len(df.columns), 2):
+                            combined_column1.extend(df.iloc[:, i].tolist())
+                            # Check if the next column exists before adding it, otherwise add None
+                            if i + 1 < len(df.columns):
+                                combined_column2.extend(df.iloc[:, i + 1].tolist())
+                            else:
+                                combined_column2.extend([None] * len(df))  # Add None for missing values
+
+                        # Creating a new DataFrame with the combined columns
+                        combined_df = pd.DataFrame({'Attributes': combined_column1, 'Values': combined_column2})
+                        combined_df = combined_df.set_index('Attributes')
+                        return combined_df
+                    except Exception as e:
+                        return e
+
+                # Function to get recent news articles
+                def get_news():
+                    try:
+                        news = pd.read_html(str(html_content), attrs={"class": "fullview-news-outer"})[0]
+                        news.columns = ['DateTime', 'Headline']
+                        news.set_index('DateTime', inplace=True)
+                        return news
+                    except Exception as e:
+                        return e
+
+                # Function to get recent insider trades
+                def get_insider():
+                    try:
+                        insider = pd.read_html(str(html_content), attrs={"class": "body-table"})[0]
+                        insider.set_index('Date', inplace=True)
+                        return insider
+                    except Exception as e:
+                        return e
+
+                # Function to get analyst price targets
+                def get_price_targets():
+                    try:
+                        targets = pd.read_html(str(html_content), attrs={"class": "js-table-ratings"})[0]
+                        targets.set_index('Date', inplace=True)
+                        return targets
+                    except Exception as e:
+                        return e
+
+                # Print out the resulting dataframes for each category
+                st.write('Fundamental Ratios:')
+                st.write(get_fundamentals())
+
+                st.write('\nRecent News:')
+                st.write(get_news())
+
+                st.warning('\nRecent Insider Trades:')
+                st.write(get_insider())
+
+                st.write('\nAnalyst Price Targets:')
+                st.write(get_price_targets())
+
+        if pred_option_data == "Get Dividend calendar":
+            st.success("This segment allows you to observe the Dividend companies of some companies")     
+
+            month = st.date_input("Enter the Month to test")
+            if month:
+                # Convert the selected date to a string in the format "%Y-%m-%d"
+                month_str = month.strftime("%Y-%m-%d")
+                # Split the string into year and month
+                year, month, _ = month_str.split('-')
+                st.success(f"Month captured: Year - {year}, Month - {month}")
+
+            if st.button("Check"):
+                #Set pandas option to display all columns
+                pd.set_option('display.max_columns', None)
+
+                class DividendCalendar:
+                    def __init__(self, year, month):
+                        # Initialize with the year and month for the dividend calendar
+                        self.year = year
+                        self.month = month
+                        self.url = 'https://api.nasdaq.com/api/calendar/dividends'
+                        self.hdrs = {
+                            'Accept': 'text/plain, */*',
+                            'DNT': "1",
+                            'Origin': 'https://www.nasdaq.com/',
+                            'Sec-Fetch-Mode': 'cors',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)'
+                        }
+                        self.calendars = []  # Store all calendar DataFrames
+
+                    def date_str(self, day):
+                        # Convert a day number into a formatted date string
+                        return dt.date(self.year, self.month, day).strftime('%Y-%m-%d')
+
+                    def scraper(self, date_str):
+                        # Scrape dividend data from NASDAQ API for a given date
+                        response = requests.get(self.url, headers=self.hdrs, params={'date': date_str})
+                        return response.json()
+
+                    def dict_to_df(self, dictionary):
+                        # Convert the JSON data from the API into a pandas DataFrame
+                        rows = dictionary.get('data').get('calendar').get('rows', [])
+                        calendar_df = pd.DataFrame(rows)
+                        self.calendars.append(calendar_df)
+                        return calendar_df
+
+                    def calendar(self, day):
+                        # Fetch dividend data for a specific day and convert it to DataFrame
+                        date_str = self.date_str(day)
+                        dictionary = self.scraper(date_str)
+                        return self.dict_to_df(dictionary)
+
+                def get_dividends(year, month):
+                    try:
+                        # Create an instance of DividendCalendar for the given year and month
+                        dc = DividendCalendar(year, month)
+                        days_in_month = calendar.monthrange(year, month)[1]
+
+                        # Iterate through each day of the month and scrape dividend data
+                        for day in range(1, days_in_month + 1):
+                            dc.calendar(day)
+
+                        # Combine all the scraped data into a single DataFrame
+                        concat_df = pd.concat(dc.calendars).dropna(how='any')
+                        concat_df = concat_df.set_index('companyName').reset_index()
+                        concat_df = concat_df.drop(columns=['announcement_Date'])
+                        concat_df.columns = ['Company Name', 'Ticker', 'Dividend Date', 'Payment Date', 
+                                            'Record Date', 'Dividend Rate', 'Annual Rate']
+                        concat_df = concat_df.sort_values(['Annual Rate', 'Dividend Date'], ascending=[False, False])
+                        concat_df = concat_df.drop_duplicates()
+                        return concat_df
+                    except Exception as e:
+                        return e
+                    
+                # Assuming date_obj is a datetime.date object
+
+
+                st.write(get_dividends(2023,12))
+            
+        if pred_option_data == "Green Line Test":
+            pass
+        if pred_option_data == "High Dividend yield":
+            st.success("This program allows you to simulate the Dividends given by a company")
+            if st.button("Check"):
+
+                # Create an instance of the financial model prep class for API access
+                demo = API_FMPCLOUD
+
+                # Read ticker symbols from a saved pickle file
+                symbols = ti.tickers_sp500()
+
+                # Initialize a dictionary to store dividend yield data for each company
+                yield_dict = {}
+
+                # Loop through each ticker symbol in the list
+                for company in symbols:
+                    try:
+                        # Fetch company data from FinancialModelingPrep API using the ticker symbol
+                        companydata = requests.get(f'https://fmpcloud.io/api/v3/profile/{company}?apikey={demo}')
+                        st.write(companydata)
+                        companydata = companydata.json()  # Convert response to JSON format
+                        
+                        # Extract relevant data for dividend calculation
+                        latest_Annual_Dividend = companydata[0]['lastDiv']
+                        price = companydata[0]['price']
+                        market_Capitalization = companydata[0]['mktCap']
+                        name = companydata[0]['companyName']
+                        exchange = companydata[0]['exchange']
+
+                        # Calculate the dividend yield
+                        dividend_yield = latest_Annual_Dividend / price
+
+                        # Store the extracted data in the yield_dict dictionary
+                        yield_dict[company] = {
+                            'dividend_yield': dividend_yield,
+                            'latest_price': price,
+                            'latest_dividend': latest_Annual_Dividend,
+                            'market_cap': market_Capitalization / 1000000,  # Convert market cap to millions
+                            'company_name': name,
+                            'exchange': exchange
+                        }
+
+                    except Exception as e:
+                        # Skip to the next ticker if there's an error with the current one
+                        print(f"Error processing {company}: {e}")
+                        continue
+
+                # Convert the yield_dict dictionary to a pandas DataFrame
+                yield_dataframe = pd.DataFrame.from_dict(yield_dict, orient='index')
+
+                # Sort the DataFrame by dividend yield in descending order
+                yield_dataframe = yield_dataframe.sort_values('dividend_yield', ascending=False)
+
+                # Display the sorted DataFrame
+                st.write(yield_dataframe)
+
+        if pred_option_data == "Get Divident calendar":
+            pass
+        if pred_option_data == "Get Divident calendar":
+            pass
+        if pred_option_data == "Get Divident calendar":
+            pass
+        if pred_option_data == "Get Divident calendar":
+            pass
 
         
     elif option =='Stock Analysis':
