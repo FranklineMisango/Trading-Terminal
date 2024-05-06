@@ -80,8 +80,9 @@ from config import EMAIL_ADDRESS
 from config import EMAIL_PASSWORD
 warnings.filterwarnings("ignore")
 from autoscraper import AutoScraper
-
-
+from lxml import html
+import requests
+from datetime import datetime, timedelta
 #Page config
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLC. Comprehensive Lite Algorithmic Trading Terminal')
@@ -1409,6 +1410,7 @@ def main():
                 num_years = int(number_of_years)
                 start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
                 end_date = dt.datetime.now()
+
                 # ETF symbols and their respective countries
                 etfs = {"EWJ": "Japan", "EWZ": "Brazil", "FXI": "China",
                         "EWY": "South Korea", "EWT": "Taiwan", "EWH": "Hong Kong",
@@ -1443,9 +1445,6 @@ def main():
                     # If there's a mismatch, print additional information for debugging
                     st.write("Mismatch between the number of ETF symbols and precision matrix dimensions")
 
-                # Verify that the number of indices and columns matches the number of ETF symbols
-                #assert precision_matrix.shape[0] == len(etfs), "Number of ETF symbols does not match precision matrix dimensions"
-
                 # Create DataFrame with appropriate indices and columns
                 precision_df = pd.DataFrame(precision_matrix, index=etfs.keys(), columns=etfs.keys())
 
@@ -1471,6 +1470,7 @@ def main():
                 st.pyplot()
 
         if pred_option == "Kmeans Clustering":
+            
             st.success("This segment allows you to predict the price of a stock ticker using Kmeans clustering")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
@@ -1528,7 +1528,7 @@ def main():
                 st.write(df)
 
     elif option =='Stock Data':
-        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper"])
+        pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "Dividend History"])
 
         if pred_option_data == "Finviz Autoscraper":
 
@@ -1556,7 +1556,73 @@ def main():
 
             tickers = ['SCHB', 'AMZN', 'AAPL', 'MSFT', 'TSLA', 'AMD', 'NFLX']
             scraper_rule_path = '../finviz_table'
-            fetch_finviz_data(tickers, scraper_rule_path)                    
+            fetch_finviz_data(tickers, scraper_rule_path)
+
+        if pred_option_data == "Dividend History":
+
+            # Function to convert datetime to string format for URL
+            def format_date(date_datetime):
+                date_mktime = time.mktime(date_datetime.timetuple())
+                return str(int(date_mktime))
+
+            # Function to construct URL for Yahoo Finance dividend history
+            def subdomain(symbol, start, end):
+                format_url = f"{symbol}/history?period1={start}&period2={end}"
+                tail_url = "&interval=div%7Csplit&filter=div&frequency=1d"
+                return format_url + tail_url
+
+            # Function to define HTTP headers for request
+            def header(subdomain):
+                hdrs = {"authority": "finance.yahoo.com", "method": "GET", "path": subdomain,
+                        "scheme": "https", "accept": "text/html,application/xhtml+xml",
+                        "accept-encoding": "gzip, deflate, br", "accept-language": "en-US,en;q=0.9",
+                        "cache-control": "no-cache", "cookie": "cookies", "dnt": "1", "pragma": "no-cache",
+                        "sec-fetch-mode": "navigate", "sec-fetch-site": "same-origin", "sec-fetch-user": "?1",
+                        "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0"}
+                return hdrs
+
+            # Function to scrape dividend history page and return DataFrame
+            def scrape_page(url, header):
+                page = requests.get(url, headers=header)
+                element_html = html.fromstring(page.content)
+                table = element_html.xpath('//table')[0]
+                table_tree = html.tostring(table, method='xml')
+                df = pd.read_html(table_tree)
+                return df[0]
+
+            # Function to clean dividend data
+            def clean_dividends(symbol, dividends):
+                dividends = dividends.drop(len(dividends) - 1)
+                dividends['Dividend'] = dividends['Dividend'].str.split().str[0].astype(float)
+                dividends.name = symbol
+                return dividends
+            
+            st.success("This segment allows you to get the dividends of a particular ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+                symbol = ticker
+                start = start_date - timedelta(days=9125)
+                sub = subdomain(symbol, start, end_date)
+                hdrs = header(sub)
+
+                base_url = "https://finance.yahoo.com/quote/"
+                url = base_url + sub
+                dividends_df = scrape_page(url, hdrs)
+                st.write(dividends_df)
+                dividends = clean_dividends(symbol, dividends_df)
+
+                st.write(dividends)
+
         
     elif option =='Stock Analysis':
         pass
