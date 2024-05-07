@@ -2,6 +2,8 @@
 import streamlit as st
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from yahoo_earnings_calendar import YahooEarningsCalendar
+from pandas_datareader._utils import RemoteDataError
+from socket import gaierror
 import nltk
 nltk.download('vader_lexicon')
 from bs4 import BeautifulSoup
@@ -33,6 +35,7 @@ import os
 parent_dir = os.path.dirname(os.getcwd())
 sys.path.append(parent_dir)
 import ta_functions as ta
+import ta as taf
 import tickers as ti
 from tickers import tickers_sp500
 import time
@@ -2826,6 +2829,9 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Backtest"):
+                start_date =  str(start_date)
+                end_date  = str(end_date)
+
                 pd.set_option("display.max_columns", None)
                 pd.set_option("display.max_rows", None)
 
@@ -2843,7 +2849,7 @@ def main():
                 df = get_stock_backtest_data(ticker, start_date, end_date)
                 df["CLOSE_PREV"] = df.Close.shift(1)
 
-                k_band = ta.volatility.KeltnerChannel(df.High, df.Low, df.Close, 10)
+                k_band = taf.volatility.KeltnerChannel(df.High, df.Low, df.Close, 10)
 
                 df["K_BAND_UB"] = k_band.keltner_channel_hband().round(4)
                 df["K_BAND_LB"] = k_band.keltner_channel_lband().round(4)
@@ -2867,7 +2873,7 @@ def main():
                     n = kwargs.get("n", 10)
                     data = df.copy()
 
-                    k_band = ta.volatility.KeltnerChannel(data.High, data.Low, data.Close, n)
+                    k_band = taf.volatility.KeltnerChannel(data.High, data.Low, data.Close, n)
 
                     data["K_BAND_UB"] = k_band.keltner_channel_hband().round(4)
                     data["K_BAND_LB"] = k_band.keltner_channel_lband().round(4)
@@ -2898,7 +2904,7 @@ def main():
                     n_rng = kwargs.get("n_rng", 2)
                     data = df.copy()
 
-                    boll = ta.volatility.BollingerBands(data.Close, n, n_rng)
+                    boll = taf.volatility.BollingerBands(data.Close, n, n_rng)
 
                     data["BOLL_LBAND_INDI"] = boll.bollinger_lband_indicator()
                     data["BOLL_UBAND_INDI"] = boll.bollinger_hband_indicator()
@@ -2928,10 +2934,10 @@ def main():
                     data = df.copy()
 
                     if ma_type == "sma":
-                        sma = ta.trend.SMAIndicator(data.Close, n)
+                        sma = taf.trend.SMAIndicator(data.Close, n)
                         data["MA"] = sma.sma_indicator().round(4)
                     elif ma_type == "ema":
-                        ema = ta.trend.EMAIndicator(data.Close, n)
+                        ema = taf.trend.EMAIndicator(data.Close, n)
                         data["MA"] = ema.ema_indicator().round(4)
 
                     data["CLOSE_PREV"] = data.Close.shift(1)
@@ -2958,7 +2964,7 @@ def main():
                     n_sign = kwargs.get("n_sign", 9)
                     data = df.copy()
 
-                    macd = ta.trend.MACD(data.Close, n_slow, n_fast, n_sign)
+                    macd = taf.trend.MACD(data.Close, n_slow, n_fast, n_sign)
 
                     data["MACD_DIFF"] = macd.macd_diff().round(4)
                     data["MACD_DIFF_PREV"] = data.MACD_DIFF.shift(1)
@@ -2983,7 +2989,7 @@ def main():
                     n = kwargs.get("n", 14)
                     data = df.copy()
 
-                    rsi = ta.momentum.RSIIndicator(data.Close, n)
+                    rsi = taf.momentum.RSIIndicator(data.Close, n)
 
                     data["RSI"] = rsi.rsi().round(4)
                     data["RSI_PREV"] = data.RSI.shift(1)
@@ -3008,7 +3014,7 @@ def main():
                     n = kwargs.get("n", 14)
                     data = df.copy()
 
-                    wr = ta.momentum.WilliamsRIndicator(data.High, data.Low, data.Close, n)
+                    wr = taf.momentum.WilliamsRIndicator(data.High, data.Low, data.Close, n)
 
                     data["WR"] = wr._wr.round(4)
                     data["WR_PREV"] = data.WR.shift(1)
@@ -3034,7 +3040,7 @@ def main():
                     d = kwargs.get("d", 5)
                     data = df.copy()
 
-                    sto = ta.momentum.StochasticOscillator(data.High, data.Low, data.Close, k, d)
+                    sto = taf.momentum.StochasticOscillator(data.High, data.Low, data.Close, k, d)
 
                     data["K"] = sto.stoch().round(4)
                     data["D"] = sto.stoch_signal().round(4)
@@ -3063,12 +3069,12 @@ def main():
                     dd = kwargs.get("dd", 3)
                     data = df.copy()
 
-                    sto = ta.momentum.StochasticOscillator(data.High, data.Low, data.Close, k, d)
+                    sto = taf.momentum.StochasticOscillator(data.High, data.Low, data.Close, k, d)
 
                     data["K"] = sto.stoch().round(4)
                     data["D"] = sto.stoch_signal().round(4)
 
-                    ma = ta.trend.SMAIndicator(data.D, dd)
+                    ma = taf.trend.SMAIndicator(data.D, dd)
                     data["DD"] = ma.sma_indicator().round(4)
 
                     data["DIFF"] = data["D"] - data["DD"]
@@ -3096,7 +3102,7 @@ def main():
                     n_span_b = kwargs.get("n_span_b", 26)
                     data = df.copy()
 
-                    ichmoku = ta.trend.IchimokuIndicator(data.High, data.Low, n_conv, n_base, n_span_b)
+                    ichmoku = taf.trend.IchimokuIndicator(data.High, data.Low, n_conv, n_base, n_span_b)
 
                     data["BASE"] = ichmoku.ichimoku_base_line().round(4)
                     data["CONV"] = ichmoku.ichimoku_conversion_line().round(4)
@@ -3896,8 +3902,81 @@ def main():
                 df.to_csv(f"{ticker}_{start_date}_{end_date}_backtest.csv")
                 st.write(df.sort_values("return", ascending=True).head(50))
                 st.write(df.sort_values("return", ascending=False).head(50))
-        if pred_option_analysis == "CAPM Analysis":
-            pass
+
+        if pred_option_analysis == "CAPM Analysis": 
+            st.success("This segment allows you to do CAPM Analysis")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+
+            # Fetches stock data for a given ticker.
+                def get_stock_data(ticker, start, end):
+                    return pdr.DataReader(ticker, start_date, end_date)
+
+                # Calculates expected return using CAPM.
+                def calculate_expected_return(stock, index, risk_free_return):
+                    # Resample to monthly data
+                    return_stock = stock.resample('M').last()['Adj Close']
+                    return_index = index.resample('M').last()['Adj Close']
+
+                    # Create DataFrame with returns
+                    df = pd.DataFrame({'stock_close': return_stock, 'index_close': return_index})
+                    df[['stock_return', 'index_return']] = np.log(df / df.shift(1))
+                    df = df.dropna()
+
+                    # Calculate beta and alpha
+                    beta, alpha = np.polyfit(df['index_return'], df['stock_return'], deg=1)
+                    
+                    # Calculate expected return
+                    expected_return = risk_free_return + beta * (df['index_return'].mean() * 12 - risk_free_return)
+                    return expected_return
+
+                
+                # Risk-free return rate
+                risk_free_return = 0.02
+
+                # Define time period
+                start = start_date
+                end = end_date
+                
+                # Get all tickers in NASDAQ
+                nasdaq_tickers = ti.tickers_nasdaq()
+
+                # Index ticker
+                index_ticker = '^GSPC'
+
+                # Fetch index data
+                try:
+                    index_data = get_stock_data(index_ticker, start, end)
+                except RemoteDataError:
+                    st.write("Failed to fetch index data.")
+                    return
+
+                # Loop through NASDAQ tickers
+                for ticker in nasdaq_tickers:
+                    try:
+                        # Fetch stock data
+                        stock_data = get_stock_data(ticker, start, end)
+
+                        # Calculate expected return
+                        expected_return = calculate_expected_return(stock_data, index_data, risk_free_return)
+
+                        # Output expected return
+                        st.write(f'{ticker}: Expected Return: {expected_return}')
+
+                    except (RemoteDataError, gaierror):
+                        st.write(f"Data not available for ticker: {ticker}")
+
+
         if pred_option_analysis == "Earnings Sentiment Analysis":
             pass
         if pred_option_analysis == "Intrinsic Value analysis":
