@@ -1,5 +1,6 @@
 #Library imports
 import streamlit as st
+from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from yahoo_earnings_calendar import YahooEarningsCalendar
 from pandas_datareader._utils import RemoteDataError
@@ -59,6 +60,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import datetime
 import dateutil.parser
 import math
+from scipy.stats import norm
 import warnings
 import plotly.graph_objects as go
 from sklearn.preprocessing import MinMaxScaler
@@ -3922,8 +3924,14 @@ def main():
                 def get_stock_data(ticker, start, end):
                     return pdr.DataReader(ticker, start_date, end_date)
 
-                # Calculates expected return using CAPM.
+                # Calculates expected return using CAPM.                
                 def calculate_expected_return(stock, index, risk_free_return):
+                    # Check if the index is DateTimeIndex, if not, convert it
+                    if not isinstance(stock.index, pd.DatetimeIndex):
+                        stock.index = pd.to_datetime(stock.index)
+                    if not isinstance(index.index, pd.DatetimeIndex):
+                        index.index = pd.to_datetime(index.index)
+                    
                     # Resample to monthly data
                     return_stock = stock.resample('M').last()['Adj Close']
                     return_index = index.resample('M').last()['Adj Close']
@@ -3933,13 +3941,16 @@ def main():
                     df[['stock_return', 'index_return']] = np.log(df / df.shift(1))
                     df = df.dropna()
 
+                    # Check if df contains non-empty vectors
+                    if len(df['index_return']) == 0 or len(df['stock_return']) == 0:
+                        raise ValueError("Empty vectors found in DataFrame df")
+
                     # Calculate beta and alpha
                     beta, alpha = np.polyfit(df['index_return'], df['stock_return'], deg=1)
                     
                     # Calculate expected return
                     expected_return = risk_free_return + beta * (df['index_return'].mean() * 12 - risk_free_return)
                     return expected_return
-
                 
                 # Risk-free return rate
                 risk_free_return = 0.02
@@ -3978,10 +3989,181 @@ def main():
 
 
         if pred_option_analysis == "Earnings Sentiment Analysis":
-            pass
+            # Retrieves earnings call transcript from API
+            # TODO identify the error with the API with key error 0
+            def get_earnings_call_transcript(api_key, company, quarter, year):
+                url = f'https://financialmodelingprep.com/api/v3/earning_call_transcript/{company}?quarter={quarter}&year={year}&apikey={api_key}'
+                response = requests.get(url)
+                return response.json()[0]['content']
+
+            # Performs sentiment analysis on the transcript.
+            def analyze_sentiment(transcript):
+                sentiment_call = TextBlob(transcript)
+                return sentiment_call
+
+            # Counts the number of positive, negative, and neutral sentences.
+            def count_sentiments(sentiment_call):
+                positive, negative, neutral = 0, 0, 0
+                all_sentences = []
+
+                for sentence in sentiment_call.sentences:
+                    polarity = sentence.sentiment.polarity
+                    if polarity < 0:
+                        negative += 1
+                    elif polarity > 0:
+                        positive += 1
+                    else:
+                        neutral += 1
+                    all_sentences.append(polarity)
+
+                return positive, negative, neutral, np.array(all_sentences)
+
+            st.success("This segment allows us to get The sentiments of a company's earnings")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+                api_key = API_FMPCLOUD
+                company = ticker
+
+                # Get transcript and perform sentiment analysis
+                transcript = get_earnings_call_transcript(api_key, company, 3, 2020)
+                sentiment_call = analyze_sentiment(transcript)
+
+                # Count sentiments and calculate mean polarity
+                positive, negative, neutral, all_sentences = count_sentiments(sentiment_call)
+                mean_polarity = all_sentences.mean()
+
+                # Print results
+                st.write(f"Earnings Call Transcript for {company}:\n{transcript}\n")
+                st.write(f"Overall Sentiment: {sentiment_call.sentiment}")
+                st.write(f"Positive Sentences: {positive}, Negative Sentences: {negative}, Neutral Sentences: {neutral}")
+                st.write(f"Average Sentence Polarity: {mean_polarity}")
+
+                # Print very positive sentences
+                print("\nHighly Positive Sentences:")
+                for sentence in sentiment_call.sentences:
+                    if sentence.sentiment.polarity > 0.8:
+                        st.write(sentence)
+
         if pred_option_analysis == "Intrinsic Value analysis":
-            pass
+
+            # Fetches stock data and calculates annual returns.
+            def get_stock_returns(ticker, start_date, end_date):
+                stock_data = yf.download(ticker,start_date, end_date)
+                stock_data = stock_data.reset_index()
+                open_prices = stock_data['Open'].tolist()
+                open_prices = open_prices[::253]  # Annual data, assuming 253 trading days per year
+                df_returns = pd.DataFrame({'Open': open_prices})
+                df_returns['Return'] = df_returns['Open'].pct_change()
+                return df_returns.dropna()
+
+            # Plots the normal distribution of returns.
+            def plot_return_distribution(returns, ticker):
+                # Calculate mean and standard deviation
+                mean, std = np.mean(returns), np.std(returns)
+                
+                # Create x values
+                x = np.linspace(min(returns), max(returns), 100)
+                
+                # Calculate probability density function values
+                y = norm.pdf(x, mean, std)
+                
+                # Create interactive plot with Plotly
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Normal Distribution'))
+                fig.update_layout(title=f'Normal Distribution of Returns for {ticker.upper()}',
+                                xaxis_title='Returns',
+                                yaxis_title='Frequency')
+                st.plotly_chart(fig)
+
+            # Estimates the probability of returns falling within specified bounds.
+            def estimate_return_probability(returns, lower_bound, higher_bound):
+                mean, std = np.mean(returns), np.std(returns)
+                prob = round(norm(mean, std).cdf(higher_bound) - norm(mean, std).cdf(lower_bound), 4)
+                return prob
+            st.success("This segment allows us to get The returns of a company and see whether it would be between 2 and 3 for a specified period")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+                stock_ticker = ticker
+                higher_bound, lower_bound = 0.3, 0.2
+
+
+                # Retrieve and process stock data
+                df_returns = get_stock_returns(stock_ticker, start_date, end_date)
+                plot_return_distribution(df_returns['Return'], stock_ticker)
+
+                # Estimate probability
+                prob = estimate_return_probability(df_returns['Return'], lower_bound, higher_bound)
+                st.write(f'The probability of returns falling between {lower_bound} and {higher_bound} for {stock_ticker.upper()} is: {prob}')
+                
         if pred_option_analysis == "Kelly Criterion":
+            st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+                # Define stock symbol and time frame for analysis
+                symbol = ticker
+
+                # Download stock data using yfinance package
+                stock_data = yf.download(symbol, start=start_date, end=end_date)
+
+                # Calculate daily returns and drop rows with missing data
+                stock_data['Returns'] = stock_data['Adj Close'].pct_change()
+                stock_data.dropna(inplace=True)
+
+                # Display the first few rows of the data for verification
+                st.write(stock_data.head())
+
+                # Calculate Kelly Criterion
+                # Extract positive (wins) and negative (losses) returns
+                wins = stock_data['Returns'][stock_data['Returns'] > 0]
+                losses = stock_data['Returns'][stock_data['Returns'] <= 0]
+
+                # Calculate win ratio and win-loss ratio
+                win_ratio = len(wins) / len(stock_data['Returns'])
+                win_loss_ratio = np.mean(wins) / np.abs(np.mean(losses))
+
+                # Apply Kelly Criterion formula
+                kelly_criterion = win_ratio - ((1 - win_ratio) / win_loss_ratio)
+
+                # Print the Kelly Criterion percentage
+                st.write('Kelly Criterion: {:.3f}%'.format(kelly_criterion * 100))
+
+        if pred_option_analysis == "Estimating returns":
             pass
         if pred_option_analysis == "Ols Regression":
             pass
