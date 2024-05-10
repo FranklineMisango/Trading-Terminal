@@ -5097,7 +5097,46 @@ def main():
         if pred_option_analysis == "Stock Return Statistical Analysis":
             pass
         if pred_option_analysis == "VAR Analysis":
-            pass
+            def calculate_var(stock, start, end):
+            # Download data from Yahoo Finance
+                df = yf.download(stock, start, end)
+                
+                # Calculate daily returns
+                returns = df['Adj Close'].pct_change().dropna()
+
+                # VaR using historical bootstrap method
+                hist_fig = px.histogram(returns, nbins=40, title="Histogram of stock daily returns")
+                st.plotly_chart(hist_fig)
+
+                # VaR using variance-covariance method
+                tdf, tmean, tsigma = stats.t.fit(returns)
+                support = np.linspace(returns.min(), returns.max(), 100)
+                pdf = stats.t.pdf(support, loc=tmean, scale=tsigma, df=tdf)
+                cov_fig = go.Figure(go.Scatter(x=support, y=pdf, mode='lines', line=dict(color='red')))
+                cov_fig.update_layout(title="VaR using variance-covariance method")
+                st.plotly_chart(cov_fig)
+
+                # Calculate VaR using normal distribution at 95% confidence level
+                mean, sigma = returns.mean(), returns.std()
+                VaR = stats.norm.ppf(0.05, mean, sigma)
+                st.write("VaR using normal distribution at 95% confidence level:", VaR)
+
+            st.write ("This segment allows you to view the average stock returns monthly")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            if st.button("Check"):
+                st.write(years)
+                calculate_var(ticker, start_date, end_date)
+
+
         if pred_option_analysis == "Stock Returns":
             def view_stock_returns(symbol, num_years):
                 # Fetch stock data for the given number of years
