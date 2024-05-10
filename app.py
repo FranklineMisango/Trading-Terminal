@@ -5091,9 +5091,122 @@ def main():
         if pred_option_analysis == "SP500 Valuation":
             pass
         if pred_option_analysis == "Stock Pivot Resistance":
-            pass
+            # Function to fetch and plot stock data with pivot points
+            def plot_stock_pivot_resistance(stock_symbol, start_date, end_date):
+                # Fetch stock data
+                df = pdr.get_data_yahoo(stock_symbol, start_date, end_date)
+
+                # Plot high prices
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["High"], mode='lines', name='High'))
+                
+                # Initialize variables to find and store pivot points
+                pivots = []
+                dates = []
+                counter = 0
+                last_pivot = 0
+                window_size = 10
+                window = [0] * window_size
+                date_window = [0] * window_size
+
+                # Identify pivot points
+                for i, high_price in enumerate(df["High"]):
+                    window = window[1:] + [high_price]
+                    date_window = date_window[1:] + [df.index[i]]
+
+                    current_max = max(window)
+                    if current_max == last_pivot:
+                        counter += 1
+                    else:
+                        counter = 0
+
+                    if counter == 5:
+                        last_pivot = current_max
+                        last_date = date_window[window.index(last_pivot)]
+                        pivots.append(last_pivot)
+                        dates.append(last_date)
+
+                # Plot resistance levels for each pivot point
+                for i in range(len(pivots)):
+                    time_delta = dt.timedelta(days=30)
+                    fig.add_shape(type="line",
+                                x0=dates[i], y0=pivots[i],
+                                x1=dates[i] + time_delta, y1=pivots[i],
+                                line=dict(color="red", width=2, dash="solid")
+                                )
+
+                # Configure plot settings
+                fig.update_layout(title=stock_symbol.upper() + ' Resistance Points', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig)
+    
+            st.write ("This segment allows us to analyze the pivot resistance points of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                plot_stock_pivot_resistance(ticker,start_date, end_date)
+
+
         if pred_option_analysis == "Stock Profit/Loss Analysis":
-            pass
+
+            def calculate_stock_profit_loss(symbol, start_date, end_date, initial_investment):
+                # Download stock data
+                dataset = yf.download(symbol, start_date, end_date)
+
+                # Calculate the number of shares and investment values
+                shares = initial_investment / dataset['Adj Close'][0]
+                current_value = shares * dataset['Adj Close'][-1]
+
+                # Calculate profit or loss and related metrics
+                profit_or_loss = current_value - initial_investment
+                percentage_gain_or_loss = (profit_or_loss / current_value) * 100
+                percentage_returns = (current_value - initial_investment) / initial_investment * 100
+                net_gains_or_losses = (dataset['Adj Close'][-1] - dataset['Adj Close'][0]) / dataset['Adj Close'][0] * 100
+                total_return = ((current_value / initial_investment) - 1) * 100
+
+                # Calculate profit and loss for each day
+                dataset['PnL'] = shares * (dataset['Adj Close'].diff())
+
+                # Visualize the profit and loss
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=dataset.index, y=dataset['PnL'], mode='lines', name='Profit/Loss'))
+                fig.update_layout(title=f'Profit and Loss for {symbol} Each Day', xaxis_title='Date', yaxis_title='Profit/Loss')
+                st.plotly_chart(fig)
+
+                # Display financial analysis
+                st.write(f"Financial Analysis for {symbol}")
+                st.write('-' * 50)
+                st.write(f"Profit or Loss: ${profit_or_loss:.2f}")
+                st.write(f"Percentage Gain or Loss: {percentage_gain_or_loss:.2f}%")
+                st.write(f"Percentage of Returns: {percentage_returns:.2f}%")
+                st.write(f"Net Gains or Losses: {net_gains_or_losses:.2f}%")
+                st.write(f"Total Returns: {total_return:.2f}%")
+
+            st.write ("This segment allows us to analyze the stock profit/loss returns")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio_one = st.number_input("Enter your initial investment")
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                calculate_stock_profit_loss(ticker, start_date, end_date, portfolio_one)
+            
         if pred_option_analysis == "Stock Return Statistical Analysis":
             def analyze_stock_returns(symbol, start, end):
                 # Download stock data
