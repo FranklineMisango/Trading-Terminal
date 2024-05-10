@@ -44,13 +44,13 @@ import smtplib
 from email.message import EmailMessage
 import datetime as dt
 import time
+import statsmodels.api as sm
 from time import sleep
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -104,6 +104,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import schedule
+
 #Page config
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
@@ -2804,6 +2805,7 @@ def main():
                                                       'Earnings Sentiment Analysis',
                                                       'Intrinsic Value analysis',
                                                       'Kelly Criterion',
+                                                      'MA Backtesting',
                                                       'Ols Regression',
                                                       'Perfomance Risk Analysis',
                                                       'Risk/Returns Analysis',
@@ -4056,7 +4058,7 @@ def main():
                     if sentence.sentiment.polarity > 0.8:
                         st.write(sentence)
 
-        if pred_option_analysis == "Intrinsic Value analysis":
+        if pred_option_analysis == "Estimating Returns":
 
             # Fetches stock data and calculates annual returns.
             def get_stock_returns(ticker, start_date, end_date):
@@ -4163,14 +4165,450 @@ def main():
                 # Print the Kelly Criterion percentage
                 st.write('Kelly Criterion: {:.3f}%'.format(kelly_criterion * 100))
 
-        if pred_option_analysis == "Estimating returns":
-            pass
+        if pred_option_analysis == "Intrinsic Value analysis":
+            st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+            # Set options for pandas display
+                pd.set_option('float_format', '{:f}'.format)
+
+                # API and stock configuration
+                base_url = "https://financialmodelingprep.com/api/v3/"
+                apiKey = "demo"  # Note: Demo API only works for AAPL stock
+                ticker = 'AAPL'
+                current_price = pdr.get_data_yahoo(ticker)['Adj Close'][-1]
+
+                # Function to retrieve JSON data from URL
+                def json_data(url):
+                    response = urlopen(url)
+                    data = response.read().decode("utf-8")
+                    return json.loads(data)
+
+                # Retrieve financial statements
+                def get_financial_statements():
+                    # Income statement
+                    income = pd.DataFrame(json_data(f'{base_url}income-statement/{ticker}?apikey={apiKey}'))
+                    income = income.set_index('date').apply(pd.to_numeric, errors='coerce')
+
+                    # Cash flow statement
+                    cash_flow = pd.DataFrame(json_data(f'{base_url}cash-flow-statement/{ticker}?apikey={apiKey}'))
+                    cash_flow = cash_flow.set_index('date').apply(pd.to_numeric, errors='coerce')
+
+                    # Balance sheet
+                    balance_sheet = pd.DataFrame(json_data(f'{base_url}balance-sheet-statement/{ticker}?apikey={apiKey}'))
+                    balance_sheet = balance_sheet.set_index('date').apply(pd.to_numeric, errors='coerce')
+
+                    return income, cash_flow, balance_sheet
+
+                income, cash_flow, balance_sheet = get_financial_statements()
+
+                # Retrieve and process metrics from finviz
+                def get_finviz_data(ticker):
+                    url = f"http://finviz.com/quote.ashx?t={ticker}"
+                    headers = {'User-Agent': 'Mozilla/5.0'}
+                    soup = BeautifulSoup(requests.get(url, headers=headers).content, features="lxml")
+
+                    metrics = ['Beta', 'EPS next 5Y', 'Shs Outstand']
+                    finviz_dict = {}
+                    for m in metrics:   
+                        finviz_dict[m] = soup.find(text=m).find_next(class_='snapshot-td2').text
+
+                    # Process and convert metrics to appropriate formats
+                    for key, value in finviz_dict.items():
+                        if value[-1] in ['%', 'B', 'M']:
+                            value = float(value[:-1])
+                            if value[-1] == 'B':
+                                value *= 1e9
+                            elif value[-1] == 'M':
+                                value *= 1e6
+                        finviz_dict[key] = float(value)
+                    return finviz_dict
+
+                finviz_data = get_finviz_data(ticker)
+                beta = finviz_data['Beta']
+
+                # Determine the discount rate based on beta
+                discount = 7 + beta * 2.5
+                if beta < 1:
+                    discount = 6
+
+                # Calculate intrinsic value
+                def calc_intrinsic_value(cash_flow, total_debt, liquid_assets, eps_growth_5Y, eps_growth_6Y_to_10Y, eps_growth_11Y_to_20Y, shs_outstanding, discount):   
+                    eps_growth_5Y /= 100
+                    eps_growth_6Y_to_10Y /= 100
+                    eps_growth_11Y_to_20Y /= 100
+                    discount /= 100
+
+                    cf_list = []
+                    for year in range(1, 21):
+                        growth_rate = eps_growth_5Y if year <= 5 else eps_growth_6Y_to_10Y if year <= 10 else eps_growth_11Y_to_20Y
+                        cash_flow *= (1 + growth_rate)
+                        discounted_cf = cash_flow / ((1 + discount)**year)
+                        cf_list.append(discounted_cf)
+
+                    intrinsic_value = (sum(cf_list) - total_debt + liquid_assets) / shs_outstanding
+                    return intrinsic_value
+
+                intrinsic_value = calc_intrinsic_value(cash_flow.iloc[-1]['freeCashFlow'],
+                                                    balance_sheet.iloc[-1]['totalDebt'],
+                                                    balance_sheet.iloc[-1]['cashAndShortTermInvestments'],
+                                                    finviz_data['EPS next 5Y'],
+                                                    finviz_data['EPS next 5Y'] / 2,
+                                                    np.minimum(finviz_data['EPS next 5Y'] / 2, 4),
+                                                    finviz_data['Shs Outstand'],
+                                                    discount)
+
+                # Calculate deviation from intrinsic value
+                percent_from_intrinsic_value = round((1 - current_price / intrinsic_value) * 100, 2)
+
+                # Display data in a DataFrame
+                data = {
+                    'Attributes': ['Intrinsic Value', 'Current Price', 'Intrinsic Value % from Price', 'Free Cash Flow', 'Total Debt', 'Cash and ST Investments', 'EPS Growth 5Y', 'EPS Growth 6Y to 10Y', 'EPS Growth 11Y to 20Y', 'Discount Rate', 'Shares Outstanding'],
+                    'Values': [intrinsic_value, current_price, percent_from_intrinsic_value, cash_flow.iloc[-1]['freeCashFlow'], balance_sheet.iloc[-1]['totalDebt'], balance_sheet.iloc[-1]['cashAndShortTermInvestments'], finviz_data['EPS next 5Y'], finviz_data['EPS next 5Y'] / 2, np.minimum(finviz_data['EPS next 5Y'] / 2, 4), discount, finviz_data['Shs Outstand']]
+                }
+                df = pd.DataFrame(data).set_index('Attributes')
+                st.write(df)
+
+        if pred_option_analysis == "MA Backtesting":
+            st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            initial_capital = st.text_input("Enter the initial amount you want to backtest with")
+            if initial_capital:
+                message_four = (f"Amount captured : {initial_capital}")
+                st.success(message_four)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+             # Configure the stock symbol, moving average windows, initial capital, and date range
+                symbol = ticker
+                short_window = 20
+                long_window = 50
+                initial_capital = 10000  # Starting capital
+
+                # Download stock data
+                stock_data = yf.download(symbol, start=start_date, end=end_date)
+
+                # Calculate short and long moving averages
+                stock_data['Short_MA'] = stock_data['Adj Close'].rolling(window=short_window).mean()
+                stock_data['Long_MA'] = stock_data['Adj Close'].rolling(window=long_window).mean()
+
+                # Generate trading signals (1 = buy, 0 = hold/sell)
+                stock_data['Signal'] = np.where(stock_data['Short_MA'] > stock_data['Long_MA'], 1, 0)
+                stock_data['Positions'] = stock_data['Signal'].diff()
+
+                # Calculate daily and cumulative portfolio returns
+                stock_data['Daily P&L'] = stock_data['Adj Close'].diff() * stock_data['Signal']
+                stock_data['Total P&L'] = stock_data['Daily P&L'].cumsum()
+                stock_data['Positions'] *= 100  # Position size for each trade
+
+                # Construct a portfolio to keep track of holdings and cash
+                portfolio = pd.DataFrame(index=stock_data.index)
+                portfolio['Holdings'] = stock_data['Positions'] * stock_data['Adj Close']       
+                portfolio['Cash'] = initial_capital - portfolio['Holdings'].cumsum()
+                portfolio['Total'] = portfolio['Cash'] + stock_data['Positions'].cumsum() * stock_data['Adj Close']
+                portfolio['Returns'] = portfolio['Total'].pct_change()
+
+                # Create matplotlib plot
+                fig = plt.figure(figsize=(14, 10))
+                ax1 = fig.add_subplot(2, 1, 1)
+                stock_data[['Short_MA', 'Long_MA', 'Adj Close']].plot(ax=ax1, lw=2.)
+                ax1.plot(stock_data.loc[stock_data['Positions'] == 1.0].index, stock_data['Short_MA'][stock_data['Positions'] == 1.0],'^', markersize=10, color='g', label='Buy Signal')
+                ax1.plot(stock_data.loc[stock_data['Positions'] == -1.0].index, stock_data['Short_MA'][stock_data['Positions'] == -1.0],'v', markersize=10, color='r', label='Sell Signal')
+                ax1.set_title(f'{symbol} Moving Average Crossover Strategy')
+                ax1.set_ylabel('Price in $')
+                ax1.grid()
+                ax1.legend()
+
+                # Convert matplotlib figure to Plotly figure
+                plotly_fig = go.Figure()
+
+                # Adding stock data to Plotly figure
+                for column in ['Short_MA', 'Long_MA', 'Adj Close']:
+                    plotly_fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[column], mode='lines', name=column))
+                    buy_signals = stock_data.loc[stock_data['Positions'] == 1.0]
+                    sell_signals = stock_data.loc[stock_data['Positions'] == -1.0]
+                    plotly_fig.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Short_MA'], mode='markers', marker=dict(symbol='triangle-up', size=10, color='green'), name='Buy Signal'))
+                    plotly_fig.add_trace(go.Scatter(x=sell_signals.index, y=sell_signals['Short_MA'], mode='markers', marker=dict(symbol='triangle-down', size=10, color='red'), name='Sell Signal'))
+
+                # Set layout
+                plotly_fig.update_layout(
+                    title=f'{symbol} Moving Average Crossover Strategy',
+                    xaxis_title='Date',
+                    yaxis_title='Price in $',
+                    legend=dict(x=0, y=1, traceorder='normal', font=dict(family='sans-serif', size=12, color='black')),
+                    height=600  # Adjust the height as needed
+                )
+
+                # Display Plotly figure using st.pyplot()
+                st.plotly_chart(plotly_fig)
+
+                # Subplot 1: Moving Average Crossover Strategy
+                ax1 = fig.add_subplot(2, 1, 1)
+                stock_data[['Short_MA', 'Long_MA', 'Adj Close']].plot(ax=ax1, lw=2.)
+                ax1.plot(stock_data.loc[stock_data['Positions'] == 1.0].index, stock_data['Short_MA'][stock_data['Positions'] == 1.0],'^', markersize=10, color='g', label='Buy Signal')
+                ax1.plot(stock_data.loc[stock_data['Positions'] == -1.0].index, stock_data['Short_MA'][stock_data['Positions'] == -1.0],'v', markersize=10, color='r', label='Sell Signal')
+                ax1.set_title(f'{symbol} Moving Average Crossover Strategy')
+                ax1.set_ylabel('Price in $')
+                ax1.grid()
+                ax1.legend()
+
+                # Subplot 2: Portfolio Value
+                ax2 = fig.add_subplot(2, 1, 2)
+                portfolio['Total'].plot(ax=ax2, lw=2.)
+                ax2.set_ylabel('Portfolio Value in $')
+                ax2.set_xlabel('Date')
+                ax2.grid()
+
+                plotly_fig = go.Figure()
+                line = ax2.get_lines()[0]  # Assuming there's only one line in the plot
+                x = line.get_xdata()
+                y = line.get_ydata()
+                plotly_fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Portfolio Value Fluctuation in USD'))
+                plotly_fig.update_layout(
+                    title=f'Portfolio Value in USD',
+                    xaxis_title='Date',
+                    yaxis_title=f'{ticker} Daily Returns',
+                    legend=dict(x=0, y=1, traceorder='normal', font=dict(family='sans-serif', size=12, color='black'))
+                )
+                
+                # Display Plotly figure using st.pyplot()
+                st.plotly_chart(plotly_fig)
+
         if pred_option_analysis == "Ols Regression":
-            pass
+            st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            
+            if st.button("Check"):
+                # Configure the stock symbol, start, and end dates for data
+                stock = ticker
+
+                # Fetch stock and S&P 500 data
+                stock_data = yf.download(stock, start_date, end_date)['Close']
+                sp500_data = yf.download('^GSPC',start_date, end_date)['Close']
+
+                # Combine data into a single DataFrame and calculate monthly returns
+                combined_data = pd.concat([stock_data, sp500_data], axis=1)
+                combined_data.columns = [stock, 'S&P500']
+                monthly_returns = combined_data.pct_change().dropna()
+
+                # Define dependent and independent variables for regression
+                X = monthly_returns['S&P500']  # Independent variable (S&P500 returns)
+                y = monthly_returns[stock]  # Dependent variable (Stock returns)
+
+                # Ordinary Least Squares (OLS) Regression using statsmodels
+                X_sm = sm.add_constant(X)  # Adding a constant
+                model = sm.OLS(y, X_sm)  # Model definition
+                results = model.fit()  # Fit the model
+                print(results.summary())  # Print the results summary
+
+                # Linear Regression using scipy
+                slope, intercept, r_value, p_value, std_err = stats.linregress(X, y)
+
+                # Create matplotlib plot
+                plt.figure(figsize=(14, 7))
+                plt.scatter(X, y, alpha=0.5, label='Daily Returns')
+                plt.plot(X, intercept + slope * X, color='red', label='Regression Line')
+                plt.title(f'Regression Analysis: {stock} vs S&P 500')
+                plt.xlabel('S&P 500 Daily Returns')
+                plt.ylabel(f'{stock} Daily Returns')
+                plt.legend()
+                plt.grid(True)
+
+                # Convert matplotlib figure to Plotly figure
+                plotly_fig = go.Figure()
+                plotly_fig.add_trace(go.Scatter(x=X, y=y, mode='markers', name='Daily Returns'))
+                plotly_fig.add_trace(go.Scatter(x=X, y=intercept + slope * pd.Series(X), mode='lines', name='Regression Line'))
+
+                plotly_fig.update_layout(
+                    title=f'Regression Analysis: {stock} vs S&P 500',
+                    xaxis_title='S&P 500 Daily Returns',
+                    yaxis_title=f'{stock} Daily Returns',
+                    legend=dict(x=0, y=1, traceorder='normal', font=dict(family='sans-serif', size=12, color='black'))
+                )
+
+                # Display Plotly figure using st.pyplot()
+                st.plotly_chart(plotly_fig)
+
+                # Calculate beta and alpha
+                beta = slope
+                alpha = intercept
+                st.write(f'alpha (intercept) = {alpha:.4f}')
+                st.write(f'beta (slope) = {beta:.4f}')
+
         if pred_option_analysis == "Perfomance Risk Analysis":
-            pass
+            st.success("This segment allows us to determine the perfomance risk of a ticker against S&P 500 using Alpha, beta and R squared")
+            ticker = st.text_input("Enter the ticker you want to test")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):
+                index = '^GSPC'
+                stock = ticker
+                # Fetching data for the stock and S&P 500 index
+                df_stock =yf.download(stock,start_date, end_date)
+                df_index =yf.download(index,start_date, end_date)
+
+                # Resampling the data to a monthly time series
+                df_stock_monthly = df_stock['Adj Close'].resample('M').last()
+                df_index_monthly = df_index['Adj Close'].resample('M').last()
+
+                # Calculating monthly returns
+                stock_returns = df_stock_monthly.pct_change().dropna()
+                index_returns = df_index_monthly.pct_change().dropna()
+
+                # Computing Beta, Alpha, and R-squared
+                cov_matrix = np.cov(stock_returns, index_returns)
+                beta = cov_matrix[0, 1] / cov_matrix[1, 1]
+                alpha = np.mean(stock_returns) - beta * np.mean(index_returns)
+
+                y_pred = alpha + beta * index_returns
+                r_squared = 1 - np.sum((y_pred - stock_returns) ** 2) / np.sum((stock_returns - np.mean(stock_returns)) ** 2)
+
+                # Calculating Volatility and Momentum
+                volatility = np.std(stock_returns) * np.sqrt(12)  # Annualized volatility
+                momentum = np.prod(1 + stock_returns.tail(12)) - 1  # 1-year momentum
+
+                # Printing the results
+                st.write(f'Beta: {beta:.4f}')
+                st.write(f'Alpha: {alpha:.4f} (annualized)')
+                st.write(f'R-squared: {r_squared:.4f}')
+                st.write(f'Volatility: {volatility:.4f}')
+                st.write(f'1-Year Momentum: {momentum:.4f}')
+
+                # Calculating the average volume over the last 60 days
+                average_volume = df_stock['Volume'].tail(60).mean()
+                st.write(f'Average Volume (last 60 days): {average_volume:.2f}')
+            
         if pred_option_analysis == "Risk/Returns Analysis":
-            pass
+
+            st.success("This code allows us to see the contextual risk of related tickers")
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            # Replace this with your actual sectors and tickers
+            sectors = {
+                "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
+                "Health Care": ['JNJ', 'PFE', 'UNH', 'MRK', 'ABBV', 'TMO', 'MDT', 'DHR', 'AMGN', 'LLY'],
+                "Financials": ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'AXP', 'BLK', 'SPGI', 'USB'],
+                "Consumer Discretionary": ['AMZN', 'TSLA', 'HD', 'MCD', 'DIS', 'NKE', 'SBUX', 'BKNG', 'LOW', 'CMG'],
+                "Communication Services": ['GOOGL', 'META', 'DIS', 'CMCSA', 'NFLX', 'T', 'CHTR', 'DISCA', 'FOXA', 'VZ'],
+                "Industrials": ['BA', 'HON', 'UNP', 'UPS', 'CAT', 'LMT', 'MMM', 'GD', 'GE', 'CSX'],
+                "Consumer Staples": ['PG', 'KO', 'PEP', 'WMT', 'COST', 'CL', 'MO', 'EL', 'KHC', 'MDLZ'],
+                "Utilities": ['NEE', 'DUK', 'SO', 'D', 'EXC', 'AEP', 'SRE', 'PEG', 'XEL', 'ED'],
+                "Real Estate": ['AMT', 'PLD', 'CCI', 'EQIX', 'WY', 'PSA', 'DLR', 'BXP', 'O', 'SBAC'],
+                "Materials": ['LIN', 'APD', 'SHW', 'DD', 'ECL', 'DOW', 'NEM', 'PPG', 'VMC', 'FCX']
+            }
+
+            pred_option_analysis = st.selectbox("Select Analysis", ["Risk/Returns Analysis"])
+            selected_sector = st.selectbox('Select Sector', list(sectors.keys()))
+            if st.button("Start Analysis"):
+                # Downloading and processing stock data
+                df = pd.DataFrame()
+                for symbol in sectors[selected_sector]:
+                    df[symbol] = yf.download(symbol, start_date, end_date)['Adj Close']
+                # Dropping rows with missing values
+                df = df.dropna()
+                # Calculating percentage change in stock prices
+                rets = df.pct_change(periods=3)
+
+                # Creating correlation matrix heatmap
+                corr = rets.corr()
+                fig = go.Figure(data=go.Heatmap(
+                    z=corr.values,
+                    x=corr.index,
+                    y=corr.columns,
+                    colorscale='Blues'
+                ))
+                fig.update_layout(
+                    title="Correlation Matrix Heatmap",
+                    xaxis_title="Stock Symbols",
+                    yaxis_title="Stock Symbols"
+                )
+                st.plotly_chart(fig)
+
+                # Plotting bar charts for risk and average returns
+                fig = go.Figure()
+                fig.add_trace(go.Bar(x=rets.columns, y=rets.std(), name='Risk (Std. Dev.)', marker_color='red'))
+                fig.add_trace(go.Bar(x=rets.columns, y=rets.mean(), name='Average Returns', marker_color='blue'))
+                fig.update_layout(
+                    title="Risk and Average Returns",
+                    xaxis_title="Stock Symbols",
+                    yaxis_title="Value",
+                    barmode='group'
+                )
+                st.plotly_chart(fig)
+
+                # Stacked bar chart for risk vs return
+                fig = go.Figure()
+                for i, symbol in enumerate(sectors[selected_sector]):
+                    fig.add_trace(go.Bar(x=[symbol], y=[rets.mean()[i]], name='Average of Returns', marker_color='blue'))
+                    fig.add_trace(go.Bar(x=[symbol], y=[rets.std()[i]], name='Risk of Returns', marker_color='red'))
+                fig.update_layout(
+                    title='Risk vs Average Returns',
+                    xaxis_title='Stock Symbols',
+                    yaxis_title='Value',
+                    barmode='stack'
+                )
+                st.plotly_chart(fig)
+
+                # Scatter plot for expected returns vs risk
+                fig = go.Figure()
+                for i in range(len(rets.columns)):
+                    fig.add_trace(go.Scatter(x=rets.mean(), y=rets.std(), mode='markers', text=rets.columns))
+                    fig.update_layout(
+                        title='Risk vs Expected Returns',
+                        xaxis_title='Expected Returns',
+                        yaxis_title='Risk'
+                    )
+                    st.plotly_chart(fig)
+
+                # Display table with risk vs expected returns
+                risk_returns_table = pd.DataFrame({'Risk': rets.std(), 'Expected Returns': rets.mean()})
+                st.write("Table: Risk vs Expected Returns")
+                st.write(risk_returns_table)
+
+    
         if pred_option_analysis == "Seasonal Stock Analysis":
             pass
         if pred_option_analysis == "SMA Histogram":
