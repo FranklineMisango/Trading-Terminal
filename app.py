@@ -5095,7 +5095,57 @@ def main():
         if pred_option_analysis == "Stock Profit/Loss Analysis":
             pass
         if pred_option_analysis == "Stock Return Statistical Analysis":
-            pass
+            def analyze_stock_returns(symbol, start, end):
+                # Download stock data
+                df = yf.download(symbol, start, end)
+
+                # Calculate daily returns
+                returns = df['Adj Close'].pct_change().dropna()
+                # Calculate and print various statistics
+                mean_return = np.mean(returns)
+                median_return = np.median(returns)
+                mode_return = stats.mode(returns)[0] #work on the mean more [0][0]
+                arithmetic_mean_return = returns.mean()
+                geometric_mean_return = stats.gmean(returns)
+                std_deviation = returns.std()
+                harmonic_mean_return = len(returns) / np.sum(1.0/returns)
+                skewness = stats.skew(returns)
+                kurtosis = stats.kurtosis(returns)
+                jarque_bera_results = stats.jarque_bera(returns)
+                is_normal = jarque_bera_results[1] > 0.05
+
+                st.write('Mean of returns:', mean_return)
+                st.write('Median of returns:', median_return)
+                st.write('Mode of returns:', mode_return)
+                st.write('Arithmetic average of returns:', arithmetic_mean_return)
+                st.write('Geometric mean of returns:', geometric_mean_return)
+                st.write('Standard deviation of returns:', std_deviation)
+                st.write('Harmonic mean of returns:', harmonic_mean_return)
+                st.write('Skewness:', skewness)
+                st.write('Kurtosis:', kurtosis)
+                st.write("Jarque-Bera p-value:", jarque_bera_results[1])
+                st.write('Are the returns normal?', is_normal)
+
+                # Histogram of returns
+                hist_fig = px.histogram(returns, nbins=30, title=f'Histogram of Returns for {symbol.upper()}')
+                st.plotly_chart(hist_fig)
+
+            st.write ("This segment allows you to view stock returns using some statistcal methods")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                analyze_stock_returns(ticker, start_date, end_date)
+
         if pred_option_analysis == "VAR Analysis":
             def calculate_var(stock, start, end):
             # Download data from Yahoo Finance
