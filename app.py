@@ -5478,6 +5478,7 @@ def main():
     elif option =='Technical Indicators':
         pred_option_Technical_Indicators = st.selectbox('Make a choice', [
                                                                   'Exponential Moving Average (EMA)',
+                                                                  'EMA Volume',
                                                                   'Weighted Moving Average (WMA)',
                                                                   'Weighted Smoothing Moving Average (WSMA)',
                                                                   'Z Score Indicator (Z Score)',
@@ -5584,8 +5585,6 @@ def main():
             with col2:
                 end_date = st.date_input("End Date:")
             if st.button("Check"):
-                if pred_option_Technical_Indicators == "Exponential Moving Average (EMA)":
-                    # input
                     symbol = ticker
                     start = start_date
                     end = end_date
@@ -5636,264 +5635,315 @@ def main():
                                                 yaxis2=dict(title="Volume", overlaying='y', side='right'))
                     fig_candlestick = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout_candlestick)
 
+
                     # Display Plotly figures in Streamlit
                     st.plotly_chart(fig_ma)
                     st.warning("Click candlestick, EMA or Volume to tinker with the graph")
-                    st.plotly_chart(fig_candlestick)
+                    st.plotly_chart(fig_candlestick)                
 
-                  
-                                        
+        if pred_option_Technical_Indicators == "EMA Volume":
+            st.success("This program allows you to view EMA But focusing on Volume of a stock ")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):
+                    symbol = ticker
+                    start = start_date
+                    end = end_date
 
-                if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
-                    pass
-                if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
-                    import WSMA
-                if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
-                    import Z_Score_Indicator
-                if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
-                    import APO
-                if pred_option_Technical_Indicators == "Acceleration Bands":
-                    import Acceleration_Bands
-                if pred_option_Technical_Indicators == "Accumulation Distribution Line":
-                    import Accumulation_Distribution_Line
-                if pred_option_Technical_Indicators == "Aroon":
-                    import Aroon
-                if pred_option_Technical_Indicators == "Aroon Oscillator":
-                    import Aroon_Oscillator
-                if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
-                    import ADX
-                if pred_option_Technical_Indicators == "Average True Range (ATR)":
-                    import ATR
-                if pred_option_Technical_Indicators == "Balance of Power":
-                    import Balance_of_Power
-                if pred_option_Technical_Indicators == "Beta Indicator":
-                    import Beta_Indicator
-                if pred_option_Technical_Indicators == "Bollinger Bands":
-                    import Bollinger_Bands
-                if pred_option_Technical_Indicators == "Bollinger Bandwidth":
-                    import Bollinger_Bandwidth
-                if pred_option_Technical_Indicators == "Breadth Indicator":
-                    import Breadth_Indicator
-                if pred_option_Technical_Indicators == "Candle Absolute Returns":
-                    import Candle_Absolute_Returns
-                if pred_option_Technical_Indicators == "GANN lines angles":
-                    import GANN_lines_angles
-                if pred_option_Technical_Indicators == "GMMA":
-                    import GMMA
-                if pred_option_Technical_Indicators == "MACD":
-                    import MACD
-                if pred_option_Technical_Indicators == "MA high low":
-                    import MA_high_low
-                if pred_option_Technical_Indicators == "MFI":
-                    import MFI
-                if pred_option_Technical_Indicators == "Price Volume Trend Indicator (PVI)":
-                    import PVI
-                if pred_option_Technical_Indicators == "Price Volume Trend (PVT)":
-                    import PVT
-                if pred_option_Technical_Indicators == "Rate of Change (ROC)":
-                    import ROC
-                if pred_option_Technical_Indicators == "Return on Investment (ROI)":
-                    import ROI
-                if pred_option_Technical_Indicators == "Relative Strength Index (RSI)":
-                    import RSI
-                if pred_option_Technical_Indicators == "RSI BollingerBands":
-                    import RSI_BollingerBands
-                if pred_option_Technical_Indicators == "Simple Moving Average (SMA)":
-                    import SMA
-                if pred_option_Technical_Indicators == "Triangular Moving Average (TRIMA)":
-                    import TRIMA
-                if pred_option_Technical_Indicators == "Time-Weighted Average Price (TWAP)":
-                    import TWAP
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    import VWAP           
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-                    pass
-                if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
-                    pass
-                if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
-                    pass
-                if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
-                    pass
-                if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
-                    pass
-                if pred_option_Technical_Indicators == "Acceleration Bands":
-                    pass
-                if pred_option_Technical_Indicators == "Accumulation Distribution Line":
-                    pass
-                if pred_option_Technical_Indicators == "Aroon":
-                    pass
-                if pred_option_Technical_Indicators == "Aroon Oscillator":
-                    pass
-                if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
-                    pass
-                if pred_option_Technical_Indicators == "Average True Range (ATR)":
-                    pass
-                if pred_option_Technical_Indicators == "Balance of Power":
-                    pass
-                if pred_option_Technical_Indicators == "Beta Indicator":
-                    pass
-                if pred_option_Technical_Indicators == "Bollinger Bands":
-                    pass
-                if pred_option_Technical_Indicators == "Bollinger Bandwidth":
-                    pass
-                if pred_option_Technical_Indicators == "Breadth Indicator":
-                    pass
-                if pred_option_Technical_Indicators == "Candle Absolute Returns":
-                    pass
-                if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
-                    pass
-                if pred_option_Technical_Indicators == "Chaikin Money Flow":
-                    pass
-                if pred_option_Technical_Indicators == "Chaikin Oscillator":
-                    pass
-                if pred_option_Technical_Indicators == "Commodity Channel Index (CCI)":
-                    pass
-                if pred_option_Technical_Indicators == "Correlation Coefficient":
-                    pass
-                if pred_option_Technical_Indicators == "Covariance":
-                    pass
-                if pred_option_Technical_Indicators == "Detrended Price Oscillator (DPO)":
-                    pass
-                if pred_option_Technical_Indicators == "Donchain Channel":
-                    pass
-                if pred_option_Technical_Indicators == "Double Exponential Moving Average (DEMA)":
-                    pass
-                if pred_option_Technical_Indicators == "Dynamic Momentum Index":
-                    pass
-                if pred_option_Technical_Indicators == "Ease of Movement":
-                    pass
-                if pred_option_Technical_Indicators == "Force Index":
-                    pass
-                if pred_option_Technical_Indicators == "Geometric Return Indicator":
-                    pass
-                if pred_option_Technical_Indicators == "Golden/Death Cross":
-                    pass
-                if pred_option_Technical_Indicators == "High Minus Low":
-                    pass
-                if pred_option_Technical_Indicators == "Hull Moving Average":
-                    pass
-                if pred_option_Technical_Indicators == "Keltner Channels":
-                    pass
-                if pred_option_Technical_Indicators == "Linear Regression":
-                    pass
-                if pred_option_Technical_Indicators == "Linear Regression Slope":
-                    pass
-                if pred_option_Technical_Indicators == "Linear Weighted Moving Average (LWMA)":
-                    pass
-                if pred_option_Technical_Indicators == "McClellan Oscillator":
-                    pass
-                if pred_option_Technical_Indicators == "Momentum":
-                    pass
-                if pred_option_Technical_Indicators == "Moving Average Envelopes":
-                    pass
-                if pred_option_Technical_Indicators == "Moving Average High/Low":
-                    pass
-                if pred_option_Technical_Indicators == "Moving Average Ribbon":
-                    pass
-                if pred_option_Technical_Indicators == "Moving Average Envelopes (MMA)":
-                    pass
-                if pred_option_Technical_Indicators == "Moving Linear Regression":
-                    pass
-                if pred_option_Technical_Indicators == "New Highs/New Lows":
-                    pass
-                if pred_option_Technical_Indicators == "Pivot Point":
-                    pass
-                if pred_option_Technical_Indicators == "Price Channels":
-                    pass
-                if pred_option_Technical_Indicators == "Price Relative":
-                    pass
-                if pred_option_Technical_Indicators == "Realized Volatility":
-                    pass
-                if pred_option_Technical_Indicators == "Relative Volatility Index":
-                    pass
-                if pred_option_Technical_Indicators == "Smoothed Moving Average":
-                    pass
-                if pred_option_Technical_Indicators == "Speed Resistance Lines":
-                    pass
-                if pred_option_Technical_Indicators == "Standard Deviation Volatility":
-                    pass
-                if pred_option_Technical_Indicators == "Stochastic RSI":
-                    pass
-                if pred_option_Technical_Indicators == "Stochastic Fast":
-                    pass
-                if pred_option_Technical_Indicators == "Stochastic Full":
-                    pass
-                if pred_option_Technical_Indicators == "Stochastic Slow":
-                    pass
-                if pred_option_Technical_Indicators == "Super Trend":
-                    pass
-                if pred_option_Technical_Indicators == "True Strength Index":
-                    pass
-                if pred_option_Technical_Indicators == "Ultimate Oscillator":
-                    pass
-                if pred_option_Technical_Indicators == "Variance Indicator":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Price Confirmation Indicator":
-                    pass
-                if pred_option_Technical_Indicators == "Volume Weighted Moving Average (VWMA)":
-                    pass
+                    # Read data
+                    df = yf.download(symbol, start, end)
+
+                    n = 15
+                    df["EMA"] = (
+                        df["Adj Close"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
+                    )
+
+                    df["EMA"] = df["Adj Close"].ewm(span=n, adjust=False).mean()  # Recalculate EMA
+                    df["VolumePositive"] = df["Open"] < df["Adj Close"]
+
+                    # Create traces
+                    trace_candlestick = go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Close'],
+                                                    name='Candlestick')
+
+                    trace_volume = go.Bar(x=df.index, y=df['Volume'],
+                                        marker=dict(color=df['VolumePositive'].map({True: 'green', False: 'red'})),
+                                        name='Volume')
+
+                    trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA', line=dict(color='green'))
+
+                    # Create layout
+                    layout = go.Layout(title="Stock " + symbol + " Closing Price",
+                                    xaxis=dict(title="Date", type='date', tickformat='%d-%m-%Y'),
+                                    yaxis=dict(title="Price"),
+                                    yaxis2=dict(title="Volume", overlaying='y', side='right'))
+
+                    # Create figure
+                    fig = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout)
+
+                    # Display Plotly figure in Streamlit
+                    st.plotly_chart(fig)
+
+            if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
+                pass
+            if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
+                import WSMA
+            if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
+                import Z_Score_Indicator
+            if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
+                import APO
+            if pred_option_Technical_Indicators == "Acceleration Bands":
+                import Acceleration_Bands
+            if pred_option_Technical_Indicators == "Accumulation Distribution Line":
+                import Accumulation_Distribution_Line
+            if pred_option_Technical_Indicators == "Aroon":
+                import Aroon
+            if pred_option_Technical_Indicators == "Aroon Oscillator":
+                import Aroon_Oscillator
+            if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
+                import ADX
+            if pred_option_Technical_Indicators == "Average True Range (ATR)":
+                import ATR
+            if pred_option_Technical_Indicators == "Balance of Power":
+                import Balance_of_Power
+            if pred_option_Technical_Indicators == "Beta Indicator":
+                import Beta_Indicator
+            if pred_option_Technical_Indicators == "Bollinger Bands":
+                import Bollinger_Bands
+            if pred_option_Technical_Indicators == "Bollinger Bandwidth":
+                import Bollinger_Bandwidth
+            if pred_option_Technical_Indicators == "Breadth Indicator":
+                import Breadth_Indicator
+            if pred_option_Technical_Indicators == "Candle Absolute Returns":
+                import Candle_Absolute_Returns
+            if pred_option_Technical_Indicators == "GANN lines angles":
+                import GANN_lines_angles
+            if pred_option_Technical_Indicators == "GMMA":
+                import GMMA
+            if pred_option_Technical_Indicators == "MACD":
+                import MACD
+            if pred_option_Technical_Indicators == "MA high low":
+                import MA_high_low
+            if pred_option_Technical_Indicators == "MFI":
+                import MFI
+            if pred_option_Technical_Indicators == "Price Volume Trend Indicator (PVI)":
+                import PVI
+            if pred_option_Technical_Indicators == "Price Volume Trend (PVT)":
+                import PVT
+            if pred_option_Technical_Indicators == "Rate of Change (ROC)":
+                import ROC
+            if pred_option_Technical_Indicators == "Return on Investment (ROI)":
+                import ROI
+            if pred_option_Technical_Indicators == "Relative Strength Index (RSI)":
+                import RSI
+            if pred_option_Technical_Indicators == "RSI BollingerBands":
+                import RSI_BollingerBands
+            if pred_option_Technical_Indicators == "Simple Moving Average (SMA)":
+                import SMA
+            if pred_option_Technical_Indicators == "Triangular Moving Average (TRIMA)":
+                import TRIMA
+            if pred_option_Technical_Indicators == "Time-Weighted Average Price (TWAP)":
+                import TWAP
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                import VWAP           
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+                pass
+            if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
+                pass
+            if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
+                pass
+            if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
+                pass
+            if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
+                pass
+            if pred_option_Technical_Indicators == "Acceleration Bands":
+                pass
+            if pred_option_Technical_Indicators == "Accumulation Distribution Line":
+                pass
+            if pred_option_Technical_Indicators == "Aroon":
+                pass
+            if pred_option_Technical_Indicators == "Aroon Oscillator":
+                pass
+            if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
+                pass
+            if pred_option_Technical_Indicators == "Average True Range (ATR)":
+                pass
+            if pred_option_Technical_Indicators == "Balance of Power":
+                pass
+            if pred_option_Technical_Indicators == "Beta Indicator":
+                pass
+            if pred_option_Technical_Indicators == "Bollinger Bands":
+                pass
+            if pred_option_Technical_Indicators == "Bollinger Bandwidth":
+                pass
+            if pred_option_Technical_Indicators == "Breadth Indicator":
+                pass
+            if pred_option_Technical_Indicators == "Candle Absolute Returns":
+                pass
+            if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
+                pass
+            if pred_option_Technical_Indicators == "Chaikin Money Flow":
+                pass
+            if pred_option_Technical_Indicators == "Chaikin Oscillator":
+                pass
+            if pred_option_Technical_Indicators == "Commodity Channel Index (CCI)":
+                pass
+            if pred_option_Technical_Indicators == "Correlation Coefficient":
+                pass
+            if pred_option_Technical_Indicators == "Covariance":
+                pass
+            if pred_option_Technical_Indicators == "Detrended Price Oscillator (DPO)":
+                pass
+            if pred_option_Technical_Indicators == "Donchain Channel":
+                pass
+            if pred_option_Technical_Indicators == "Double Exponential Moving Average (DEMA)":
+                pass
+            if pred_option_Technical_Indicators == "Dynamic Momentum Index":
+                pass
+            if pred_option_Technical_Indicators == "Ease of Movement":
+                pass
+            if pred_option_Technical_Indicators == "Force Index":
+                pass
+            if pred_option_Technical_Indicators == "Geometric Return Indicator":
+                pass
+            if pred_option_Technical_Indicators == "Golden/Death Cross":
+                pass
+            if pred_option_Technical_Indicators == "High Minus Low":
+                pass
+            if pred_option_Technical_Indicators == "Hull Moving Average":
+                pass
+            if pred_option_Technical_Indicators == "Keltner Channels":
+                pass
+            if pred_option_Technical_Indicators == "Linear Regression":
+                pass
+            if pred_option_Technical_Indicators == "Linear Regression Slope":
+                pass
+            if pred_option_Technical_Indicators == "Linear Weighted Moving Average (LWMA)":
+                pass
+            if pred_option_Technical_Indicators == "McClellan Oscillator":
+                pass
+            if pred_option_Technical_Indicators == "Momentum":
+                pass
+            if pred_option_Technical_Indicators == "Moving Average Envelopes":
+                pass
+            if pred_option_Technical_Indicators == "Moving Average High/Low":
+                pass
+            if pred_option_Technical_Indicators == "Moving Average Ribbon":
+                pass
+            if pred_option_Technical_Indicators == "Moving Average Envelopes (MMA)":
+                pass
+            if pred_option_Technical_Indicators == "Moving Linear Regression":
+                pass
+            if pred_option_Technical_Indicators == "New Highs/New Lows":
+                pass
+            if pred_option_Technical_Indicators == "Pivot Point":
+                pass
+            if pred_option_Technical_Indicators == "Price Channels":
+                pass
+            if pred_option_Technical_Indicators == "Price Relative":
+                pass
+            if pred_option_Technical_Indicators == "Realized Volatility":
+                pass
+            if pred_option_Technical_Indicators == "Relative Volatility Index":
+                pass
+            if pred_option_Technical_Indicators == "Smoothed Moving Average":
+                pass
+            if pred_option_Technical_Indicators == "Speed Resistance Lines":
+                pass
+            if pred_option_Technical_Indicators == "Standard Deviation Volatility":
+                pass
+            if pred_option_Technical_Indicators == "Stochastic RSI":
+                pass
+            if pred_option_Technical_Indicators == "Stochastic Fast":
+                pass
+            if pred_option_Technical_Indicators == "Stochastic Full":
+                pass
+            if pred_option_Technical_Indicators == "Stochastic Slow":
+                pass
+            if pred_option_Technical_Indicators == "Super Trend":
+                pass
+            if pred_option_Technical_Indicators == "True Strength Index":
+                pass
+            if pred_option_Technical_Indicators == "Ultimate Oscillator":
+                pass
+            if pred_option_Technical_Indicators == "Variance Indicator":
+                pass
+            if pred_option_Technical_Indicators == "Volume Price Confirmation Indicator":
+                pass
+            if pred_option_Technical_Indicators == "Volume Weighted Moving Average (VWMA)":
+                pass
 
     elif option =='Portfolio Strategies':
         pred_option_portfolio_strategies = st.selectbox('Make a choice', ['Backtest All Strategies',
