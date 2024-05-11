@@ -115,8 +115,7 @@ import mplfinance as mpl
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
-st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
-st.sidebar.info("This application features over 100 programmes for different roles")
+st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
 
 @st.cache_resource
 def correlated_stocks(start_date, end_date, tickers):
@@ -5540,6 +5539,7 @@ def main():
                                                                   'Moving Linear Regression',
                                                                   'New Highs/New Lows',
                                                                   'Pivot Point',
+                                                                  'Money Flow Index (MFI)',
                                                                   'Price Channels',
                                                                   'Price Relative',
                                                                   'Realized Volatility',
@@ -5944,8 +5944,102 @@ def main():
                 st.plotly_chart(fig_volume)
                 st.plotly_chart(fig_macd)
             
-        if pred_option_Technical_Indicators == "MFI":
-            pass
+        if pred_option_Technical_Indicators == "Money Flow Index (MFI)":
+            st.success("This program allows you to view the GANN lines of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Money Flow Index (MFI)
+                def calculate_mfi(high, low, close, volume, period=14):
+                    typical_price = (high + low + close) / 3
+                    raw_money_flow = typical_price * volume
+                    positive_flow = (raw_money_flow * (close > close.shift(1))).rolling(window=period).sum()
+                    negative_flow = (raw_money_flow * (close < close.shift(1))).rolling(window=period).sum()
+                    money_ratio = positive_flow / negative_flow
+                    mfi = 100 - (100 / (1 + money_ratio))
+                    return mfi
+
+                df["MFI"] = calculate_mfi(df["High"], df["Low"], df["Close"], df["Volume"])    
+        
+                # Plot interactive chart for closing price
+                fig_close = go.Figure()
+                fig_close.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", name="Close"))
+                fig_close.update_layout(
+                    title="Interactive Chart for Closing Price",
+                    xaxis=dict(title="Date"),
+                    yaxis=dict(title="Price"),
+                    legend=dict(x=0, y=1),
+                )
+
+                # Find min and max price
+                min_price = df["Close"].min()
+                max_price = df["Close"].max()
+
+                # Plot interactive chart for MFI
+                fig_mfi = go.Figure()
+                fig_mfi.add_trace(go.Scatter(x=df.index, y=df["MFI"], mode="lines", name="MFI"))
+                fig_mfi.update_layout(
+                    title="Interactive Chart for Money Flow Index (MFI)",
+                    xaxis=dict(title="Date"),
+                    yaxis=dict(title="MFI"),
+                    legend=dict(x=0, y=1),
+                    shapes=[
+                        dict(
+                            type="line",
+                            x0=df.index[0],
+                            y0=min_price,
+                            x1=df.index[-1],
+                            y1=min_price,
+                            line=dict(color="blue", width=1, dash="dash"),
+                        ),
+                        dict(
+                            type="line",
+                            x0=df.index[0],
+                            y0=max_price,
+                            x1=df.index[-1],
+                            y1=max_price,
+                            line=dict(color="red", width=1, dash="dash"),
+                        ),
+                    ],
+                )
+                
+                # Plot interactive chart
+                fig_main = go.Figure()
+
+                # Add closing price trace
+                fig_main.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", name="Close"))
+
+                # Add MFI trace
+                fig_main.add_trace(go.Scatter(x=df.index, y=df["MFI"], mode="lines", name="MFI"))
+
+                # Update layout
+                fig_main.update_layout(
+                    title="Interactive Chart with Money Flow Index (MFI)",
+                    xaxis=dict(title="Date"),
+                    yaxis=dict(title="Price"),
+                    yaxis2=dict(title="MFI", overlaying="y", side="right"),
+                    legend=dict(x=0, y=1),
+                )
+
+                # Show interactive chart
+                st.plotly_chart(fig_close)
+                st.plotly_chart(fig_mfi)
+                st.plotly_chart(fig_main) 
+
+
         if pred_option_Technical_Indicators == "MA high low":
             pass
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
