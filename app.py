@@ -1,5 +1,6 @@
 #Library imports
 import streamlit as st
+from ta import add_all_ta_features
 from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from yahoo_earnings_calendar import YahooEarningsCalendar
@@ -5497,7 +5498,7 @@ def main():
                                                                   'Candle Absolute Returns',
                                                                   'GANN lines angles',
                                                                   'GMMA',
-                                                                  'MACD',
+                                                                  'Moving Average Convergence Divergence (MACD)',
                                                                   'MA high low',
                                                                   'MFI',
                                                                   'Price Volume Trend Indicator (PVI)',
@@ -5876,7 +5877,7 @@ def main():
                     fig_sma.add_trace(go.Scatter(x=df.index, y=SMA_Long[col], mode='lines', name=col, line=dict(color='orange')))
                 fig_sma.update_layout(title="Guppy Multiple Moving Averages of SMA", xaxis_title="Date", yaxis_title="Price")
                 st.plotly_chart(fig_sma)
-                
+
                 st.warning("Untick the volume to view the candlesticks and the movement lines")
 
                 # Candlestick with GMMA
@@ -5899,15 +5900,53 @@ def main():
                 st.plotly_chart(fig_candlestick)
 
 
+        if pred_option_Technical_Indicators == "Moving Average Convergence Divergence (MACD)":
+            st.success("This program allows you to view the GANN lines of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+                # Read data
+                df = yf.download(symbol, start, end)
 
+                df["macd"], df["macdsignal"], df["macdhist"] = ta.MACD(
+                    df["Adj Close"], fastperiod=12, slowperiod=26, signalperiod=9
+                )
+                df = df.dropna()
+                df = add_all_ta_features(df, open="Open", high="High", low="Low", close="Close", volume="Volume")
 
+                # Line Chart
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_hline(y=df["Adj Close"].mean(), line_dash="dash", line_color="red", name='Mean')
 
+                # Volume
+                fig_volume = go.Figure()
+                fig_volume.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=df['Volume'].map(lambda x: 'green' if x > 0 else 'red')))
+                # MACD
+                fig_macd = go.Figure()
+                fig_macd.add_trace(go.Scatter(x=df.index, y=df["macd"], mode='lines', name='MACD'))
+                fig_macd.add_trace(go.Scatter(x=df.index, y=df["macdsignal"], mode='lines', name='Signal'))
+                fig_macd.add_trace(go.Bar(x=df.index, y=df["macdhist"], name='Histogram', marker_color=df['macdhist'].map(lambda x: 'green' if x > 0 else 'red')))
 
-
-
-        if pred_option_Technical_Indicators == "MA high low":
-            pass
+                st.plotly_chart(fig_line)
+                st.plotly_chart(fig_volume)
+                st.plotly_chart(fig_macd)
+            
         if pred_option_Technical_Indicators == "MFI":
+            pass
+        if pred_option_Technical_Indicators == "MA high low":
             pass
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
             pass
