@@ -6277,8 +6277,68 @@ def main():
 
                 st.plotly_chart(fig2)
 
-        if pred_option_Technical_Indicators == "ROI":
-            pass
+        if pred_option_Technical_Indicators == "Return on Investment (ROI)":
+            st.success("This program allows you to view the ROC of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Return on Investment (ROI)
+                df["ROI"] = ((df["Adj Close"] - df["Adj Close"].shift(1)) / df["Adj Close"].shift(1) * 100)
+
+                # Line Chart with ROI
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=df.index, y=df["ROI"], mode='lines', name='Return on Investment'))
+
+                fig1.update_layout(title="Adj Close and Return on Investment (ROI) Over Time",
+                                xaxis_title="Date",
+                                yaxis_title="Price/ROI")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with ROI
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = pd.to_datetime(dfc["Date"])
+                dfc["Date"] = dfc["Date"].apply(mdates.date2num)
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["ROI"], mode='lines', name='Return on Investment', line=dict(color='red')))
+
+                fig2.update_layout(title="Candlestick Chart with Return on Investment (ROI)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+                
         if pred_option_Technical_Indicators == "RSI":
             pass
         if pred_option_Technical_Indicators == "RSI_Bollinger Bands":
