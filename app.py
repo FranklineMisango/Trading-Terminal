@@ -5479,6 +5479,7 @@ def main():
         pred_option_Technical_Indicators = st.selectbox('Make a choice', [
                                                                   'Exponential Moving Average (EMA)',
                                                                   'EMA Volume',
+                                                                  'Positive Volume Trend (PVT)',
                                                                   'Weighted Moving Average (EWMA)',
                                                                   'Weighted Smoothing Moving Average (WSMA)',
                                                                   'Z Score Indicator (Z Score)',
@@ -6084,7 +6085,7 @@ def main():
 
                 st.plotly_chart(fig2)
         if pred_option_Technical_Indicators == "Price Volume Trend Indicator (PVI)":
-            st.success("This program allows you to view the MA High/low of a ticker")
+            st.success("This program allows you to visualize the PVI of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -6154,8 +6155,71 @@ def main():
 
                 st.plotly_chart(fig2)
 
-        if pred_option_Technical_Indicators == "Positive Volume Trend(PVT)":
-            pass
+        if pred_option_Technical_Indicators == "Positive Volume Trend (PVT)":
+            st.success("This program allows you to view the MA High/low of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                df = yf.download(symbol, start, end)
+
+                # Calculate Price Volume Trend (PVT)
+                df["Momentum_1D"] = (df["Adj Close"] - df["Adj Close"].shift(1)).fillna(0)
+                df["PVT"] = (df["Momentum_1D"] / df["Adj Close"].shift(1)) * df["Volume"]
+                df["PVT"] = df["PVT"] - df["PVT"].shift(1)
+                df["PVT"] = df["PVT"].fillna(0)
+
+                # Line Chart with PVT
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=df.index, y=df["PVT"], mode='lines', name='Price Volume Trend'))
+
+                fig1.update_layout(title="Adj Close and Price Volume Trend (PVT) Over Time",
+                                xaxis_title="Date",
+                                yaxis_title="Price/PVT")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with PVT
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["PVT"], mode='lines', name='Price Volume Trend', line=dict(color='blue')))
+
+                fig2.update_layout(title="Candlestick Chart with Price Volume Trend (PVT)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+              
+                
+
         if pred_option_Technical_Indicators == "ROC":
             pass
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
