@@ -5480,7 +5480,7 @@ def main():
                                                                   'Exponential Moving Average (EMA)',
                                                                   'EMA Volume',
                                                                   'Positive Volume Trend (PVT)',
-                                                                  'Weighted Moving Average (EWMA)',
+                                                                  'Exponential Weighted Moving Average (EWMA)',
                                                                   'Weighted Smoothing Moving Average (WSMA)',
                                                                   'Z Score Indicator (Z Score)',
                                                                   'Absolute Price Oscillator (APO)',
@@ -5507,6 +5507,7 @@ def main():
                                                                   'Relative Strength Index (RSI)',
                                                                   'RSI BollingerBands',
                                                                   'Simple Moving Average (SMA)',
+                                                                  'Weighted Moving Average (WMA)',
                                                                   'Triangular Moving Average (TRIMA)',
                                                                   'Time-Weighted Average Price (TWAP)',
                                                                   'Volume Weighted Average Price (VWAP)',
@@ -5679,7 +5680,8 @@ def main():
                     # Display Plotly figure in Streamlit
                     st.plotly_chart(fig)
 
-        if pred_option_Technical_Indicators == "Weighted Moving Average (EWMA)":
+        if pred_option_Technical_Indicators == "Exponential Weighted Moving Average (EWMA)":
+
             st.success("This program allows you to view the WMA But focusing on Volume of a stock ")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
@@ -5734,6 +5736,7 @@ def main():
                     st.plotly_chart(fig_candlestick)
 
         if pred_option_Technical_Indicators == "GANN lines angles":
+
             st.success("This program allows you to view the GANN lines of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
@@ -5803,6 +5806,7 @@ def main():
                 st.plotly_chart(fig_candlestick)
 
         if pred_option_Technical_Indicators == "GMMA":
+
             st.success("This program allows you to view the GANN lines of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
@@ -6407,7 +6411,7 @@ def main():
                 st.plotly_chart(fig2)
 
         if pred_option_Technical_Indicators == "RSI BollingerBands":
-            st.success("This program allows you to view the RSI over time of a ticker")
+            st.success("This program allows you to view the RSI with emphasis on BollingerBands over time of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -6480,7 +6484,7 @@ def main():
                 st.plotly_chart(fig4)
                
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-            st.success("This program allows you to view the RSI over time of a ticker")
+            st.success("This program allows you to view the VWAP over time of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -6541,9 +6545,57 @@ def main():
                 fig2.update_layout(title=f"Stock {symbol} Closing Price with VWAP", xaxis_title="Date", yaxis_title="Price")
                 st.plotly_chart(fig2)
 
-
         if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
-            pass
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                def WMA(data, n):
+                    ws = np.zeros(data.shape[0])
+                    t_sum = sum(range(1, n + 1))
+                    for i in range(n - 1, data.shape[0]):
+                        ws[i] = sum(data[i - n + 1 : i + 1] * np.linspace(1, n, n)) / t_sum
+                    return ws
+
+                df["WMA"] = WMA(df["Adj Close"], 5)
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index[4:], y=df["WMA"][4:], mode='lines', name='WMA'))
+                fig.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color='#0079a3', opacity=0.4))
+
+                fig.update_layout(title=f'Stock {symbol} Closing Price', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig)
+
+                # Candlestick with WMA
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index[4:], y=df["WMA"][4:], mode='lines', name='WMA'))
+
+                fig.update_layout(title=f'Stock {symbol} Candlestick Chart with WMA', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
             pass
         if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
