@@ -6478,11 +6478,70 @@ def main():
 
                 fig4.update_layout(title=f"Bollinger Bands & RSI for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price/RSI")
                 st.plotly_chart(fig4)
-
-
-                
+               
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-            pass
+            st.success("This program allows you to view the RSI over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                def VWAP(df):
+                    return (df["Adj Close"] * df["Volume"]).sum() / df["Volume"].sum()
+
+                n = 14
+                df["VWAP"] = pd.concat(
+                    [
+                        (pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]]))
+                        for i in range(len(df) - n)
+                    ]
+                )
+               
+                vwap_series = pd.concat([(pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]])) for i in range(len(df) - n)])
+                vwap_series = vwap_series.dropna()
+
+
+                # Simple Line Chart
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=vwap_series.index, y=vwap_series, mode='lines', name='VWAP'))
+                fig1.update_layout(title="Volume Weighted Average Price for Stock", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig1)
+
+                # Candlestick with VWAP
+                df.loc[:, "VolumePositive"] = df["Open"] < df["Adj Close"]
+              
+                df = df.dropna()
+                df = df.reset_index()
+                df["Date"] = pd.to_datetime(df["Date"])
+                df["Date"] = df["Date"].apply(mdates.date2num)
+
+                fig2 = go.Figure()
+
+                fig2.add_trace(go.Candlestick(x=df['Date'],
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Adj Close'], name='Candlestick'))
+
+                fig2.add_trace(go.Scatter(x=df['Date'], y=df["VWAP"], mode='lines', name='VWAP'))
+
+                fig2.update_layout(title=f"Stock {symbol} Closing Price with VWAP", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig2)
+
+
         if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
             pass
         if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
