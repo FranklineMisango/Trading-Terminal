@@ -6597,7 +6597,62 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
-            pass
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+                
+                def WSMA(df, column="Adj Close", n=14):
+                    ema = df[column].ewm(span=n, min_periods=n - 1).mean()
+                    K = 1 / n
+                    wsma = df[column] * K + ema * (1 - K)
+                    return wsma
+
+                df["WSMA"] = WSMA(df, column="Adj Close", n=14)
+                df = df.dropna()
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["WSMA"], mode='lines', name="WSMA"))
+                fig.update_layout(title="Wilder's Smoothing Moving Average for Stock",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick with WSMA
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["WSMA"], mode='lines', name="WSMA"))
+
+                fig.update_layout(title=f"Stock {symbol} Candlestick Chart with WSMA",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+
+                
         if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
             pass
         if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
