@@ -1,5 +1,6 @@
 #Library imports
 import streamlit as st
+from scipy.stats import zscore
 from ta import add_all_ta_features
 from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
@@ -6649,12 +6650,65 @@ def main():
                                 xaxis_title="Date",
                                 yaxis_title="Price",
                                 legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)       
+        if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+            
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                from scipy.stats import zscore
+
+                df["z_score"] = zscore(df["Adj Close"])
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                # Z-Score Chart
+                fig.add_trace(go.Scatter(x=df.index, y=df["z_score"], mode='lines', name="Z-Score"))
+                fig.update_layout(title="Z-Score for " + symbol,
+                                xaxis_title="Date",
+                                yaxis_title="Z-Score",
+                                legend=dict(x=0, y=1, traceorder="normal"))
                 st.plotly_chart(fig)
 
+                # Candlestick with Z-Score
+                fig = go.Figure()
 
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["z_score"], mode='lines', name="Z-Score"))
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Z-Score",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
                 
-        if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
-            pass
+                st.plotly_chart(fig)
         if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
             pass
         if pred_option_Technical_Indicators == "Acceleration Bands":
