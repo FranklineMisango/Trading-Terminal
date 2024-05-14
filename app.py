@@ -6769,7 +6769,63 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Acceleration Bands":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+               
+
+                n = 7
+                UBB = df["High"] * (1 + 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
+                df["Upper_Band"] = UBB.rolling(n, center=False).mean()
+                df["Middle_Band"] = df["Adj Close"].rolling(n).mean()
+                LBB = df["Low"] * (1 - 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
+                df["Lower_Band"] = LBB.rolling(n, center=False).mean()
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper_Band"], mode='lines', name='Upper Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Middle_Band"], mode='lines', name='Middle Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower_Band"], mode='lines', name='Lower Band'))
+                fig.update_layout(title="Stock Closing Price of " + str(n) + "-Day Acceleration Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper_Band"], mode='lines', name='Upper Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Middle_Band"], mode='lines', name='Middle Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower_Band"], mode='lines', name='Lower Band'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price with Acceleration Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                
+                st.plotly_chart(fig)
+
+
         if pred_option_Technical_Indicators == "Accumulation Distribution Line":
             pass
         if pred_option_Technical_Indicators == "Aroon":
