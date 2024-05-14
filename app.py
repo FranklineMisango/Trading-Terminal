@@ -7118,7 +7118,70 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Average True Range (ATR)":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+    
+                n = 14
+                df["HL"] = df["High"] - df["Low"]
+                df["HC"] = abs(df["High"] - df["Adj Close"].shift())
+                df["LC"] = abs(df["Low"] - df["Adj Close"].shift())
+                df["TR"] = df[["HL", "HC", "LC"]].max(axis=1)
+                df["ATR"] = df["TR"].rolling(n).mean()
+                df = df.drop(["HL", "HC", "LC", "TR"], axis=1)
+
+                # Simple Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # ATR Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["ATR"], mode='lines', name='ATR'))
+                fig.add_shape(type="line", x0=df.index[0], y0=1, x1=df.index[-1], y1=1, line=dict(color="black", width=1, dash="dash"))
+                fig.update_layout(title="Average True Range (ATR)",
+                                xaxis_title="Date",
+                                yaxis_title="ATR",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with ATR
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with ATR",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["ATR"], mode='lines', name='ATR'))
+                fig.add_shape(type="line", x0=df.index[0], y0=1, x1=df.index[-1], y1=1, line=dict(color="black", width=1, dash="dash"))
+                
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Balance of Power":
             pass
         if pred_option_Technical_Indicators == "Beta Indicator":
