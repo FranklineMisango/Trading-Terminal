@@ -6827,7 +6827,68 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Accumulation Distribution Line":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+                
+                df["MF Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (
+                    df["High"] - df["Low"]
+                )
+                df["MF Volume"] = df["MF Multiplier"] * df["Volume"]
+                df["ADL"] = df["MF Volume"].cumsum()
+                df = df.drop(["MF Multiplier", "MF Volume"], axis=1)
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["ADL"], mode='lines', name='Accumulation Distribution Line'))
+                fig.update_layout(yaxis2=dict(title="Accumulation Distribution Line"))
+
+                fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color='rgba(0, 0, 255, 0.4)'))
+                fig.update_layout(yaxis3=dict(title="Volume"))
+
+                st.plotly_chart(fig)
+
+                # Candlestick Chart
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["ADL"], mode='lines', name='Accumulation Distribution Line'))
+                fig.update_layout(yaxis2=dict(title="Accumulation Distribution Line"))
+
+                fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color='rgba(0, 0, 255, 0.4)'))
+                fig.update_layout(yaxis3=dict(title="Volume"))
+
+                st.plotly_chart(fig)
+               
         if pred_option_Technical_Indicators == "Aroon":
             pass
         if pred_option_Technical_Indicators == "Aroon Oscillator":
