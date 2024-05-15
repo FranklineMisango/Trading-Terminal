@@ -8462,9 +8462,7 @@ def main():
                                 xaxis_title='Date',
                                 yaxis_title='Price',
                                 template='plotly_dark')
-                st.plotly_chart(fig)
-
-        
+                st.plotly_chart(fig)        
 
         if pred_option_Technical_Indicators == "Moving Average Envelopes":
             st.success("This program allows you to visualize Moving Average Envelopes for a selected ticker")
@@ -8518,15 +8516,180 @@ def main():
                 st.plotly_chart(fig_candlestick)
 
         if pred_option_Technical_Indicators == "Moving Average High/Low":
-            pass
+            st.success("This program allows you to visualize Moving Average High/Low for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 14  # number of periods
+                df["MA_High"] = df["High"].rolling(n).mean()
+                df["MA_Low"] = df["Low"].rolling(n).mean()
+
+                # Plot Line Chart with Moving Average High/Low
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA_High"], mode='lines', name='Moving Average of High'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA_Low"], mode='lines', name='Moving Average of Low'))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Average High/Low",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
         if pred_option_Technical_Indicators == "Moving Average Ribbon":
-            pass
+            st.success("This program allows you to visualize Moving Average Ribbon for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["MA10"] = df["Adj Close"].rolling(10).mean()
+                df["MA20"] = df["Adj Close"].rolling(20).mean()
+                df["MA30"] = df["Adj Close"].rolling(30).mean()
+                df["MA40"] = df["Adj Close"].rolling(40).mean()
+                df["MA50"] = df["Adj Close"].rolling(50).mean()
+                df["MA60"] = df["Adj Close"].rolling(60).mean()
+
+                # Plot Line Chart with Moving Average Ribbon
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA10"], mode='lines', name='MA10'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA20"], mode='lines', name='MA20'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA30"], mode='lines', name='MA30'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA40"], mode='lines', name='MA40'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA50"], mode='lines', name='MA50'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA60"], mode='lines', name='MA60'))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Average Ribbon",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
         if pred_option_Technical_Indicators == "Moving Average Envelopes (MMA)":
-            pass
+            st.success("This program allows you to visualize Moving Average Envelopes (MMA) for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["20SMA"] = ta.SMA(df["Adj Close"], timeperiod=20)
+                df["Upper_Envelope"] = df["20SMA"] + (df["20SMA"] * 0.025)
+                df["Lower_Envelope"] = df["20SMA"] - (df["20SMA"] * 0.025)
+
+                # Plot Line Chart with Moving Average Envelopes (MMA)
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Average Envelopes (MMA)",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
         if pred_option_Technical_Indicators == "Moving Linear Regression":
-            pass
+            st.success("This program allows you to visualize Moving Linear Regression for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df['Slope'] = ta.LINEARREG_SLOPE(df['Adj Close'], timeperiod=14)
+
+                # Plot Line Chart with Moving Linear Regression
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Slope"], mode='lines', name='Slope', line=dict(color='red')))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Linear Regression",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
         if pred_option_Technical_Indicators == "New Highs/New Lows":
-            pass
+            st.success("This program allows you to visualize New Highs/New Lows for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df['52wHigh'] = df['Adj Close'].rolling(window=252).max()
+                df['52wLow'] = df['Adj Close'].rolling(window=252).min()
+
+                # Plot Line Chart with New Highs/New Lows
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["52wHigh"], mode='lines', name='52 Weeks High', line=dict(color='green')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["52wLow"], mode='lines', name='52 Weeks Low', line=dict(color='red')))
+                fig_line.update_layout(title=f"Stock {symbol} New Highs/New Lows",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+
 
 
 
