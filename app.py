@@ -9045,40 +9045,242 @@ def main():
                                 xaxis_title="Date",
                                 yaxis_title="Stochastic RSI")
                 st.plotly_chart(fig)
-
-# Add implementations for remaining technical indicators similarly...
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         if pred_option_Technical_Indicators == "Stochastic Fast":
-            pass
+            st.success("This program allows you to visualize Stochastic Fast for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Stochastic Fast
+                low_min = dataset['Low'].rolling(window=14).min()
+                high_max = dataset['High'].rolling(window=14).max()
+                dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
+                dataset['%D'] = dataset['%K'].rolling(window=3).mean()
+
+                # Plot Stochastic Fast
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Fast %K', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["%D"], mode='lines', name='Stochastic Fast %D', line=dict(color='blue'))])
+                fig.update_layout(title=f"{symbol} Stochastic Fast",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic Fast")
+                st.plotly_chart(fig)
         if pred_option_Technical_Indicators == "Stochastic Full":
-            pass
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+            st.success("This program allows you to visualize Stochastic Full for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Stochastic Full
+                low_min = dataset['Low'].rolling(window=14).min()
+                high_max = dataset['High'].rolling(window=14).max()
+                dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
+                dataset['%D'] = dataset['%K'].rolling(window=3).mean()
+                dataset['%D_full'] = dataset['%D'].rolling(window=3).mean()
+
+                # Plot Stochastic Full
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Full %K', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["%D_full"], mode='lines', name='Stochastic Full %D', line=dict(color='blue'))])
+                fig.update_layout(title=f"{symbol} Stochastic Full",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic Full")
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Stochastic Slow":
-            pass
+            st.success("This program allows you to visualize Stochastic Slow for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Stochastic Slow
+                low_min = dataset['Low'].rolling(window=14).min()
+                high_max = dataset['High'].rolling(window=14).max()
+                dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
+                dataset['%D'] = dataset['%K'].rolling(window=3).mean()
+
+                # Plot Stochastic Slow
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Slow %K', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["%D"], mode='lines', name='Stochastic Slow %D', line=dict(color='blue'))])
+                fig.update_layout(title=f"{symbol} Stochastic Slow",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic Slow")
+                st.plotly_chart(fig)
+
+        
+        
         if pred_option_Technical_Indicators == "Super Trend":
-            pass
+            st.success("This program allows you to view the Super Trend of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 7  # Number of periods
+                df["H-L"] = abs(df["High"] - df["Low"])
+                df["H-PC"] = abs(df["High"] - df["Adj Close"].shift(1))
+                df["L-PC"] = abs(df["Low"] - df["Adj Close"].shift(1))
+                df["TR"] = df[["H-L", "H-PC", "L-PC"]].max(axis=1)
+                df["ATR"] = df["TR"].rolling(n).mean()
+
+                df["Upper Basic"] = (df["High"] + df["Low"]) / 2 + (2 * df["ATR"])
+                df["Lower Basic"] = (df["High"] + df["Low"]) / 2 - (2 * df["ATR"])
+
+                df["Upper Band"] = df["Upper Basic"]
+                df["Lower Band"] = df["Lower Basic"]
+
+                for i in range(n, len(df)):
+                    if df["Close"][i - 1] <= df["Upper Band"][i - 1]:
+                        df["Upper Band"][i] = min(df["Upper Basic"][i], df["Upper Band"][i - 1])
+                    else:
+                        df["Upper Band"][i] = df["Upper Basic"][i]
+
+                for i in range(n, len(df)):
+                    if df["Close"][i - 1] >= df["Lower Band"][i - 1]:
+                        df["Lower Band"][i] = max(df["Lower Basic"][i], df["Lower Band"][i - 1])
+                    else:
+                        df["Lower Band"][i] = df["Lower Basic"][i]
+
+                df["SuperTrend"] = 0.00
+                for i in range(n, len(df)):
+                    if df["Close"][i] <= df["Upper Band"][i]:
+                        df["SuperTrend"][i] = df["Upper Band"][i]
+                    elif df["Close"][i] > df["Upper Band"][i]:
+                        df["SuperTrend"][i] = df["Lower Band"][i]
+
+                # Candlestick Chart with Super Trend
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Super Trend",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["SuperTrend"], mode='lines', name='SuperTrend'))
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "True Strength Index":
-            pass
+            st.success("This program allows you to view the True Strength Index (TSI) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate True Strength Index (TSI)
+                df["PC"] = df["Adj Close"] - df["Adj Close"].shift()
+                df["EMA_FS"] = df["PC"].ewm(span=25, min_periods=25, adjust=True).mean()
+                df["EMA_SS"] = df["EMA_FS"].ewm(span=13, min_periods=13, adjust=True).mean()
+                df["Absolute_PC"] = abs(df["Adj Close"] - df["Adj Close"].shift())
+                df["Absolute_FS"] = df["Absolute_PC"].ewm(span=25, min_periods=25).mean()
+                df["Absolute_SS"] = df["Absolute_FS"].ewm(span=13, min_periods=13).mean()
+                df["TSI"] = 100 * df["EMA_SS"] / df["Absolute_SS"]
+                df = df.drop(["PC", "EMA_FS", "EMA_SS", "Absolute_PC", "Absolute_FS", "Absolute_SS"], axis=1)
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["TSI"], mode='lines', name='True Strength Index'))
+                fig.update_layout(title="Stock " + symbol + " True Strength Index",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with True Strength Index
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["TSI"], mode='lines', name='True Strength Index'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with True Strength Index",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+       
         if pred_option_Technical_Indicators == "Ultimate Oscillator":
             pass
         if pred_option_Technical_Indicators == "Variance Indicator":
