@@ -14,6 +14,7 @@ nltk.download('vader_lexicon')
 from bs4 import BeautifulSoup
 import os
 from math import sqrt
+import quandl as q
 from pylab import rcParams
 import pylab as pl
 import calendar
@@ -7410,7 +7411,87 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Breadth Indicator":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+           
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Function to calculate Force Index
+                def ForceIndex(data, n):
+                    ForceIndex = pd.Series(df["Adj Close"].diff(n) * df["Volume"], name="ForceIndex")
+                    data = data.join(ForceIndex)
+                    return data
+
+                # Calculate Force Index
+                n = 10
+                ForceIndex = ForceIndex(df, n)
+                ForceIndex = ForceIndex["ForceIndex"]
+
+                # Market Price Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Close Price'))
+                fig.update_layout(title="Market Price Chart",
+                                xaxis_title="Date",
+                                yaxis_title="Close Price")
+                st.plotly_chart(fig)
+
+                # Force Index
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=ForceIndex, mode='lines', name='Force Index'))
+                fig.update_layout(title="Force Index",
+                                xaxis_title="Date",
+                                yaxis_title="Force Index")
+                st.plotly_chart(fig)
+
+
+                # Function to calculate Chaikin Oscillator
+                def Chaikin(data):
+                    money_flow_volume = ((2 * df["Adj Close"] - df["High"] - df["Low"]) / (df["High"] - df["Low"]) * df["Volume"])
+                    ad = money_flow_volume.cumsum()
+                    Chaikin = pd.Series(ad.ewm(com=(3 - 1) / 2).mean() - ad.ewm(com=(10 - 1) / 2).mean(), name="Chaikin")
+                    data = data.join(Chaikin)
+                    return data
+
+                # Calculate Chaikin Oscillator
+                Chaikin(df)
+                st.write(df)
+
+                # Chaikin Oscillator Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Chaikin"], mode='lines', name='Chaikin Oscillator'))
+                fig.update_layout(title="Chaikin Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Chaikin Oscillator")
+                
+                st.plotly_chart(fig)
+
+
+                # Calculate Cumulative Volume Index
+                data["CVI"] = data["Net_Advances"].shift(1) + (data["Advances"] - data["Declines"])
+
+                # Cumulative Volume Index Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=data.index, y=data["CVI"], mode='lines', name='Cumulative Volume Index'))
+                fig.update_layout(title="Cumulative Volume Index",
+                                xaxis_title="Date",
+                                yaxis_title="CVI")
+                
+                st.plotly_chart(fig)
+
+
         if pred_option_Technical_Indicators == "Candle Absolute Returns":
             pass
         if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
