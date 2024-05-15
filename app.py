@@ -8689,35 +8689,211 @@ def main():
                 
                 st.plotly_chart(fig_line)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         if pred_option_Technical_Indicators == "Pivot Point":
-            pass
+            st.success("This program allows you to visualize Pivot Points for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Pivot Points
+                PP = (dataset["High"] + dataset["Low"] + dataset["Close"]) / 3
+                R1 = 2 * PP - dataset["Low"]
+                S1 = 2 * PP - dataset["High"]
+                R2 = PP + dataset["High"] - dataset["Low"]
+                S2 = PP - dataset["High"] + dataset["Low"]
+                R3 = dataset["High"] + 2 * (PP - dataset["Low"])
+                S3 = dataset["Low"] - 2 * (dataset["High"] - PP)
+
+                # Plot Pivot Points
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=PP, mode='lines', name='Pivot Point'),
+                                    go.Scatter(x=dataset.index, y=R1, mode='lines', name='R1'),
+                                    go.Scatter(x=dataset.index, y=S1, mode='lines', name='S1'),
+                                    go.Scatter(x=dataset.index, y=R2, mode='lines', name='R2'),
+                                    go.Scatter(x=dataset.index, y=S2, mode='lines', name='S2'),
+                                    go.Scatter(x=dataset.index, y=R3, mode='lines', name='R3'),
+                                    go.Scatter(x=dataset.index, y=S3, mode='lines', name='S3')])
+                fig.update_layout(title=f"{symbol} Pivot Points",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig)
+
+
+
+
+
+
+
+
+
+
+
+       
         if pred_option_Technical_Indicators == "Price Channels":
-            pass
+            st.success("This program allows you to visualize Price Channels for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Price Channels
+                rolling_high = dataset['High'].rolling(window=20).max()
+                rolling_low = dataset['Low'].rolling(window=20).min()
+                midline = (rolling_high + rolling_low) / 2
+
+                # Plot Price Channels
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=rolling_high, mode='lines', name='Upper Channel'),
+                                    go.Scatter(x=dataset.index, y=rolling_low, mode='lines', name='Lower Channel'),
+                                    go.Scatter(x=dataset.index, y=midline, mode='lines', name='Midline')])
+                fig.update_layout(title=f"{symbol} Price Channels",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Price Relative":
-            pass
+            st.success("This program allows you to visualize Price Relative for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            benchmark_ticker = st.text_input("Enter the benchmark ticker")
+            if ticker and benchmark_ticker:
+                message = (f"Ticker captured : {ticker}, Benchmark Ticker : {benchmark_ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                benchmark = benchmark_ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+                benchmark_data = yf.download(benchmark, start, end)
+
+                # Calculate Price Relative
+                price_relative = dataset['Adj Close'] / benchmark_data['Adj Close']
+
+                # Plot Price Relative
+                fig = go.Figure(data=[go.Scatter(x=price_relative.index, y=price_relative, mode='lines', name='Price Relative')])
+                fig.update_layout(title=f"{symbol} Price Relative to {benchmark}",
+                                xaxis_title='Date',
+                                yaxis_title='Price Relative')
+                
+                st.plotly_chart(fig)
+
+
         if pred_option_Technical_Indicators == "Realized Volatility":
-            pass
+            st.success("This program allows you to visualize Realized Volatility for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Realized Volatility
+                returns = dataset["Adj Close"].pct_change().dropna()
+                realized_volatility = returns.std() * np.sqrt(252)  # Annualized volatility assuming 252 trading days
+
+                # Plot Realized Volatility
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=returns.index, y=returns, mode='lines', name='Daily Returns'))
+                fig.add_trace(go.Scatter(x=returns.index, y=np.ones(len(returns)) * realized_volatility, mode='lines', name='Realized Volatility', line=dict(color='red', dash='dash')))
+                fig.update_layout(title=f"{symbol} Daily Returns and Realized Volatility",
+                                xaxis_title="Date",
+                                yaxis_title="Returns / Realized Volatility")
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Relative Volatility Index":
-            pass
+            st.success("This program allows you to visualize Relative Volatility Index for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Relative Volatility Index (RVI)
+                n = 14  # Number of period
+                change = dataset["Adj Close"].diff(1)
+                gain = change.mask(change < 0, 0)
+                loss = abs(change.mask(change > 0, 0))
+                avg_gain = gain.rolling(n).std()
+                avg_loss = loss.rolling(n).std()
+                RS = avg_gain / avg_loss
+                RVI = 100 - (100 / (1 + RS))
+
+                # Plot RVI
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=RVI.index, y=RVI, mode='lines', name='Relative Volatility Index', line=dict(color='blue')))
+                fig.add_shape(type="line", x0=RVI.index[0], y0=60, x1=RVI.index[-1], y1=60, line=dict(color="red", width=1, dash="dash"), name="Overbought")
+                fig.add_shape(type="line", x0=RVI.index[0], y0=40, x1=RVI.index[-1], y1=40, line=dict(color="green", width=1, dash="dash"), name="Oversold")
+                fig.update_layout(title=f"{symbol} Relative Volatility Index",
+                                xaxis_title="Date",
+                                yaxis_title="RVI")
+                st.plotly_chart(fig)
+
+
         if pred_option_Technical_Indicators == "Smoothed Moving Average":
             pass
         if pred_option_Technical_Indicators == "Speed Resistance Lines":
