@@ -113,7 +113,16 @@ st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Ter
 st.success('Identify, Visualize, Predict and Trade')
 st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
 st.sidebar.info("This application features over 100 programmes for different roles")
+streamlit_style = """
+			<style>
+			@import url('https://fonts.google.com/specimen/Hanken+Grotesk');
 
+			html, body, [class*="css"]  {
+			font-family: 'Hanken-Grotesk',
+			}
+			</style>
+			"""
+st.markdown(streamlit_style, unsafe_allow_html=True)
 @st.cache_resource
 def correlated_stocks(start_date, end_date, tickers):
     print("Inside correlated_stocks function")
@@ -5091,9 +5100,19 @@ def main():
         if pred_option_analysis == "SP500 Valuation":
             if st.button("Check"):
                 # Load the S&P 500 data
-                sp_df = pd.read_excel("http://www.stern.nyu.edu/~adamodar/pc/datasets/spearn.xls", sheet_name="Sheet1")
+                #sp_df = pd.read_excel("http://www.stern.nyu.edu/~adamodar/pc/datasets/spearn.xls", sheet_name="Sheet1")
+                sp_df = []
+                for ticker in ti.tickers_sp500():
+                    yf_ticker = yf.Ticker(ticker)
+                    data = yf_ticker.history(period="max")
+                    data.reset_index(inplace=True)
+                    data.drop_duplicates(subset="Date", keep="first", inplace=True)
+                    data['Symbol'] = ticker
+                    sp_df.append(data)
 
+                clean_df = sp_df
                 # Clean the data
+                '''
                 clean_df = sp_df.drop([i for i in range(6)], axis=0)
                 rename_dict = {}
                 for i in sp_df.columns:
@@ -5102,7 +5121,7 @@ def main():
                 clean_df = clean_df.drop(6, axis=0)
                 clean_df = clean_df.drop(clean_df.index[-1], axis=0)
                 clean_df = clean_df.set_index("Year")
-
+                '''
                 # Calculate earnings and dividend growth rates
                 clean_df["earnings_growth"] = clean_df["Earnings"] / clean_df["Earnings"].shift(1) - 1
                 clean_df["dividend_growth"] = clean_df["Dividends"] / clean_df["Dividends"].shift(1) - 1
