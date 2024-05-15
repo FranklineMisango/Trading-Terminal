@@ -8895,17 +8895,184 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Smoothed Moving Average":
-            pass
+            st.success("This program allows you to visualize Smoothed Moving Average for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                n = 7
+                dataset["SMMA"] = dataset["Adj Close"].ewm(alpha=1 / float(n)).mean()
+
+                # Plot Smoothed Moving Average
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["SMMA"], mode='lines', name='Smoothed Moving Average', line=dict(color='red'))])
+                fig.update_layout(title=f"{symbol} Smoothed Moving Average",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Speed Resistance Lines":
-            pass
+            st.success("This program allows you to visualize Speed Resistance Lines for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                dataset["Middle_Line"] = dataset["Low"] + (dataset["High"] - dataset["Low"]) * 0.667
+                dataset["Lower_Line"] = dataset["Low"] + (dataset["High"] - dataset["Low"]) * 0.333
+
+                # Plot Speed Resistance Lines
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["Middle_Line"], mode='lines', name='Middle Line', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["Lower_Line"], mode='lines', name='Lower Line', line=dict(color='green'))])
+                fig.update_layout(title=f"{symbol} Speed Resistance Lines",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Standard Deviation Volatility":
-            pass
+            st.success("This program allows you to visualize Standard Deviation Volatility for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                dataset["STD"] = dataset["Adj Close"].rolling(10).std()
+
+                # Plot Standard Deviation Volatility
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["STD"], mode='lines', name='Standard Deviation Volatility', line=dict(color='red'))])
+                fig.update_layout(title=f"{symbol} Standard Deviation Volatility",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Stochastic RSI":
-            pass
+            st.success("This program allows you to visualize Stochastic RSI for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate RSI
+                n = 14
+                change = dataset["Adj Close"].diff(1)
+                gain = change.mask(change < 0, 0)
+                loss = abs(change.mask(change > 0, 0))
+                avg_gain = gain.rolling(n).mean()
+                avg_loss = loss.rolling(n).mean()
+                RS = avg_gain / avg_loss
+                RSI = 100 - (100 / (1 + RS))
+
+                # Calculate Stochastic RSI
+                LL_RSI = RSI.rolling(14).min()
+                HH_RSI = RSI.rolling(14).max()
+                dataset["Stoch_RSI"] = (RSI - LL_RSI) / (HH_RSI - LL_RSI)
+
+                # Plot Stochastic RSI
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["Stoch_RSI"], mode='lines', name='Stochastic RSI', line=dict(color='red'))])
+                fig.update_layout(title=f"{symbol} Stochastic RSI",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic RSI")
+                st.plotly_chart(fig)
+
+# Add implementations for remaining technical indicators similarly...
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         if pred_option_Technical_Indicators == "Stochastic Fast":
             pass
         if pred_option_Technical_Indicators == "Stochastic Full":
             pass
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         if pred_option_Technical_Indicators == "Stochastic Slow":
             pass
         if pred_option_Technical_Indicators == "Super Trend":
