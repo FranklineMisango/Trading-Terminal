@@ -6830,7 +6830,7 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Accumulation Distribution Line":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the ADL of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -6893,7 +6893,7 @@ def main():
                 st.plotly_chart(fig)
                
         if pred_option_Technical_Indicators == "Aroon":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the Aroon of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -6969,7 +6969,7 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Aroon Oscillator":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the Aroon Oscillator bands of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7057,7 +7057,7 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the ADX  of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7121,7 +7121,7 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Average True Range (ATR)":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the ATR of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7186,7 +7186,7 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Balance of Power":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the BoP of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7243,7 +7243,7 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Beta Indicator":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the Beta Indicator of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7359,7 +7359,7 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Bollinger Bandwidth":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the Bollinger bandwidth of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7411,7 +7411,7 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Breadth Indicator":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the Breadth Indicator of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7533,7 +7533,7 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Candle Absolute Returns":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the Candle absolute returns  of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7567,7 +7567,7 @@ def main():
                 
                 st.plotly_chart(fig)
         if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
-            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            st.success("This program allows you to view the CPR of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
@@ -7612,25 +7612,357 @@ def main():
                 fig = go.Figure(data=data, layout=layout)
                 st.plotly_chart(fig)
 
-
         if pred_option_Technical_Indicators == "Chaikin Money Flow":
-            pass
+            st.success("This program allows you to view the Chaikin Money Flow (CMF) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate CMF
+                n = 20
+                df["MF_Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (df["High"] - df["Low"])
+                df["MF_Volume"] = df["MF_Multiplier"] * df["Volume"]
+                df["CMF"] = df["MF_Volume"].rolling(n).sum() / df["Volume"].rolling(n).sum()
+                df = df.drop(["MF_Multiplier", "MF_Volume"], axis=1)
+
+                # Plot CMF
+                cmf_chart = go.Scatter(x=df.index, y=df["CMF"], mode='lines', name='Chaikin Money Flow')
+
+                layout = go.Layout(title=f'Chaikin Money Flow for Stock {symbol}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='CMF'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cmf_chart], layout=layout)
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Chaikin Oscillator":
-            pass
+            st.success("This program allows you to view the Chaikin Oscillator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Chaikin Oscillator
+                df["MF_Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (df["High"] - df["Low"])
+                df["MF_Volume"] = df["MF_Multiplier"] * df["Volume"]
+                df["ADL"] = df["MF_Volume"].cumsum()
+                df["ADL_3_EMA"] = df["ADL"].ewm(ignore_na=False, span=3, min_periods=2, adjust=True).mean()
+                df["ADL_10_EMA"] = df["ADL"].ewm(ignore_na=False, span=10, min_periods=9, adjust=True).mean()
+                df["Chaikin_Oscillator"] = df["ADL_3_EMA"] - df["ADL_10_EMA"]
+                df = df.drop(["MF_Multiplier", "MF_Volume", "ADL", "ADL_3_EMA", "ADL_10_EMA"], axis=1)
+
+                # Plot Chaikin Oscillator
+                co_chart = go.Scatter(x=df.index, y=df["Chaikin_Oscillator"], mode='lines', name='Chaikin Oscillator')
+
+                layout = go.Layout(title=f'Chaikin Oscillator for Stock {symbol}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Chaikin Oscillator'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[co_chart], layout=layout)
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Commodity Channel Index (CCI)":
-            pass
+            st.success("This program allows you to view the Commodity Channel Index (CCI) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate CCI
+                n = 20
+                df["TP"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3
+                df["SMA_TP"] = df["TP"].rolling(n).mean()
+                df["SMA_STD"] = df["TP"].rolling(n).std()
+                df["CCI"] = (df["TP"] - df["SMA_TP"]) / (0.015 * df["SMA_STD"])
+                df = df.drop(["TP", "SMA_TP", "SMA_STD"], axis=1)
+
+                # Plot CCI
+                cci_chart = go.Scatter(x=df.index, y=df["CCI"], mode='lines', name='Commodity Channel Index (CCI)')
+
+                layout = go.Layout(title=f'Commodity Channel Index (CCI) for Stock {symbol}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='CCI'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cci_chart], layout=layout)
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Correlation Coefficient":
-            pass
+            st.success("This program allows you to view the Correlation Coefficient between two tickers over time")
+            symbol1 = st.text_input("Enter the first ticker")
+            symbol2 = st.text_input("Enter the second ticker")
+            if symbol1 and symbol2:
+                message = (f"Tickers captured : {symbol1}, {symbol2}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                start = start_date
+                end = end_date
+
+                # Read data
+                df1 = yf.download(symbol1, start, end)
+                df2 = yf.download(symbol2, start, end)
+
+                # Calculate correlation coefficient
+                cc = df1["Adj Close"].corr(df2["Adj Close"])
+
+                # Plot correlation coefficient
+                cc_chart = go.Scatter(x=df1.index, y=cc, mode='lines', name='Correlation Coefficient')
+
+                layout = go.Layout(title=f'Correlation Coefficient between {symbol1} and {symbol2}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Correlation Coefficient'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cc_chart], layout=layout)
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Covariance":
-            pass
+            st.success("This program allows you to view the Covariance between two tickers over time")
+            symbol1 = st.text_input("Enter the first ticker")
+            symbol2 = st.text_input("Enter the second ticker")
+            if symbol1 and symbol2:
+                message = (f"Tickers captured : {symbol1}, {symbol2}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                start = start_date
+                end = end_date
+
+                # Read data
+                df1 = yf.download(symbol1, start, end)
+                df2 = yf.download(symbol2, start, end)
+
+                # Calculate covariance
+                c = df1["Adj Close"].cov(df2["Adj Close"])
+
+                # Plot covariance
+                cov_chart = go.Scatter(x=df1.index, y=c, mode='lines', name='Covariance')
+
+                layout = go.Layout(title=f'Covariance between {symbol1} and {symbol2}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Covariance'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cov_chart], layout=layout)
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Detrended Price Oscillator (DPO)":
-            pass
-        if pred_option_Technical_Indicators == "Donchain Channel":
-            pass
+            st.success("This program allows you to view the Detrended Price Oscillator (DPO) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 15
+                df["DPO"] = (df["Adj Close"].shift(int((0.5 * n) + 1)) - df["Adj Close"].rolling(n).mean())
+
+                # Plot DPO
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['DPO'],
+                                                mode='lines',
+                                                name='DPO')])
+                fig.update_layout(title=f"Detrended Price Oscillator (DPO) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Donchian Channel":
+            st.success("This program allows you to view the Donchian Channel of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["Upper_Channel_Line"] = pd.Series.rolling(df["High"], window=20).max()
+                df["Lower_Channel_Line"] = pd.Series.rolling(df["Low"], window=20).min()
+                df["Middle_Channel_Line"] = (df["Upper_Channel_Line"] + df["Lower_Channel_Line"]) / 2
+                df = df.dropna()
+
+                # Plot Donchian Channel
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['Upper_Channel_Line'],
+                                                mode='lines',
+                                                name='Upper Channel Line'),
+                                    go.Scatter(x=df.index,
+                                                y=df['Lower_Channel_Line'],
+                                                mode='lines',
+                                                name='Lower Channel Line'),
+                                    go.Scatter(x=df.index,
+                                                y=df['Middle_Channel_Line'],
+                                                mode='lines',
+                                                name='Middle Channel Line')])
+                fig.update_layout(title=f"Donchian Channel for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Double Exponential Moving Average (DEMA)":
-            pass
+            st.success("This program allows you to view the Double Exponential Moving Average (DEMA) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["EMA"] = ta.EMA(df["Adj Close"], timeperiod=5)
+                df["EMA_S"] = ta.EMA(df["EMA"], timeperiod=5)
+                df["DEMA"] = (2 * df["EMA"]) - df["EMA_S"]
+
+                # Plot DEMA
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['DEMA'],
+                                                mode='lines',
+                                                name='DEMA')])
+                fig.update_layout(title=f"Double Exponential Moving Average (DEMA) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Dynamic Momentum Index":
-            pass
+            st.success("This program allows you to view the Dynamic Momentum Index (DMI) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["sd"] = df["Adj Close"].rolling(5).std()
+                df["asd"] = df["sd"].rolling(10).mean()
+                df["DMI"] = 14 / (df["sd"] / df["asd"])
+                df = df.drop(["sd", "asd"], axis=1)
+
+                # Plot DMI
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['DMI'],
+                                                mode='lines',
+                                                name='Dynamic Momentum Index')])
+                fig.update_layout(title=f"Dynamic Momentum Index (DMI) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Ease of Movement":
             pass
         if pred_option_Technical_Indicators == "Force Index":
