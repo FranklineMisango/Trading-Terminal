@@ -1,6 +1,7 @@
 #Library imports
 import streamlit as st
 from scipy.stats import zscore
+from factor_analyzer import FactorAnalyzer, calculate_bartlett_sphericity, calculate_kmo
 from scipy.stats import ttest_ind
 from ta import add_all_ta_features
 from alpaca_trade_api.rest import REST, TimeFrame
@@ -9916,13 +9917,187 @@ def main():
                 st.plotly_chart(fig_best_sma)
 
         if pred_option_portfolio_strategies == "EMA Crossover Strategy":
+            tickers = []
             ticker = st.text_input("Enter the ticker for investigation")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
                 st.success(message)
-            portfolio = st.number_input("Enter the portfolio size in USD")
-            if portfolio:
-                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+                tickers.append(ticker)
+            more_input = st.selectbox("Please Add one/more ticker(s) for comparison", ("","Yes", "No"))
+            if more_input == "Yes":
+                ticker_2 =  st.text_input("Enter another ticker to continue the investigation")
+                tickers.append(ticker_2)
+                portfolio = st.number_input("Enter the portfolio size in USD")
+                if portfolio:
+                    st.write(f"The portfolio size in USD Captured is : {portfolio}")
+                min_date = datetime(1980, 1, 1)
+                # Date input widget with custom minimum date
+                col1, col2 = st.columns([2, 2])
+                with col1:
+                    start_date = st.date_input("Start date:", min_value=min_date)
+                with col2:
+                    end_date = st.date_input("End Date:")
+                years = end_date.year - start_date.year
+                st.success(f"years captured : {years}")
+                if st.button("Check"):
+                
+                    # Define the analysis period
+                    num_of_years = years
+                    start =  start_date
+                    end = end_date
+
+                    # Define tickers for analysis
+
+                    # Fetch stock data using Yahoo Finance
+                    df = pdr.get_data_yahoo(tickers, start, end)['Close']
+
+                    # Calculate moving averages
+                    short_rolling = df.rolling(window=20).mean()
+                    long_rolling = df.rolling(window=100).mean()
+                    ema_short = df.ewm(span=20, adjust=False).mean()
+
+                    # Determine trading position based on EMA
+                    trade_positions_raw = df - ema_short
+                    trade_positions = trade_positions_raw.apply(np.sign) / 3  # Equal weighting
+                    trade_positions_final = trade_positions.shift(1)  # Shift to simulate next-day trading
+
+                    # Calculate asset and portfolio returns
+                    asset_log_returns = np.log(df).diff()
+                    portfolio_log_returns = trade_positions_final * asset_log_returns
+                    cumulative_portfolio_log_returns = portfolio_log_returns.cumsum()
+                    cumulative_portfolio_relative_returns = np.exp(cumulative_portfolio_log_returns) - 1
+
+                    # Plot cumulative returns
+                    cumulative_fig = go.Figure()
+                    for ticker in asset_log_returns:
+                        cumulative_fig.add_trace(go.Scatter(x=cumulative_portfolio_relative_returns.index,
+                                                            y=100 * cumulative_portfolio_relative_returns[ticker],
+                                                            mode='lines',
+                                                            name=ticker))
+
+                    cumulative_fig.update_layout(title='Cumulative Log Returns (%)',
+                                                xaxis_title='Date',
+                                                yaxis_title='Cumulative Log Returns (%)',
+                                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(cumulative_fig)
+
+                    # Comparing exact and approximate cumulative returns
+                    cumulative_return_exact = cumulative_portfolio_relative_returns.sum(axis=1)
+                    cumulative_log_return = cumulative_portfolio_log_returns.sum(axis=1)
+                    cumulative_return_approx = np.exp(cumulative_log_return) - 1
+
+                    # Plot exact vs approximate returns
+                    approx_fig = go.Figure()
+                    approx_fig.add_trace(go.Scatter(x=cumulative_return_exact.index,
+                                                    y=100 * cumulative_return_exact,
+                                                    mode='lines',
+                                                    name='Exact'))
+                    approx_fig.add_trace(go.Scatter(x=cumulative_return_approx.index,
+                                                    y=100 * cumulative_return_approx,
+                                                    mode='lines',
+                                                    name='Approx'))
+
+                    approx_fig.update_layout(title='Total Cumulative Relative Returns (%)',
+                                            xaxis_title='Date',
+                                            yaxis_title='Total Cumulative Relative Returns (%)',
+                                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(approx_fig)
+
+                    # Function to print portfolio statistics
+                    def print_portfolio_statistics(portfolio_returns, num_of_years):
+                        total_return = portfolio_returns[-1]
+                        avg_yearly_return = (1 + total_return) ** (1 / num_of_years) - 1
+                        st.write(f'Total Portfolio Return: {total_return * 100:.2f}%')
+                        st.write(f'Average Yearly Return: {avg_yearly_return * 100:.2f}%')
+
+                    # Printing statistics for EMA crossover strategy
+                    print_portfolio_statistics(cumulative_return_exact, num_of_years)
+            if more_input == "No":
+                st.error("The EMA crossover cannot proceed without a comparison")
+
+        if pred_option_portfolio_strategies == "Factor Analysis":
+            tickers = []
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+                tickers.append(ticker)
+            more_input = st.selectbox("Please Add one/more ticker(s) for comparison", ("","Yes", "No"))
+            if more_input == "Yes":
+                ticker_2 =  st.text_input("Enter another ticker to continue the investigation")
+                tickers.append(ticker_2)
+                portfolio = st.number_input("Enter the portfolio size in USD")
+                if portfolio:
+                    st.write(f"The portfolio size in USD Captured is : {portfolio}")
+                min_date = datetime(1980, 1, 1)
+                # Date input widget with custom minimum date
+                col1, col2 = st.columns([2, 2])
+                with col1:
+                    start_date = st.date_input("Start date:", min_value=min_date)
+                with col2:
+                    end_date = st.date_input("End Date:")
+                years = end_date.year - start_date.year
+                st.success(f"years captured : {years}")
+                if st.button("Check"):
+
+                    # Setting plot aesthetics
+                    sns.set(style='darkgrid', context='talk', palette='Dark2')
+
+                    # Defining the time frame for data collection
+                    end_date = dt.datetime.now()
+                    start_date = end_date - dt.timedelta(days=365 * 7)
+
+                    # List of stock symbols for factor analysis
+                    symbols = tickers
+
+                    # Fetching adjusted close prices for the specified symbols
+                    df = pd.DataFrame({symbol: yf.download(symbol, start_date, end_date)['Adj Close']
+                                    for symbol in symbols})
+
+                    # Initializing FactorAnalyzer and fitting it to our data
+                    fa = FactorAnalyzer(rotation=None, n_factors=df.shape[1])
+                    fa.fit(df.dropna())
+
+                    # Extracting communalities, eigenvalues, and factor loadings
+                    communalities = fa.get_communalities()
+                    eigenvalues, _ = fa.get_eigenvalues()
+                    loadings = fa.loadings_
+
+                    # Plotting the Scree plot to assess the number of factors
+                    # Plotting the Scree plot to assess the number of factors
+                    scree_fig = go.Figure()
+                    scree_fig.add_trace(go.Scatter(x=list(range(1, df.shape[1] + 1)),
+                                                y=eigenvalues,
+                                                mode='markers+lines',
+                                                name='Eigenvalues',
+                                                marker=dict(color='blue')))
+                    scree_fig.update_layout(title='Scree Plot',
+                                            xaxis_title='Number of Factors',
+                                            yaxis_title='Eigenvalue',
+                                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(scree_fig)
+
+                    # Bartlett's test of sphericity
+                    chi_square_value, p_value = calculate_bartlett_sphericity(df.dropna())
+                    st.write('Bartlett sphericity test:\nChi-square value:', chi_square_value, '\nP-value:', p_value)
+
+                    # Kaiser-Meyer-Olkin (KMO) test
+                    kmo_all, kmo_model = calculate_kmo(df.dropna())
+                    st.write('Kaiser-Meyer-Olkin (KMO) Test:\nOverall KMO:', kmo_all, '\nKMO per variable:', kmo_model)
+
+                    # Printing results
+                    st.write("\nFactor Analysis Results:")
+                    st.write("\nCommunalities:\n", communalities)
+                    st.write("\nFactor Loadings:\n", loadings)
+            if more_input == "No":
+                st.error("The EMA crossover cannot proceed without a comparison")
+
+
+        if pred_option_portfolio_strategies == "Financial Signal Analysis":
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
             min_date = datetime(1980, 1, 1)
             # Date input widget with custom minimum date
             col1, col2 = st.columns([2, 2])
@@ -9933,88 +10108,86 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-            
-                # Define the analysis period
-                num_of_years = years
-                start =  start_date
-                end = end_date
+                # Constants for analysis
+                index = 'SPY'  # S&P500 as the index for comparison
+                num_of_years = years  # Number of years for historical data
+                start = start_date
 
-                # Define tickers for analysis
-                tickers = ticker
+                # Download historical stock prices
+                stock_data = yf.download(ticker, start=start)['Adj Close']
+                # Plotting stock prices and their distribution
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data.values, mode='lines', name=f'{ticker.upper()} Price'))
+                fig1.update_layout(title=f'{ticker.upper()} Price', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig1)
 
-                # Fetch stock data using Yahoo Finance
-                df = pdr.get_data_yahoo(ticker, start, end)['Close']
+                fig2 = go.Figure()
+                fig2.add_trace(go.Histogram(x=stock_data, name=f'{ticker.upper()} Price Distribution'))
+                fig2.update_layout(title=f'{ticker.upper()} Price Distribution', xaxis_title='Price', yaxis_title='Frequency')
+                st.plotly_chart(fig2)
 
-                # Calculate moving averages
-                short_rolling = df.rolling(window=20).mean()
-                long_rolling = df.rolling(window=100).mean()
-                ema_short = df.ewm(span=20, adjust=False).mean()
+                # Calculating and plotting stock returns
+                stock_returns = stock_data.apply(np.log).diff(1)
+                fig3 = go.Figure()
+                fig3.add_trace(go.Scatter(x=stock_returns.index, y=stock_returns.values, mode='lines', name=f'{ticker.upper()} Returns'))
+                fig3.update_layout(title=f'{ticker.upper()} Returns', xaxis_title='Date', yaxis_title='Returns')
+                st.plotly_chart(fig3)
 
-                # Determine trading position based on EMA
-                trade_positions_raw = df - ema_short
-                trade_positions = trade_positions_raw.apply(np.sign) / 3  # Equal weighting
-                trade_positions_final = trade_positions.shift(1)  # Shift to simulate next-day trading
+                fig4 = go.Figure()
+                fig4.add_trace(go.Histogram(x=stock_returns, name=f'{ticker.upper()} Returns Distribution'))
+                fig4.update_layout(title=f'{ticker.upper()} Returns Distribution', xaxis_title='Returns', yaxis_title='Frequency')
+                st.plotly_chart(fig4)
 
-                # Calculate asset and portfolio returns
-                asset_log_returns = np.log(df).diff()
-                portfolio_log_returns = trade_positions_final * asset_log_returns
-                cumulative_portfolio_log_returns = portfolio_log_returns.cumsum()
-                cumulative_portfolio_relative_returns = np.exp(cumulative_portfolio_log_returns) - 1
+                # Rolling statistics for stock returns
+                rolling_window = 22
+                rolling_mean = stock_returns.rolling(rolling_window).mean()
+                rolling_std = stock_returns.rolling(rolling_window).std()
+                rolling_skew = stock_returns.rolling(rolling_window).skew()
+                rolling_kurtosis = stock_returns.rolling(rolling_window).kurt()
 
-                # Plot cumulative returns
-                cumulative_fig = go.Figure()
-                for ticker in asset_log_returns:
-                    cumulative_fig.add_trace(go.Scatter(x=cumulative_portfolio_relative_returns.index,
-                                                        y=100 * cumulative_portfolio_relative_returns[ticker],
-                                                        mode='lines',
-                                                        name=ticker))
+                # Combining rolling statistics into a DataFrame
+                signals = pd.concat([rolling_mean, rolling_std, rolling_skew, rolling_kurtosis], axis=1)
+                signals.columns = ['Mean', 'Std Dev', 'Skewness', 'Kurtosis']
 
-                cumulative_fig.update_layout(title='Cumulative Log Returns (%)',
-                                            xaxis_title='Date',
-                                            yaxis_title='Cumulative Log Returns (%)',
-                                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                st.plotly_chart(cumulative_fig)
+                fig5 = go.Figure()
+                for col in signals.columns:
+                    fig5.add_trace(go.Scatter(x=signals.index, y=signals[col], mode='lines', name=col))
+                fig5.update_layout(title='Rolling Statistics for Stock Returns', xaxis_title='Date', yaxis_title='Value')
+                st.plotly_chart(fig5)
 
-                # Comparing exact and approximate cumulative returns
-                cumulative_return_exact = cumulative_portfolio_relative_returns.sum(axis=1)
-                cumulative_log_return = cumulative_portfolio_log_returns.sum(axis=1)
-                cumulative_return_approx = np.exp(cumulative_log_return) - 1
+                # Volatility analysis for S&P500
+                index_data = yf.download(index, start=start)['Adj Close']
+                index_returns = index_data.apply(np.log).diff(1)
+                index_volatility = index_returns.rolling(rolling_window).std()
 
-                # Plot exact vs approximate returns
-                approx_fig = go.Figure()
-                approx_fig.add_trace(go.Scatter(x=cumulative_return_exact.index,
-                                                y=100 * cumulative_return_exact,
-                                                mode='lines',
-                                                name='Exact'))
-                approx_fig.add_trace(go.Scatter(x=cumulative_return_approx.index,
-                                                y=100 * cumulative_return_approx,
-                                                mode='lines',
-                                                name='Approx'))
+                # Drop NaN values from index_volatility
+                index_volatility.dropna(inplace=True)
 
-                approx_fig.update_layout(title='Total Cumulative Relative Returns (%)',
-                                        xaxis_title='Date',
-                                        yaxis_title='Total Cumulative Relative Returns (%)',
-                                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                st.plotly_chart(approx_fig)
+                # Gaussian Mixture Model on S&P500 volatility
+                gmm_labels = GaussianMixture(2).fit_predict(index_volatility.values.reshape(-1, 1))
+                index_data = index_data.reindex(index_volatility.index)
 
-                # Function to print portfolio statistics
-                def print_portfolio_statistics(portfolio_returns, num_of_years):
-                    total_return = portfolio_returns[-1]
-                    avg_yearly_return = (1 + total_return) ** (1 / num_of_years) - 1
-                    st.write(f'Total Portfolio Return: {total_return * 100:.2f}%')
-                    st.write(f'Average Yearly Return: {avg_yearly_return * 100:.2f}%')
+                # Plotting volatility regimes
+                fig6 = go.Figure()
+                fig6.add_trace(go.Scatter(x=index_data[gmm_labels == 0].index,
+                                        y=index_data[gmm_labels == 0].values,
+                                        mode='markers',
+                                        marker=dict(color='blue'),
+                                        name='Regime 1'))
+                fig6.add_trace(go.Scatter(x=index_data[gmm_labels == 1].index,
+                                        y=index_data[gmm_labels == 1].values,
+                                        mode='markers',
+                                        marker=dict(color='red'),
+                                        name='Regime 2'))
+                fig6.update_layout(title=f'{index} Volatility Regimes (Gaussian Mixture)',
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                showlegend=True)
+                st.plotly_chart(fig6)
 
-                # Printing statistics for EMA crossover strategy
-                print_portfolio_statistics(cumulative_return_exact, num_of_years)
-
-
-
+                            
 
 
-        if pred_option_portfolio_strategies == "Factor Analysis":
-            pass
-        if pred_option_portfolio_strategies == "Financial Signal Analysis":
-            pass
         if pred_option_portfolio_strategies == "Geometric Brownian Motion":
             pass
         if pred_option_portfolio_strategies == "Long Hold Stats Analysis":
