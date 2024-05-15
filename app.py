@@ -1,8 +1,18 @@
 #Library imports
 import streamlit as st
+import scipy.optimize as sco
+import matplotlib.dates as mpl_dates
 from scipy.stats import zscore
 from factor_analyzer import FactorAnalyzer, calculate_bartlett_sphericity, calculate_kmo
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt import risk_models, expected_returns
+from pypfopt import risk_models
+from pypfopt import expected_returns
+from pandas.plotting import register_matplotlib_converters
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from scipy.stats import ttest_ind
+from scipy.stats import norm
 from ta import add_all_ta_features
 from alpaca_trade_api.rest import REST, TimeFrame
 import backtrader as bt
@@ -10184,49 +10194,1400 @@ def main():
                                 yaxis_title='Price',
                                 showlegend=True)
                 st.plotly_chart(fig6)
-
-                            
-
-
         if pred_option_portfolio_strategies == "Geometric Brownian Motion":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis
+                num_of_years = years  # Number of years for historical data
+                start = start_date
+                stock = ticker
+                index = '^GSPC'
+
+                # Fetching historical data from Yahoo Finance
+                stock_data = pdr.get_data_yahoo(stock, start_date, end_date)
+                index_data = pdr.get_data_yahoo(index, start_date, end_date)
+
+                # Resampling data to monthly frequency and calculating returns
+                stock_monthly = stock_data.resample('M').last()
+                index_monthly = index_data.resample('M').last()
+                combined_data = pd.DataFrame({'Stock': stock_monthly['Adj Close'], 
+                                            'Index': index_monthly['Adj Close']})
+                combined_returns = combined_data.pct_change().dropna()
+
+                # Calculating covariance matrix for the returns
+                cov_matrix = np.cov(combined_returns['Stock'], combined_returns['Index'])
+
+                # Class for Geometric Brownian Motion simulation
+                class GBM:
+                    def __init__(self, initial_price, drift, volatility, time_period, total_time):
+                        self.initial_price = initial_price
+                        self.drift = drift
+                        self.volatility = volatility
+                        self.time_period = time_period
+                        self.total_time = total_time
+                        self.simulate()
+
+                    def simulate(self):
+                        self.prices = [self.initial_price]
+                        while self.total_time > 0:
+                            dS = self.prices[-1] * (self.drift * self.time_period + 
+                                                    self.volatility * np.random.normal(0, math.sqrt(self.time_period)))
+                            self.prices.append(self.prices[-1] + dS)
+                            self.total_time -= self.time_period
+
+                # Parameters for GBM simulation
+                num_simulations = 20
+                initial_price = stock_data['Adj Close'][-1]
+                drift = 0.24
+                volatility = math.sqrt(cov_matrix[0, 0])
+                time_period = 1 / 365
+                total_time = 1
+
+                # Running multiple GBM simulations
+                simulations = [GBM(initial_price, drift, volatility, time_period, total_time) for _ in range(num_simulations)]
+
+                # Plotting the simulations
+                fig = go.Figure()
+                for i, sim in enumerate(simulations):
+                    fig.add_trace(go.Scatter(x=np.arange(len(sim.prices)), y=sim.prices, mode='lines', name=f'Simulation {i+1}'))
+
+                fig.add_trace(go.Scatter(x=np.arange(len(sim.prices)), y=[initial_price] * len(sim.prices),
+                                        mode='lines', name='Initial Price', line=dict(color='red', dash='dash')))
+                fig.update_layout(title=f'Geometric Brownian Motion for {stock.upper()}',
+                                xaxis_title='Time Steps',
+                                yaxis_title='Price')
+                st.plotly_chart(fig)
+
+          
         if pred_option_portfolio_strategies == "Long Hold Stats Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis         
+                # Function to download stock data
+                def download_stock_data(symbol, start, end):
+                    return yf.download(symbol, start, end)['Adj Close']
+
+                # Function to calculate investment statistics
+                def calculate_investment_stats(df, investment_amount, symbol):
+                    # Calculate number of shares bought and investment values
+                    shares = int(investment_amount / df.iloc[0])
+                    begin_value = round(shares * df.iloc[0], 2)
+                    current_value = round(shares * df.iloc[-1], 2)
+
+                    # Calculate daily returns and various statistics
+                    returns = df.pct_change().dropna()
+                    stats = {
+                        'mean': round(returns.mean() * 100, 2),
+                        'std_dev': round(returns.std() * 100, 2),
+                        'skew': round(returns.skew(), 2),
+                        'kurt': round(returns.kurtosis(), 2),
+                        'total_return': round((1 + returns).cumprod().iloc[-1], 4) * 100
+                    }
+                    return shares, begin_value, current_value, stats
+
+                # User inputs
+                symbol = ticker
+                num_of_years = years
+                investment_amount = portfolio
+
+                # Calculate date range
+                start = dt.datetime.now() - dt.timedelta(days=int(365.25 * num_of_years))
+                end = dt.datetime.now()
+
+                # Download and process stock data
+                df = download_stock_data(ticker, start_date, end_date)
+                shares, begin_value, current_value, stats = calculate_investment_stats(df, investment_amount, symbol)
+
+                # Print statistics
+                st.write(f'\nNumber of Shares for {symbol}: {shares}')
+                st.write(f'Beginning Value: ${begin_value}')
+                st.write(f'Current Value: ${current_value}')
+                st.write(f"\nStatistics:\nMean: {stats['mean']}%\nStd. Dev: {stats['std_dev']}%\nSkew: {stats['skew']}\nKurt: {stats['kurt']}\nTotal Return: {stats['total_return']}%")
+
+                # Plotting returns and other statistics
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df.pct_change(), mode='lines', name='Daily Returns'))
+                fig.update_layout(title=f'{symbol} Daily Returns', xaxis_title='Date', yaxis_title='Returns')
+                st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "LS DCA Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis         
+                # Function to download stock data
+                def download_stock_data(symbol, start, end):
+                    return yf.download(symbol, start, end)['Adj Close']
+
+                # Function to calculate investment statistics
+                def calculate_investment_stats(df, investment_amount, symbol):
+                    # Calculate number of shares bought and investment values
+                    shares = int(investment_amount / df.iloc[0])
+                    begin_value = round(shares * df.iloc[0], 2)
+                    current_value = round(shares * df.iloc[-1], 2)
+
+                    # Calculate daily returns and various statistics
+                    returns = df.pct_change().dropna()
+                    stats = {
+                        'mean': round(returns.mean() * 100, 2),
+                        'std_dev': round(returns.std() * 100, 2),
+                        'skew': round(returns.skew(), 2),
+                        'kurt': round(returns.kurtosis(), 2),
+                        'total_return': round((1 + returns).cumprod().iloc[-1], 4) * 100
+                    }
+                    return shares, begin_value, current_value, stats
+
+                # User inputs
+                symbol = ticker
+                num_of_years = years
+                investment_amount = portfolio
+
+                # Calculate date range
+                start = dt.datetime.now() - dt.timedelta(days=int(365.25 * num_of_years))
+                end = dt.datetime.now()
+
+                # Download and process stock data
+                df = download_stock_data(ticker, start_date, end_date)
+                shares, begin_value, current_value, stats = calculate_investment_stats(df, investment_amount, symbol)
+
+                # Print statistics
+                st.write(f'\nNumber of Shares for {symbol}: {shares}')
+                st.write(f'Beginning Value: ${begin_value}')
+                st.write(f'Current Value: ${current_value}')
+                st.write(f"\nStatistics:\nMean: {stats['mean']}%\nStd. Dev: {stats['std_dev']}%\nSkew: {stats['skew']}\nKurt: {stats['kurt']}\nTotal Return: {stats['total_return']}%")
+
+                # Plotting returns and other statistics
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df.pct_change(), mode='lines', name='Daily Returns'))
+                fig.update_layout(title=f'{symbol} Daily Returns', xaxis_title='Date', yaxis_title='Returns')
+                st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "Monte Carlo":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+             
+                # Function to download stock data
+                def download_data(symbol, source, start, end):
+                    start = datetime.strptime(start, '%d-%m-%Y')
+                    end = datetime.strptime(end, '%d-%m-%Y')
+                    df = web.DataReader(symbol, data_source=source, start=start, end=end)
+                    return df
+
+                # Function to calculate annual volatility
+                def annual_volatility(df):
+                    quote = df['Close']
+                    returns = quote.pct_change()
+                    return returns.std() * np.sqrt(252)
+
+                # Function to calculate CAGR
+                def cagr(df):
+                    quote = df['Close']
+                    days = (quote.index[-1] - quote.index[0]).days
+                    return ((((quote[-1]) / quote[1])) ** (365.0/days)) - 1
+
+                # Monte Carlo Simulation Function
+                def monte_carlo_simulation(symbol, source, start, end, simulations, days_predicted):
+                    df = download_data(symbol, source, start, end)
+                    mu = cagr(df)
+                    vol = annual_volatility(df)
+                    start_price = df['Close'][-1]
+
+                    results = []
+                    
+                    # Run simulations
+                    for _ in range(simulations):
+                        prices = [start_price]
+                        for _ in range(days_predicted):
+                            shock = np.random.normal(mu / days_predicted, vol / math.sqrt(days_predicted))
+                            prices.append(prices[-1] * (1 + shock))
+                        results.append(prices[-1])
+
+                    return pd.DataFrame({
+                        "Results": results,
+                        "Percentile 5%": np.percentile(results, 5),
+                        "Percentile 95%": np.percentile(results, 95)
+                    })
+
+                # Main function
+                def main():
+                    st.title("Monte Carlo Simulation")
+                    
+                    symbol = ticker
+                    start_date = '01-01-2015'
+                    end_date = '01-01-2020'
+                    simulations = 1000
+                    days_predicted = 252
+
+                    # Perform Monte Carlo Simulation
+                    simulation_results = monte_carlo_simulation(symbol, 'yahoo', start_date, end_date, simulations, days_predicted)
+
+                    # Plotting
+                    fig = go.Figure()
+                    fig.add_trace(go.Histogram(x=simulation_results['Results'], histnorm='probability'))
+                    fig.update_layout(title=f"{symbol} Monte Carlo Simulation Histogram", xaxis_title="Price", yaxis_title="Probability Density")
+                    st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "Moving Average Crossover Signals":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Function to retrieve stock data
+                def get_stock_data(ticker, start_date, end_date):
+                    return yf.download(ticker, start_date, end_date)
+
+                # Function to calculate Simple Moving Averages (SMA)
+                def calculate_sma(data, window):
+                    return data['Close'].rolling(window=window).mean()
+
+                # Function to generate buy and sell signals
+                def generate_signals(data):
+                    signal_buy = []
+                    signal_sell = []
+                    flag = -1
+
+                    for i in range(len(data)):
+                        if data['SMA 50'][i] > data['SMA 200'][i] and flag != 1:
+                            signal_buy.append(data['Close'][i])
+                            signal_sell.append(np.nan)
+                            flag = 1
+                        elif data['SMA 50'][i] < data['SMA 200'][i] and flag != 0:
+                            signal_buy.append(np.nan)
+                            signal_sell.append(data['Close'][i])
+                            flag = 0
+                        else:
+                            signal_buy.append(np.nan)
+                            signal_sell.append(np.nan)
+
+                    return signal_buy, signal_sell
+
+                # Main function to run the analysis
+                def main():
+                    st.title("Stock Data Analysis with Moving Averages and Signals")
+
+                    ticker = st.text_input("Enter a ticker:")
+                    if not ticker:
+                        st.warning("Please enter a valid ticker.")
+                        return
+
+                    num_of_years = 6
+                    start_date = dt.datetime.now() - dt.timedelta(int(365.25 * num_of_years))
+                    end_date = dt.datetime.now()
+
+                    # Retrieve and process stock data
+                    stock_data = get_stock_data(ticker, start_date, end_date)
+                    stock_data['SMA 50'] = calculate_sma(stock_data, 50)
+                    stock_data['SMA 200'] = calculate_sma(stock_data, 200)
+
+                    # Generate buy and sell signals
+                    buy_signals, sell_signals = generate_signals(stock_data)
+
+                    # Plotting
+                    fig = go.Figure()
+
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Close'], mode='lines', name='Close Price'))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA 50'], mode='lines', name='SMA 50'))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA 200'], mode='lines', name='SMA 200'))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=buy_signals, mode='markers', name='Buy Signal', marker=dict(symbol='triangle-up', color='green')))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=sell_signals, mode='markers', name='Sell Signal', marker=dict(symbol='triangle-down', color='red')))
+
+                    fig.update_layout(title=f'{ticker.upper()} Close Price History with Buy & Sell Signals',
+                                    xaxis_title='Date',
+                                    yaxis_title='Close Price')
+
+                    st.plotly_chart(fig)
+         
         if pred_option_portfolio_strategies == "Moving Average Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+               
+                # Function to download stock data
+                def download_stock_data(ticker, start_date, end_date):
+                    return yf.download(ticker, start_date, end_date)
+
+                # Function to calculate moving averages
+                def calculate_moving_averages(data, windows):
+                    for window in windows:
+                        data[f'SMA_{window}'] = data['Adj Close'].rolling(window).mean()
+                    return data
+
+                # Main function
+                def main():
+                    st.title("Stock Data Analysis with Moving Averages")
+
+                    ticker = st.text_input("Enter a ticker:")
+                    if not ticker:
+                        st.warning("Please enter a valid ticker.")
+                        return
+
+                    num_of_years = 6
+                    start_date = dt.datetime.now() - dt.timedelta(int(365.25 * num_of_years))
+                    end_date = dt.datetime.now()
+
+                    # Download and process stock data
+                    stock_data = download_stock_data(ticker, start_date, end_date)
+                    stock_data = calculate_moving_averages(stock_data, [20, 40, 80])
+
+                    # Plotting
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Adj Close'], mode='lines', name='Close Price'))
+                    for window in [20, 40, 80]:
+                        fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[f'SMA_{window}'], mode='lines', name=f'{window}-days SMA'))
+                    
+                    fig.update_layout(title=f'{ticker.upper()} Close Price with Moving Averages',
+                                    xaxis_title='Date',
+                                    yaxis_title='Close Price')
+
+                    st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "Optimal Portfolio":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Function to download stock data and calculate annual returns
+                def annual_returns(symbols, start_date, end_date):
+                    df = yf.download(symbols, start_date, end_date)['Adj Close']
+                    log_rets = np.log(df / df.shift(1))
+                    return np.exp(log_rets.groupby(log_rets.index.year).sum()) - 1
+
+                # Function to calculate portfolio variance
+                def portfolio_var(returns, weights):
+                    cov_matrix = np.cov(returns.T)
+                    return np.dot(weights.T, np.dot(cov_matrix, weights))
+
+                # Function to calculate Sharpe ratio
+                def sharpe_ratio(returns, weights, rf_rate):
+                    portfolio_return = np.dot(returns.mean(), weights)
+                    portfolio_volatility = np.sqrt(portfolio_var(returns, weights))
+                    return (portfolio_return - rf_rate) / portfolio_volatility
+
+                # Function to optimize portfolio for maximum Sharpe ratio
+                def optimize_portfolio(returns, initial_weights, rf_rate):
+                    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+                    bounds = tuple((0, 1) for _ in range(len(initial_weights)))
+                    optimized = fmin(lambda x: -sharpe_ratio(returns, x, rf_rate), initial_weights, disp=False)
+                    return optimized
+
+                # Main function to execute the script
+                def main():
+                    st.title("Optimal Portfolio Optimization")
+
+                    symbols = st.text_input("Enter stock symbols (comma-separated):")
+                    start_date = st.date_input("Enter start date:")
+                    end_date = st.date_input("Enter end date:")
+                    rf_rate = st.number_input("Enter risk-free rate (in decimal):", min_value=0.0, value=0.003)
+
+                    if not symbols or not start_date or not end_date:
+                        st.warning("Please provide all required inputs.")
+                        return
+
+                    symbols = symbols.split(',')
+
+                    # Calculate annual returns
+                    returns = annual_returns(symbols, start_date, end_date)
+
+                    # Initialize equal weights
+                    initial_weights = np.ones(len(symbols)) / len(symbols)
+
+                    # Calculate equal weighted portfolio Sharpe ratio
+                    equal_weighted_sharpe = sharpe_ratio(returns, initial_weights, rf_rate)
+                    
+                    # Optimize portfolio
+                    optimal_weights = optimize_portfolio(returns, initial_weights, rf_rate)
+                    optimal_sharpe = sharpe_ratio(returns, optimal_weights, rf_rate)
+
+                    # Display results
+                    st.write(f"Equal Weighted Portfolio Sharpe Ratio: {equal_weighted_sharpe}")
+                    st.write(f"Optimal Portfolio Weights: {optimal_weights}")
+                    st.write(f"Optimal Portfolio Sharpe Ratio: {optimal_sharpe}")
+
+      
         if pred_option_portfolio_strategies == "Optimized Bollinger Bands":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+            # Function to download stock data from Yahoo Finance
+                def get_stock_data(ticker):
+                    df = yf.download(ticker)
+                    df = df[['Adj Close']]
+                    return df
+
+                # Function to add Bollinger Bands to DataFrame
+                def add_bollinger_bands(df, window_size=20, num_std_dev=2):
+                    df['SMA'] = df['Adj Close'].rolling(window=window_size).mean()
+                    df['Upper Band'] = df['SMA'] + (df['Adj Close'].rolling(window=window_size).std() * num_std_dev)
+                    df['Lower Band'] = df['SMA'] - (df['Adj Close'].rolling(window=window_size).std() * num_std_dev)
+                    return df
+
+                # Function to plot stock prices with Bollinger Bands
+                def plot_with_bollinger_bands(df, ticker):
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Adj Close'], mode='lines', name=f'{ticker} Adjusted Close'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['SMA'], mode='lines', name='20 Day SMA'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Upper Band'], mode='lines', name='Upper Bollinger Band'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Lower Band'], mode='lines', name='Lower Bollinger Band'))
+                    fig.update_layout(title=f'{ticker} Stock Price with Bollinger Bands',
+                                    xaxis_title='Date',
+                                    yaxis_title='Price')
+                    st.plotly_chart(fig)
+
+                # Main function to execute the script
+                st.title("Stock Price with Bollinger Bands")
+
+                ticker = st.text_input("Enter stock ticker:")
+                if not ticker:
+                    st.warning("Please enter a valid ticker.")
+                    return
+
+                df = get_stock_data(ticker)
+                df = add_bollinger_bands(df)
+
+                plot_with_bollinger_bands(df, ticker)
+
         if pred_option_portfolio_strategies == "Pairs Trading":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+    
+                # Function to download stock data from Yahoo Finance
+                def download_stock_data(symbols, start_date, end_date):
+                    """Download historical stock data for given symbols from Yahoo Finance."""
+                    stock_data = yf.download(symbols, start=start_date, end=end_date)['Adj Close']
+                    return stock_data.dropna()
+
+                # Function to identify cointegrated pairs of stocks
+                def find_cointegrated_pairs(data):
+                    """Identify cointegrated pairs of stocks."""
+                    n = data.shape[1]
+                    score_matrix, pvalue_matrix = np.zeros((n, n)), np.ones((n, n))
+                    pairs = []
+                    for i in range(n):
+                        for j in range(i+1, n):
+                            S1, S2 = data[data.columns[i]], data[data.columns[j]]
+                            _, pvalue, _ = coint(S1, S2)
+                            score_matrix[i, j], pvalue_matrix[i, j] = _, pvalue
+                            if pvalue < 0.05:  # Using a p-value threshold of 0.05
+                                pairs.append((data.columns[i], data.columns[j]))
+                    return score_matrix, pvalue_matrix, pairs
+
+                # Function to plot heatmap of p-values for cointegration test using Plotly
+                def plot_cointegration_heatmap(pvalues, tickers):
+                    """Plot heatmap of p-values for cointegration test."""
+                    fig = go.Figure(data=go.Heatmap(
+                        z=pvalues,
+                        x=tickers,
+                        y=tickers,
+                        colorscale='Viridis',
+                        zmin=0,
+                        zmax=0.05
+                    ))
+                    fig.update_layout(title="P-Values for Pairs Cointegration Test")
+                    return fig
+
+                # Pairs Trading Section
+                def pairs_trading():
+                    st.title("Pairs Trading")
+
+                    # Inputs
+                    ticker = st.text_input("Please enter the ticker needed for investigation")
+                    portfolio = st.number_input("Enter the portfolio size in USD")
+                    min_date = datetime.datetime(1980, 1, 1)
+                    start_date = st.date_input("Start date:", min_value=min_date)
+                    end_date = st.date_input("End Date:")
+                    years = end_date.year - start_date.year
+
+                    if st.button("Check"):
+                        # Download and process data
+                        data = download_stock_data([ticker], start_date, end_date)
+
+                        # Find cointegrated pairs
+                        _, pvalues, pairs = find_cointegrated_pairs(data)
+
+                        # Plot heatmap of p-values
+                        fig = plot_cointegration_heatmap(pvalues, [ticker])
+                        st.plotly_chart(fig)
+
+                        # Display the found pairs
+                        st.write("Cointegrated Pairs:", pairs)
+                  
         if pred_option_portfolio_strategies == "Portfolio Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"): 
+                # Override yfinance with Pandas Datareader's Yahoo Finance API
+                yf.pdr_override()
+
+                def get_historical_prices(symbols, start_date, end_date):
+                    """Retrieve historical stock prices for specified symbols."""
+                    return yf.download(symbols, start=start_date, end=end_date)['Adj Close']
+
+                def calculate_daily_returns(prices):
+                    """Calculate daily returns from stock prices."""
+                    return np.log(prices / prices.shift(1))
+
+                def calculate_monthly_returns(daily_returns):
+                    """Calculate monthly returns from daily returns."""
+                    return np.exp(daily_returns.groupby(lambda date: date.month).sum()) - 1
+
+                def calculate_annual_returns(daily_returns):
+                    """Calculate annual returns from daily returns."""
+                    return np.exp(daily_returns.groupby(lambda date: date.year).sum()) - 1
+
+                def portfolio_variance(returns, weights=None):
+                    """Calculate the variance of a portfolio."""
+                    if weights is None:
+                        weights = np.ones(len(returns.columns)) / len(returns.columns)
+                    covariance_matrix = np.cov(returns.T)
+                    return np.dot(weights, np.dot(covariance_matrix, weights))
+
+                def sharpe_ratio(returns, weights=None, risk_free_rate=0.001):
+                    """Calculate the Sharpe ratio of a portfolio."""
+                    if weights is None:
+                        weights = np.ones(len(returns.columns)) / len(returns.columns)
+                    port_var = portfolio_variance(returns, weights)
+                    port_return = np.dot(returns.mean(), weights)
+                    return (port_return - risk_free_rate) / np.sqrt(port_var)
+
+                # Example usage
+                symbols = ['AAPL', 'MSFT', 'GOOGL']
+                start_date = dt.datetime.now() - dt.timedelta(days=365*5)
+                end_date = dt.datetime.now()
+
+                # Fetch historical data
+                historical_prices = get_historical_prices(symbols, start_date, end_date)
+
+                # Calculate returns
+                daily_returns = calculate_daily_returns(historical_prices)
+                monthly_returns = calculate_monthly_returns(daily_returns)
+                annual_returns = calculate_annual_returns(daily_returns)
+
+                # Calculate portfolio metrics
+                portfolio_variance = portfolio_variance(annual_returns)
+                portfolio_sharpe_ratio = sharpe_ratio(daily_returns)
+
+                # Display results
+                st.write(f"Portfolio Variance: {portfolio_variance}")
+                st.write(f"Portfolio Sharpe Ratio: {portfolio_sharpe_ratio}")
+
+                # Plot historical prices using Plotly
+                fig = go.Figure()
+                for symbol in symbols:
+                    fig.add_trace(go.Scatter(x=historical_prices.index, y=historical_prices[symbol], mode='lines', name=symbol))
+
+                fig.update_layout(title="Historical Prices",
+                                xaxis_title="Date",
+                                yaxis_title="Adjusted Closing Price",
+                                legend_title="Symbols")
+                st.plotly_chart(fig)
+
+
         if pred_option_portfolio_strategies == "Portfolio Optimization":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+
+
+                # Registering converters for using matplotlib's plot_date() function.
+                register_matplotlib_converters()
+
+                # Setting display options for pandas
+                pd.set_option("display.max_columns", None)
+                pd.set_option("display.max_rows", None)
+
+                # Defining stocks to include in the portfolio
+                stocks = ["SCHB", "AAPL", "AMZN", "TSLA", "AMD", "MSFT", "NFLX"]
+
+                # Getting historical data from Yahoo Finance
+                start = datetime.date(2020, 8, 13)
+                end = datetime.datetime.now()
+                df = pdr.get_data_yahoo(stocks, start=start, end=end)["Close"]
+
+                # Calculating daily returns of each stock
+                returns = df.pct_change()
+
+                # Define a function to generate random portfolios
+                def random_portfolios(num_portfolios, mean_returns, cov_matrix, risk_free_rate):
+                    results = np.zeros((3, num_portfolios))
+                    weights_record = []
+                    for i in range(num_portfolios):
+                        weights = np.random.random(n)
+                        weights /= np.sum(weights)
+                        weights_record.append(weights)
+                        portfolio_std_dev, portfolio_return = portfolio_performance(
+                            weights, mean_returns, cov_matrix
+                        )
+                        results[0, i] = portfolio_std_dev
+                        results[1, i] = portfolio_return
+                        results[2, i] = (portfolio_return - risk_free_rate) / portfolio_std_dev
+                    return results, weights_record
+
+                # Calculating mean returns and covariance matrix of returns
+                mean_returns = returns.mean()
+                cov_matrix = returns.cov()
+
+                # Setting the number of random portfolios to generate and the risk-free rate
+                num_portfolios = 50000
+                risk_free_rate = 0.021
+
+                # Define a function to calculate the negative Sharpe ratio
+                def neg_sharpe_ratio(weights, mean_returns, cov_matrix, risk_free_rate):
+                    p_var, p_ret = portfolio_performance(weights, mean_returns, cov_matrix)
+                    return -(p_ret - risk_free_rate) / p_var
+
+                # Define a function to find the portfolio with maximum Sharpe ratio
+                def max_sharpe_ratio(mean_returns, cov_matrix, risk_free_rate):
+                    num_assets = len(mean_returns)
+                    args = (mean_returns, cov_matrix, risk_free_rate)
+                    constraints = {"type": "eq", "fun": lambda x: np.sum(x) - 1}
+                    bound = (0.0, 1.0)
+                    bounds = tuple(bound for asset in range(num_assets))
+                    result = sco.minimize(
+                        neg_sharpe_ratio,
+                        num_assets
+                        * [
+                            1.0 / num_assets,
+                        ],
+                        args=args,
+                        method="SLSQP",
+                        bounds=bounds,
+                        constraints=constraints,
+                    )
+                    return result
+
+                # Helper function to calculate portfolio performance
+                def portfolio_performance(weights, mean_returns, cov_matrix):
+                    returns = np.sum(mean_returns * weights) * 252
+                    std_dev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(252)
+                    return std_dev, returns
+
+                # Calculate portfolio volatility
+                def portfolio_volatility(weights, mean_returns, cov_matrix):
+                    return portfolio_performance(weights, mean_returns, cov_matrix)[0]
+
+                # Function to find portfolio with minimum variance
+                def min_variance(mean_returns, cov_matrix):
+                    num_assets = len(mean_returns)
+                    args = (mean_returns, cov_matrix)
+                    bounds = tuple((0.0, 1.0) for asset in range(num_assets))
+                    constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+
+                    result = sco.minimize(portfolio_volatility, [1./num_assets]*num_assets,
+                                        args=args, method='SLSQP', bounds=bounds, constraints=constraints)
+                    return result
+
+                # Function to calculate efficient return
+                def efficient_return(mean_returns, cov_matrix, target_return):
+                    num_assets = len(mean_returns)
+                    args = (mean_returns, cov_matrix)
+                    bounds = tuple((0.0, 1.0) for asset in range(num_assets))
+                    constraints = [{'type': 'eq', 'fun': lambda x: portfolio_performance(x, mean_returns, cov_matrix)[1] - target_return},
+                                {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}]
+
+                    result = sco.minimize(portfolio_volatility, [1./num_assets]*num_assets,
+                                        args=args, method='SLSQP', bounds=bounds, constraints=constraints)
+                    return result
+
+                # Function to construct efficient frontier
+                def efficient_frontier(mean_returns, cov_matrix, returns_range):
+                    efficient_portfolios = []
+                    for ret in returns_range:
+                        efficient_portfolios.append(efficient_return(mean_returns, cov_matrix, ret))
+                    return efficient_portfolios
+
+                # Calculating efficient frontier
+                target_returns = np.linspace(0.0, 0.5, 100)
+                efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target_returns)
+
+                # Extracting volatility and return for each portfolio
+                volatility = [p['fun'] for p in efficient_portfolios]
+                returns = [portfolio_performance(p['x'], mean_returns, cov_matrix)[1] for p in efficient_portfolios]
+
+                # Plotting the efficient frontier
+                fig_efficient_frontier = go.Figure()
+                fig_efficient_frontier.add_trace(go.Scatter(x=volatility, y=returns, mode='lines', name='Efficient Frontier'))
+                fig_efficient_frontier.add_trace(go.Scatter(x=[p['fun'] for p in min_variance(mean_returns, cov_matrix)], y=[p['x'].mean() for p in min_variance(mean_returns, cov_matrix)], mode='markers', marker=dict(size=10, color='red'), name='Minimum Variance Portfolio'))
+                fig_efficient_frontier.update_layout(title='Efficient Frontier', xaxis_title='Volatility', yaxis_title='Return')
+                st.plotly_chart(fig_efficient_frontier)
+
         if pred_option_portfolio_strategies == "Portfolio VAR Simulation":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Define the tickers and time parameters
+                tickers = ['GOOGL', 'FB', 'AAPL', 'NFLX', 'AMZN']
+                Time = 1440  # Number of trading days in minutes
+                pvalue = 1000  # Portfolio value in dollars
+                num_of_years = 3
+                start_date = dt.datetime.now() - dt.timedelta(days=365.25 * num_of_years)
+                end_date = dt.datetime.now()
+
+                # Fetching and preparing stock data
+                price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
+                df_stocks = pd.concat(price_data, axis=1)
+                df_stocks.columns = tickers
+
+                # Calculating expected returns and covariance matrix
+                mu = expected_returns.mean_historical_return(df_stocks)
+                Sigma = risk_models.sample_cov(df_stocks)
+
+                # Portfolio Optimization using Efficient Frontier
+                ef = EfficientFrontier(mu, Sigma, weight_bounds=(0,1))
+                sharpe_pwt = ef.max_sharpe()
+                cleaned_weights = ef.clean_weights()
+
+                # Plotting Cumulative Returns of All Stocks
+                cum_returns = ((df_stocks.pct_change() + 1).cumprod() - 1)
+                fig_cum_returns = go.Figure()
+                for column in cum_returns.columns:
+                    fig_cum_returns.add_trace(go.Scatter(x=cum_returns.index, y=cum_returns[column], mode='lines', name=column))
+                fig_cum_returns.update_layout(title='Cumulative Returns', xaxis_title='Date', yaxis_title='Cumulative Returns')
+                st.plotly_chart(fig_cum_returns)
+
+                # Portfolio VaR Simulation
+                ticker_returns = cum_returns.pct_change().dropna()
+                weighted_returns = ticker_returns.dot(np.array(list(cleaned_weights.values())))
+                portfolio_return = weighted_returns.mean()
+                portfolio_vol = weighted_returns.std()
+
+                # Simulating daily returns for VAR calculation
+                simulated_daily_returns = [np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), Time) for _ in range(10000)]
+
+                # Plotting Range of Returns in a Day
+                fig_returns_range = go.Figure()
+                for i in range(10000):
+                    fig_returns_range.add_trace(go.Scatter(y=simulated_daily_returns[i], mode='lines', name=f'Simulation {i+1}'))
+                fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 5), mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 95), mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                fig_returns_range.add_trace(go.Scatter(y=np.mean(simulated_daily_returns), mode='lines', name='Mean', line=dict(color='blue')))
+                fig_returns_range.update_layout(title=f'Range of Returns in a Day of {Time} Minutes', xaxis_title='Minute', yaxis_title='Returns')
+                st.plotly_chart(fig_returns_range)
+
+                # Histogram of Daily Returns
+                fig_hist_returns = go.Figure()
+                fig_hist_returns.add_trace(go.Histogram(x=simulated_daily_returns.flatten(), nbinsx=15))
+                fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 5), np.percentile(simulated_daily_returns, 5)], y=[0, 1500], mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 95), np.percentile(simulated_daily_returns, 95)], y=[0, 1500], mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                fig_hist_returns.update_layout(title='Histogram of Daily Returns', xaxis_title='Returns', yaxis_title='Frequency')
+                st.plotly_chart(fig_hist_returns)
+
+                # Printing VaR results
+                st.write(f"5th Percentile: {np.percentile(simulated_daily_returns, 5)}")
+                st.write(f"95th Percentile: {np.percentile(simulated_daily_returns, 95)}")
+                st.write(f"Amount required to cover minimum losses for one day: ${pvalue * -np.percentile(simulated_daily_returns, 5)}")
+
+
         if pred_option_portfolio_strategies == "Risk Management":
-            pass
-        if pred_option_portfolio_strategies == "Robinhood Bot":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                               
+                # Define the start and end dates for data retrieval
+                start = dt.datetime(2019, 1, 1)
+                now = dt.datetime.now()
+
+                # Define the moving averages and exponential moving averages to be used
+                smaUsed = [50, 200]
+                emaUsed = [21]
+
+                # User inputs for stock ticker and position
+                stock = st.text_input("Enter a ticker: ")
+                position = st.selectbox("Buy or Short?", ["Buy", "Short"]).lower()
+                AvgGain = st.number_input("Enter Your Average Gain (%)", value=0.0, step=0.1)
+                AvgLoss = st.number_input("Enter Your Average Loss (%)", value=0.0, step=0.1)
+
+                # Fetch historical data from Yahoo Finance
+                df = yf.download(stock, start=start, end=now)
+
+                # Calculate the maximum stop value and target returns based on user's position
+                if position == "buy":
+                    close = df["Adj Close"][-1]
+                    maxStop = close * (1 - AvgLoss / 100)
+                    targets = [round(close * (1 + (i * AvgGain / 100)), 2) for i in range(1, 4)]
+                elif position == "short":
+                    close = df["Adj Close"][-1]
+                    maxStop = close * (1 + AvgLoss / 100)
+                    targets = [round(close * (1 - (i * AvgGain / 100)), 2) for i in range(1, 4)]
+
+                # Calculate SMA and EMA for the stock
+                for x in smaUsed:
+                    df[f"SMA_{x}"] = df["Adj Close"].rolling(window=x).mean()
+                for x in emaUsed:
+                    df[f"EMA_{x}"] = df["Adj Close"].ewm(span=x, adjust=False).mean()
+
+                # Fetching the latest values of SMA, EMA, and 5 day low
+                sma_values = {f"SMA_{x}": round(df[f"SMA_{x}"][-1], 2) for x in smaUsed}
+                ema_values = {f"EMA_{x}": round(df[f"EMA_{x}"][-1], 2) for x in emaUsed}
+                low5 = round(min(df["Low"].tail(5)), 2)
+
+                # Calculate the performance metrics and checks
+                performance_checks = {}
+                for key, value in {**sma_values, **ema_values, "Low_5": low5}.items():
+                    pf = round(((close / value) - 1) * 100, 2)
+                    check = value > maxStop if position == "buy" else value < maxStop
+                    performance_checks[key] = {"Performance": pf, "Check": check}
+
+                # Displaying the results
+                st.write(f"Current Stock: {stock} | Price: {round(close, 2)}")
+                st.write(" | ".join([f"{key}: {value}" for key, value in {**sma_values, **ema_values, 'Low_5': low5}.items()]))
+                st.write("-------------------------------------------------")
+                st.write(f"Max Stop: {round(maxStop, 2)}")
+                st.write(f"Price Targets: 1R: {targets[0]} | 2R: {targets[1]} | 3R: {targets[2]}")
+                for key, value in performance_checks.items():
+                    st.write(f"From {key} {value['Performance']}% - {'Within' if value['Check'] else 'Outside'} Max Stop")
+
+
         if pred_option_portfolio_strategies == "RSI Trendline Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Override the yfinance module
+                yf.pdr_override()
+
+                # Define the date range for data retrieval
+                num_of_years = 10
+                start = datetime.datetime.now() - datetime.timedelta(days=365.25 * num_of_years)
+                end = datetime.datetime.now()
+
+                # Load stock symbols
+                @st.cache
+                def load_tickers():
+                    stocklist = ti.tickers_sp500()
+                    return [stock.replace(".", "-") for stock in stocklist]  # Adjusting ticker format for Yahoo Finance
+
+                stocklist = load_tickers()
+
+                # Initialize the DataFrame for exporting results
+                exportList = pd.DataFrame(columns=['Stock', "RSI", "200 Day MA"])
+
+                # Process a limited number of stocks for demonstration
+                for stock in stocklist[:5]:
+                    time.sleep(1.5)  # To avoid hitting API rate limits
+                    st.write(f"\npulling {stock}")
+
+                    # Fetch stock data
+                    df = pdr.get_data_yahoo(stock, start=start, end=end)
+
+                    try:
+                        # Calculate indicators: 200-day MA, RSI
+                        df["SMA_200"] = df.iloc[:, 4].rolling(window=200).mean()
+                        df["rsi"] = ta.RSI(df["Close"])
+                        currentClose, moving_average_200, RSI = df["Adj Close"][-1], df["SMA_200"][-1], df["rsi"].tail(14).mean()
+                        two_day_rsi_avg = (df.rsi[-1] + df.rsi[-2]) / 2
+
+                        # Define entry criteria
+                        if currentClose > moving_average_200 and two_day_rsi_avg < 33:
+                            exportList = exportList.append({'Stock': stock, "RSI": RSI, "200 Day MA": moving_average_200}, ignore_index=True)
+                            st.write(f"{stock} made the requirements")
+
+                    except Exception as e:
+                        st.write(e)  # Handling exceptions
+
+                # Displaying the exported list
+                st.write(exportList)
+
+
         if pred_option_portfolio_strategies == "RWB Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+        
+                yf.pdr_override()
+
+                emas_used = [3, 5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60]
+
+                def get_stock_data(ticker, num_of_years):
+                    start_date = dt.date.today() - dt.timedelta(days=365.25 * num_of_years)
+                    end_date = dt.datetime.now()
+                    df = pdr.get_data_yahoo(ticker, start_date, end_date).dropna()
+                    for ema in emas_used:
+                        df[f"Ema_{ema}"] = df.iloc[:, 4].ewm(span=ema, adjust=False).mean()
+                    return df.iloc[60:]
+
+                def rwb_strategy(df):
+                    pos, num, percent_change = 0, 0, []
+                    for i in df.index:
+                        cmin = min(df[f"Ema_{ema}"][i] for ema in emas_used[:6])
+                        cmax = max(df[f"Ema_{ema}"][i] for ema in emas_used[6:])
+                        close = df["Adj Close"][i]
+                        if cmin > cmax and pos == 0:
+                            bp, pos = close, 1
+                            st.write(f"Buying now at {bp}")
+                        elif cmin < cmax and pos == 1:
+                            pos, sp = 0, close
+                            st.write(f"Selling now at {sp}")
+                            percent_change.append((sp / bp - 1) * 100)
+                        if num == df["Adj Close"].count() - 1 and pos == 1:
+                            pos, sp = 0, close
+                            st.write(f"Selling now at {sp}")
+                            percent_change.append((sp / bp - 1) * 100)
+                        num += 1
+                    return percent_change
+
+                st.title("RWB Strategy Visualization")
+
+                stock = st.text_input("Enter a ticker:", "AAPL")
+                num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
+
+                df = get_stock_data(stock, num_of_years)
+                percent_change = rwb_strategy(df)
+
+                gains = sum(i for i in percent_change if i > 0)
+                losses = sum(i for i in percent_change if i < 0)
+                total_trades = len(percent_change)
+                total_return = round((np.prod([1 + i/100 for i in percent_change]) - 1) * 100, 2)
+
+                st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
+                st.write(f"Number of Trades: {total_trades}")
+                st.write(f"Total return: {total_return}%")
+
+                fig = go.Figure()
+                for ema in emas_used:
+                    fig.add_trace(go.Scatter(x=df.index, y=df[f"Ema_{ema}"], mode='lines', name=f"Ema_{ema}"))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name="Adj Close", line=dict(color='green')))
+                fig.update_layout(title=f"RWB Strategy for {stock.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
+                st.plotly_chart(fig)
+
+
+        
         if pred_option_portfolio_strategies == "SMA Trading Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Define the function to get historical data
+                def get_stock_data(stock, num_of_years):
+                    start = dt.date.today() - dt.timedelta(days=365 * num_of_years)
+                    end = dt.datetime.now()
+                    return yf.download(stock, start, end, interval='1d')
+
+                # Define the function for SMA Trading Strategy
+                def sma_trading_strategy(df, short_sma, long_sma):
+                    df[f"SMA_{short_sma}"] = df['Adj Close'].rolling(window=short_sma).mean()
+                    df[f"SMA_{long_sma}"] = df['Adj Close'].rolling(window=long_sma).mean()
+
+                    position = 0
+                    percent_change = []
+                    for i in df.index:
+                        close = df['Adj Close'][i]
+                        SMA_short = df[f"SMA_{short_sma}"][i]
+                        SMA_long = df[f"SMA_{long_sma}"][i]
+
+                        if SMA_short > SMA_long and position == 0:
+                            buyP, position = close, 1
+                            st.write("Buy at the price:", buyP)
+                        elif SMA_short < SMA_long and position == 1:
+                            sellP, position = close, 0
+                            st.write("Sell at the price:", sellP)
+                            percent_change.append((sellP / buyP - 1) * 100)
+
+                    if position == 1:
+                        position = 0
+                        sellP = df['Adj Close'][-1]
+                        st.write("Sell at the price:", sellP)
+                        percent_change.append((sellP / buyP - 1) * 100)
+
+                    return percent_change
+
+                # Main script
+                st.title("SMA Trading Strategy Visualization")
+
+                stock = st.text_input("Enter a ticker:", "NFLX")
+                num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
+                short_sma = st.number_input("Enter short SMA:", min_value=1, value=20)
+                long_sma = st.number_input("Enter long SMA:", min_value=1, value=50)
+
+                df = get_stock_data(stock, num_of_years)
+                percent_change = sma_trading_strategy(df, short_sma, long_sma)
+                current_price = round(df['Adj Close'][-1], 2)
+
+                # Calculate strategy statistics
+                gains = 0
+                numGains = 0
+                losses = 0
+                numLosses = 0
+                totReturn = 1
+                for i in percent_change:
+                    if i > 0:
+                        gains += i
+                        numGains += 1
+                    else:
+                        losses += i
+                        numLosses += 1
+                    totReturn = totReturn * ((i / 100) + 1)
+                totReturn = round((totReturn - 1) * 100, 2)
+
+                # Plot SMA and Adj Close
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df[f"SMA_{short_sma}"], mode='lines', name=f"SMA_{short_sma}"))
+                fig.add_trace(go.Scatter(x=df.index, y=df[f"SMA_{long_sma}"], mode='lines', name=f"SMA_{long_sma}"))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Adj Close'], mode='lines', name="Adj Close", line=dict(color='green')))
+                fig.update_layout(title=f"SMA Trading Strategy for {stock.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
+                st.plotly_chart(fig)
+
+                # Display strategy statistics
+                st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
+                st.write(f"Number of Trades: {numGains + numLosses}")
+                st.write(f"Total return: {totReturn}%")
+
+ 
+        
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Function to fetch stock data
+                def fetch_stock_data(tickers, start_date, end_date):
+                    data = pdr.get_data_yahoo(tickers, start=start_date, end=end_date)['Adj Close']
+                    data.index = pd.to_datetime(data.index)
+                    return data
+
+                # Function to plot the spread of two stocks
+                def plot_stock_spread(df, ticker1, ticker2, threshold=0.5, stop_loss=1):
+                    spread = df[ticker1] - df[ticker2]
+                    mean_spread = spread.mean()
+                    sell_threshold = mean_spread + threshold
+                    buy_threshold = mean_spread - threshold
+                    sell_stop = mean_spread + stop_loss
+                    buy_stop = mean_spread - stop_loss
+
+                    sns.set(style='white')
+                    fig, axes = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [2, 1]})
+                    df[[ticker1, ticker2]].plot(ax=axes[0])
+                    spread.plot(ax=axes[1], color='#85929E', linewidth=1.2)
+
+                    axes[1].axhline(sell_threshold, color='b', ls='--', linewidth=1)
+                    axes[1].axhline(buy_threshold, color='r', ls='--', linewidth=1)
+                    axes[1].axhline(sell_stop, color='g', ls='--', linewidth=1)
+                    axes[1].axhline(buy_stop, color='y', ls='--', linewidth=1)
+                    axes[1].fill_between(spread.index, sell_threshold, buy_threshold, facecolors='r', alpha=0.3)
+                    
+                    plt.legend(['Spread', 'Sell Threshold', 'Buy Threshold', 'Sell Stop', 'Buy Stop'])
+                    st.pyplot(fig)
+
+            # Main
+            st.title("Stock Spread Visualization")
+
+            stocks = st.multiselect("Select stocks:", ['CFG', 'JPM'], default=['CFG', 'JPM'])
+            start_date = st.date_input("Start Date", value=dt.date.today() - dt.timedelta(days=365))
+            end_date = st.date_input("End Date", value=dt.date.today())
+            threshold = st.slider("Threshold", min_value=0.1, max_value=5.0, value=0.5)
+            stop_loss = st.slider("Stop Loss", min_value=0.1, max_value=5.0, value=1.0)
+
+            df = fetch_stock_data(stocks, start_date, end_date)
+            plot_stock_spread(df, stocks[0], stocks[1], threshold, stop_loss)
+
+
+
         if pred_option_portfolio_strategies == "Support Resistance Finder":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Function to retrieve stock data
+                def fetch_stock_data(ticker, start_date, end_date):
+                    df = yf.download(ticker, start=start_date, end=end_date)
+                    df["Date"] = df.index
+                    return df.reset_index(drop=True)
+
+                # Function to identify support and resistance levels
+                def identify_levels(df):
+                    levels = []
+                    for i in range(2, df.shape[0] - 2):
+                        if is_support(df, i):
+                            levels.append((i, df["Low"][i], "Support"))
+                        elif is_resistance(df, i):
+                            levels.append((i, df["High"][i], "Resistance"))
+                    return levels
+
+                # Define support and resistance checks
+                def is_support(df, i):
+                    return df["Low"][i] < min(df["Low"][i - 1], df["Low"][i + 1])
+
+                def is_resistance(df, i):
+                    return df["High"][i] > max(df["High"][i - 1], df["High"][i + 1])
+
+                # Function to plot support and resistance levels
+                def plot_support_resistance(df, levels):
+                    fig, ax = plt.subplots()
+                    candlestick_ohlc(ax, zip(mpl_dates.date2num(df['Date']), df['Open'], df['High'], df['Low'], df['Close']), width=0.6, colorup='green', colordown='red', alpha=0.8)
+                    ax.xaxis.set_major_formatter(mpl_dates.DateFormatter('%d-%m-%Y'))
+
+                    for level in levels:
+                        plt.hlines(level[1], xmin=df["Date"][level[0]], xmax=max(df["Date"]), colors="blue")
+                    plt.title(f"Support and Resistance for {ticker.upper()}")
+                    plt.xlabel("Date")
+                    plt.ylabel("Price")
+                    st.pyplot(fig)
+
+                # Main
+                st.title("Support and Resistance Levels Visualization")
+
+                ticker = st.text_input("Enter a ticker:")
+                num_of_years = st.slider("Number of years:", min_value=0.1, max_value=10.0, value=0.2, step=0.1)
+
+                start_date = pd.Timestamp.now() - pd.Timedelta(days=int(365.25 * num_of_years))
+                end_date = pd.Timestamp.now()
+
+                df = fetch_stock_data(ticker, start_date, end_date)
+                levels = identify_levels(df)
+                plot_support_resistance(df, levels)
+
     elif option == "AI Trading":
+        #TODO - add the Robinhood and alpaca bots
         st.write("This bot allows you to initate a trade")
         pass
 
