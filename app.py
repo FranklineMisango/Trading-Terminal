@@ -7533,9 +7533,86 @@ def main():
 
 
         if pred_option_Technical_Indicators == "Candle Absolute Returns":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+           
+                # Read data
+                df = yf.download(symbol, start, end)
+                df["Absolute_Return"] = (
+                    100 * (df["Adj Close"] - df["Adj Close"].shift(1)) / df["Adj Close"].shift(1)
+                )
+
+                # Plot the closing price
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode="lines", name="Closing Price"))
+                fig.update_layout(title="Stock " + symbol + " Closing Price", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # Plot the Absolute Return
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Absolute_Return"], mode="lines", name="Absolute Return", line=dict(color="red")))
+                fig.update_layout(title="Absolute Return", xaxis_title="Date", yaxis_title="Absolute Return")
+                
+                st.plotly_chart(fig)
         if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate CPR
+                df["Pivot"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3.0
+                df["BC"] = (df["High"] + df["Low"]) / 2.0
+                df["TC"] = (df["Pivot"] - df["BC"]) + df["Pivot"]
+
+                # Plot candlestick with CPR
+                candlestick = go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Close'],
+                                            name='Candlestick')
+
+                pivot = go.Scatter(x=df.index, y=df["Pivot"], mode='lines', name='Pivot')
+                bc = go.Scatter(x=df.index, y=df["BC"], mode='lines', name='BC')
+                tc = go.Scatter(x=df.index, y=df["TC"], mode='lines', name='TC')
+
+                data = [candlestick, pivot, bc, tc]
+
+                layout = go.Layout(title=f'Stock {symbol} Closing Price with Central Pivot Range (CPR)',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Price'),
+                                showlegend=True)
+
+                fig = go.Figure(data=data, layout=layout)
+                st.plotly_chart(fig)
+
+
         if pred_option_Technical_Indicators == "Chaikin Money Flow":
             pass
         if pred_option_Technical_Indicators == "Chaikin Oscillator":
