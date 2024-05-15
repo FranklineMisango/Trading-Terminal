@@ -7964,17 +7964,260 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Ease of Movement":
-            pass
+            st.success("This program allows you to view the Ease of Movement (EVM) indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+                # Create a function for Ease of Movement
+                def EVM(data, ndays):
+                    dm = ((data["High"] + data["Low"]) / 2) - (
+                        (data["High"].shift(1) + data["Low"].shift(1)) / 2
+                    )
+                    br = (data["Volume"] / 100000000) / ((data["High"] - data["Low"]))
+                    EVM = dm / br
+                    EVM_MA = pd.Series(EVM.rolling(ndays).mean(), name="EVM")
+                    data = data.join(EVM_MA)
+                    return data
+
+                # Compute the 14-day Ease of Movement for stock
+                n = 14
+                Stock_EVM = EVM(df, n)
+                EVM = Stock_EVM["EVM"]
+
+                # Compute EVM
+                df = EVM(df, 14)
+
+                # Plot EVM
+                fig = go.Figure(data=[
+                    go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Adj Close'],
+                                name='Candlestick'),
+                    go.Scatter(x=df.index,
+                            y=df['EVM'],
+                            mode='lines',
+                            name='Ease of Movement')
+                ])
+                fig.update_layout(title=f"Ease of Movement (EVM) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Force Index":
-            pass
+            st.success("This program allows you to view the Force Index of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 13
+                df["FI_1"] = (df["Adj Close"] - df["Adj Close"].shift()) * df["Volume"]
+                df["FI_13"] = df["FI_1"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
+
+                # Plot Force Index
+                fig = go.Figure(data=[
+                    go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Adj Close'],
+                                name='Candlestick'),
+                    go.Scatter(x=df.index,
+                            y=df['FI_13'],
+                            mode='lines',
+                            name='Force Index')
+                ])
+                fig.update_layout(title=f"Force Index for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Geometric Return Indicator":
-            pass
+            st.success("This program allows you to view the Geometric Return Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute Geometric Return Indicator
+                n = 10
+                df["Geometric_Return"] = pd.Series(df["Adj Close"]).rolling(n).apply(gmean)
+
+                # Plot Geometric Return Indicator with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Geometric_Return'], mode='lines', name='Geometric Return Indicator'))
+                fig.update_layout(title=f"Geometric Return Indicator for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Golden/Death Cross":
-            pass
+            st.success("This program allows you to view the Golden/Death Cross of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute Golden/Death Cross
+                df["MA_50"] = df["Adj Close"].rolling(center=False, window=50).mean()
+                df["MA_200"] = df["Adj Close"].rolling(center=False, window=200).mean()
+                df["diff"] = df["MA_50"] - df["MA_200"]
+
+                # Plot Golden/Death Cross with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['MA_50'], mode='lines', name='MA_50'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['MA_200'], mode='lines', name='MA_200'))
+                fig.update_layout(title=f"Golden/Death Cross for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "High Minus Low":
-            pass
+            st.success("This program allows you to view the High Minus Low of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute High Minus Low
+                df["H-L"] = df["High"] - df["Low"]
+
+                # Plot High Minus Low with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['H-L'], mode='lines', name='High Minus Low'))
+                fig.update_layout(title=f"High Minus Low for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Hull Moving Average":
-            pass
+            st.success("This program allows you to view the Hull Moving Average (HMA) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute Hull Moving Average
+                period = 20
+                df['WMA'] = df['Adj Close'].rolling(window=period).mean()
+                half_period = int(period / 2)
+                sqrt_period = int(np.sqrt(period))
+                df['Weighted_MA'] = df['Adj Close'].rolling(window=half_period).mean() * 2 - df['Adj Close'].rolling(window=period).mean()
+                df['HMA'] = df['Weighted_MA'].rolling(window=sqrt_period).mean()
+
+                # Plot Hull Moving Average with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['HMA'], mode='lines', name='Hull Moving Average'))
+                fig.update_layout(title=f"Hull Moving Average (HMA) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Keltner Channels":
             pass
         if pred_option_Technical_Indicators == "Linear Regression":
