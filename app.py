@@ -3914,15 +3914,16 @@ def main():
                 st.write(df.sort_values("return", ascending=False).head(50))
 
         if pred_option_analysis == "CAPM Analysis": 
+            #TODO fix the CAPM analysis quagmire of returning empty datasets from the NASDAQ index
             st.success("This segment allows you to do CAPM Analysis")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
                 st.success(message)
-
+            min_date = datetime(1980, 1, 1)
             col1, col2 = st.columns([2, 2])
             with col1:
-                start_date = st.date_input("Start date:")
+                start_date = st.date_input("Start date:", min_value=min_date)
             with col2:
                 end_date = st.date_input("End Date:")
 
@@ -3968,7 +3969,8 @@ def main():
                 end = end_date
                 
                 # Get all tickers in NASDAQ
-                nasdaq_tickers = ti.tickers_nasdaq()
+                #nasdaq_tickers = ti.tickers_nasdaq()
+                sp_500 =  ti.tickers_sp500()
 
                 # Index ticker
                 index_ticker = '^GSPC'
@@ -3981,7 +3983,7 @@ def main():
                     return
 
                 # Loop through NASDAQ tickers
-                for ticker in nasdaq_tickers:
+                for ticker in sp_500:
                     try:
                         # Fetch stock data
                         stock_data = get_stock_data(ticker, start, end)
@@ -7240,7 +7242,62 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Beta Indicator":
-            pass
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                market = "^GSPC"
+                # Read data
+                df = yf.download(symbol, start, end)
+                mk = yf.download(market, start, end)
+
+                df["Returns"] = df["Adj Close"].pct_change().dropna()
+                mk["Returns"] = mk["Adj Close"].pct_change().dropna()
+
+                n = 5
+                covar = df["Returns"].rolling(n).cov(mk["Returns"])
+                variance = mk["Returns"].rolling(n).var()
+                df["Beta"] = covar / variance
+
+                # Stock Closing Price Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # Beta Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Beta"], mode='lines', name='Beta', line=dict(color='red')))
+                fig.update_layout(title="Beta",
+                                xaxis_title="Date",
+                                yaxis_title="Beta")
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Beta
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Beta",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                fig.add_trace(go.Scatter(x=df.index, y=df["Beta"], mode='lines', name='Beta', line=dict(color='red')))
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Bollinger Bands":
             pass
         if pred_option_Technical_Indicators == "Bollinger Bandwidth":
