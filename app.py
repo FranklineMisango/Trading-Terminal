@@ -8219,19 +8219,304 @@ def main():
                 st.plotly_chart(fig)
 
         if pred_option_Technical_Indicators == "Keltner Channels":
-            pass
+            st.success("This program allows you to visualize Keltner Channels for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Keltner Channels
+                n = 20
+                df["EMA"] = ta.EMA(df["Adj Close"], timeperiod=n)
+                df["ATR"] = ta.ATR(df["High"], df["Low"], df["Adj Close"], timeperiod=10)
+                df["Upper Line"] = df["EMA"] + 2 * df["ATR"]
+                df["Lower Line"] = df["EMA"] - 2 * df["ATR"]
+
+                # Plot Keltner Channels
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['EMA'], mode='lines', name='EMA'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Upper Line'], mode='lines', name='Upper Line'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Lower Line'], mode='lines', name='Lower Line'))
+                fig.update_layout(title=f"Keltner Channels for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Linear Regression":
-            pass
+            st.success("This program allows you to visualize Linear Regression for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Linear Regression
+                avg = df["Adj Close"].mean()
+                df["Linear_Regression"] = avg - (df["Adj Close"].mean() - df["Adj Close"]) / 20
+
+                # Plot Linear Regression
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Linear_Regression'], mode='lines', name='Linear Regression'))
+                fig.update_layout(title=f"Linear Regression for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Linear Regression Slope":
-            pass
+            st.success("This program allows you to visualize Linear Regression Slope for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Linear Regression Slope
+                avg1 = df["Adj Close"].mean()
+                avg2 = df["Adj Close"].mean()
+                df["AVGS1_S1"] = avg1 - df["Adj Close"]
+                df["AVGS2_S2"] = avg2 - df["Adj Close"]
+                df["Average_SQ"] = df["AVGS1_S1"] ** 2
+                df["AVG_AVG"] = df["AVGS1_S1"] * df["AVGS2_S2"]
+                sum_sq = df["Average_SQ"].sum()
+                sum_avg = df["AVG_AVG"].sum()
+                slope = sum_avg / sum_sq
+                intercept = avg2 - (slope * avg1)
+                df["Linear_Regression"] = intercept + slope * (df["Adj Close"])
+                df = df.drop(["AVGS1_S1", "AVGS2_S2", "Average_SQ", "AVG_AVG"], axis=1)
+
+                # Plot Linear Regression Slope
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Linear_Regression'], mode='lines', name='Linear Regression Slope'))
+                fig.update_layout(title=f"Linear Regression Slope for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Linear Weighted Moving Average (LWMA)":
-            pass
+            st.success("This program allows you to visualize Linearly Weighted Moving Average (LWMA) for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Linear Weighted Moving Average (LWMA)
+                def linear_weight_moving_average(close, n):
+                    lwma = [np.nan] * n
+                    for i in range(n, len(close)):
+                        lwma.append(
+                            (close[i - n : i] * (np.arange(n) + 1)).sum() / (np.arange(n) + 1).sum()
+                        )
+                    return lwma
+
+                period = 14
+                df["LWMA"] = linear_weight_moving_average(df["Adj Close"], period)
+
+                # Plot Linear Weighted Moving Average (LWMA)
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['LWMA'], mode='lines', name='LWMA'))
+                fig.update_layout(title=f"Linear Weighted Moving Average (LWMA) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "McClellan Oscillator":
-            pass
+            st.success("This program allows you to visualize McClellan Oscillator for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate McClellan Oscillator
+                ema_19 = ta.EMA(df["Advancing Issues"] - df["Declining Issues"], timeperiod=19)
+                ema_39 = ta.EMA(df["Advancing Issues"] - df["Declining Issues"], timeperiod=39)
+                mcclellan_oscillator = ema_19 - ema_39
+
+                # Plot McClellan Oscillator
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=mcclellan_oscillator, mode='lines', name='McClellan Oscillator'))
+                fig.update_layout(title=f"McClellan Oscillator for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Value',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
         if pred_option_Technical_Indicators == "Momentum":
-            pass
+            st.success("This program allows you to visualize Momentum for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Momentum
+                period = 14
+                df['Momentum'] = df['Adj Close'].diff(period)
+
+                # Plot Momentum
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Momentum'], mode='lines', name='Momentum'))
+                fig.update_layout(title=f"Momentum for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        
+
         if pred_option_Technical_Indicators == "Moving Average Envelopes":
-            pass
+            st.success("This program allows you to visualize Moving Average Envelopes for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["20SMA"] = ta.SMA(df["Adj Close"], timeperiod=20)
+                df["Upper_Envelope"] = df["20SMA"] + (df["20SMA"] * 0.025)
+                df["Lower_Envelope"] = df["20SMA"] - (df["20SMA"] * 0.025)
+
+                # Plot Line Chart with Moving Average Envelopes
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
+                fig_line.update_layout(title=f"Stock of Moving Average Envelopes for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+                # Candlestick with Moving Average Envelopes
+                fig_candlestick = go.Figure(data=[go.Candlestick(x=df.index,
+                                                                open=df['Open'],
+                                                                high=df['High'],
+                                                                low=df['Low'],
+                                                                close=df['Adj Close'],
+                                                                name='Candlestick')])
+                fig_candlestick.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
+                fig_candlestick.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
+                fig_candlestick.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
+                fig_candlestick.update_layout(title=f"Stock {symbol} Candlestick with Moving Average Envelopes",
+                                            xaxis_title='Date',
+                                            yaxis_title='Price')
+        
+                st.plotly_chart(fig_candlestick)
+
         if pred_option_Technical_Indicators == "Moving Average High/Low":
             pass
         if pred_option_Technical_Indicators == "Moving Average Ribbon":
@@ -8242,6 +8527,24 @@ def main():
             pass
         if pred_option_Technical_Indicators == "New Highs/New Lows":
             pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         if pred_option_Technical_Indicators == "Pivot Point":
             pass
         if pred_option_Technical_Indicators == "Price Channels":
