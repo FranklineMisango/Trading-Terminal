@@ -9282,13 +9282,217 @@ def main():
                 st.plotly_chart(fig_candle)
        
         if pred_option_Technical_Indicators == "Ultimate Oscillator":
-            pass
+            st.success("This program allows you to view the Ultimate Oscillator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Ultimate Oscillator
+                df["Prior Close"] = df["Adj Close"].shift()
+                df["BP"] = df["Adj Close"] - df[["Low", "Prior Close"]].min(axis=1)
+                df["TR"] = df[["High", "Prior Close"]].max(axis=1) - df[["Low", "Prior Close"]].min(axis=1)
+                df["Average7"] = df["BP"].rolling(7).sum() / df["TR"].rolling(7).sum()
+                df["Average14"] = df["BP"].rolling(14).sum() / df["TR"].rolling(14).sum()
+                df["Average28"] = df["BP"].rolling(28).sum() / df["TR"].rolling(28).sum()
+                df["UO"] = 100 * (4 * df["Average7"] + 2 * df["Average14"] + df["Average28"]) / (4 + 2 + 1)
+                df = df.drop(["Prior Close", "BP", "TR", "Average7", "Average14", "Average28"], axis=1)
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["UO"], mode='lines', name='Ultimate Oscillator'))
+                fig.update_layout(title="Stock " + symbol + " Ultimate Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Ultimate Oscillator
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["UO"], mode='lines', name='Ultimate Oscillator'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Ultimate Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
         if pred_option_Technical_Indicators == "Variance Indicator":
-            pass
+            st.success("This program allows you to view the Variance Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Variance Indicator
+                n = 14
+                df["Variance"] = df["Adj Close"].rolling(n).var()
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Variance"], mode='lines', name='Variance Indicator'))
+                fig.update_layout(title="Stock " + symbol + " Variance Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Variance Indicator
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["Variance"], mode='lines', name='Variance Indicator'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Variance Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
         if pred_option_Technical_Indicators == "Volume Price Confirmation Indicator":
-            pass
+            st.success("This program allows you to view the Volume Price Confirmation Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Volume Price Confirmation Indicator
+                short_term = 5
+                long_term = 20
+                vwma_lt = ((df["Adj Close"] * df["Volume"]) + (df["Adj Close"].shift(1) * df["Volume"].shift(1)) + (df["Adj Close"].shift(2) * df["Volume"].shift(2))) / (df["Volume"].rolling(long_term).sum())
+                vwma_st = ((df["Adj Close"] * df["Volume"]) + (df["Adj Close"].shift(1) * df["Volume"].shift(1)) + (df["Adj Close"].shift(2) * df["Volume"].shift(2))) / (df["Volume"].rolling(short_term).sum())
+                vpc = vwma_lt - df["Adj Close"].rolling(long_term).mean()
+                vpr = vwma_st / df["Adj Close"].rolling(short_term).mean()
+                vm = df["Adj Close"].rolling(short_term).mean() / df["Adj Close"].rolling(long_term).mean()
+                vpci = vpc * vpr * vm
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=vpci, mode='lines', name='Volume Price Confirmation Indicator'))
+                fig.update_layout(title="Stock " + symbol + " Volume Price Confirmation Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Volume Price Confirmation Indicator
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=vpci, mode='lines', name='Volume Price Confirmation Indicator'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Price Confirmation Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
         if pred_option_Technical_Indicators == "Volume Weighted Moving Average (VWMA)":
-            pass
+            st.success("This program allows you to view the Volume Weighted Moving Average (VWMA) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Volume Weighted Moving Average (VWMA)
+                df["Volume_x_Close"] = df["Volume"] * df["Close"]
+                df["VWMA"] = df["Volume_x_Close"].rolling(window=14).sum() / df["Volume"].rolling(window=14).sum()
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
+                fig.update_layout(title="Stock " + symbol + " Volume Weighted Moving Average (VWMA)",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Volume Weighted Moving Average (VWMA)
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Weighted Moving Average (VWMA)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     elif option =='Portfolio Strategies':
         pred_option_portfolio_strategies = st.selectbox('Make a choice', ['Backtest All Strategies',
