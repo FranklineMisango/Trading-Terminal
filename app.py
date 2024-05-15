@@ -1,21 +1,42 @@
 #Library imports
 import streamlit as st
+import scipy.optimize as sco
+import matplotlib.dates as mpl_dates
+from scipy.stats import zscore
+from factor_analyzer import FactorAnalyzer, calculate_bartlett_sphericity, calculate_kmo
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt import risk_models, expected_returns
+from pypfopt import risk_models
+from pypfopt import expected_returns
+from pandas.plotting import register_matplotlib_converters
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
+from scipy.stats import ttest_ind
+from scipy.stats import norm
+from ta import add_all_ta_features
+from alpaca_trade_api.rest import REST, TimeFrame
+import backtrader as bt
+from config import API_KEY_ALPACA, SECRET_KEY_ALPACA
 from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from yahoo_earnings_calendar import YahooEarningsCalendar
 from pandas_datareader._utils import RemoteDataError
+from matplotlib import dates as mdates
 from socket import gaierror
-import nltk
+from mplfinance.original_flavor import candlestick_ohlc
+import nltk 
 nltk.download('vader_lexicon')
 from bs4 import BeautifulSoup
 import os
 from math import sqrt
+import quandl as q
 from pylab import rcParams
 import pylab as pl
 import calendar
 import yfinance as yf
 import pandas as pd
 import seaborn as sns
+from scipy.stats import gmean
 import numpy as np
 import plotly.figure_factory as ff
 import tickers as ti
@@ -81,6 +102,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from scipy import stats
 import numpy as np
+from mplfinance.original_flavor import candlestick_ohlc
 from bs4 import BeautifulSoup
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
@@ -106,16 +128,20 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import schedule
-
+import mplfinance as mpl
 #Page config
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
+<<<<<<< HEAD
 st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
 st.sidebar.info("This application features over 100 programmes for different roles")
 streamlit_style = """
 			<style>
 			@import url('https://fonts.google.com/specimen/Hanken+Grotesk');
+=======
+st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
+>>>>>>> bc818f1875894828027d22f1cc7d359521327e97
 
 			html, body, [class*="css"]  {
 			font-family: 'Hanken-Grotesk',
@@ -3919,15 +3945,16 @@ def main():
                 st.write(df.sort_values("return", ascending=False).head(50))
 
         if pred_option_analysis == "CAPM Analysis": 
+            #TODO fix the CAPM analysis quagmire of returning empty datasets from the NASDAQ index
             st.success("This segment allows you to do CAPM Analysis")
             ticker = st.text_input("Enter the ticker you want to monitor")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
                 st.success(message)
-
+            min_date = datetime(1980, 1, 1)
             col1, col2 = st.columns([2, 2])
             with col1:
-                start_date = st.date_input("Start date:")
+                start_date = st.date_input("Start date:", min_value=min_date)
             with col2:
                 end_date = st.date_input("End Date:")
 
@@ -3973,7 +4000,8 @@ def main():
                 end = end_date
                 
                 # Get all tickers in NASDAQ
-                nasdaq_tickers = ti.tickers_nasdaq()
+                #nasdaq_tickers = ti.tickers_nasdaq()
+                sp_500 =  ti.tickers_sp500()
 
                 # Index ticker
                 index_ticker = '^GSPC'
@@ -3986,7 +4014,7 @@ def main():
                     return
 
                 # Loop through NASDAQ tickers
-                for ticker in nasdaq_tickers:
+                for ticker in sp_500:
                     try:
                         # Fetch stock data
                         stock_data = get_stock_data(ticker, start, end)
@@ -5488,11 +5516,15 @@ def main():
             if st.button("Check"):
                 st.write(years)
                 view_stock_returns(ticker, years)
+    
+
 
     elif option =='Technical Indicators':
-        pred_option_Technical_Indicators = st.selectbox('Make a choice', ['Backtest All Indicators',
-                                                                  'Volume Weighted Average Price (VWAP)',
-                                                                  'Weighted Moving Average (WMA)',
+        pred_option_Technical_Indicators = st.selectbox('Make a choice', [
+                                                                  'Exponential Moving Average (EMA)',
+                                                                  'EMA Volume',
+                                                                  'Positive Volume Trend (PVT)',
+                                                                  'Exponential Weighted Moving Average (EWMA)',
                                                                   'Weighted Smoothing Moving Average (WSMA)',
                                                                   'Z Score Indicator (Z Score)',
                                                                   'Absolute Price Oscillator (APO)',
@@ -5508,6 +5540,21 @@ def main():
                                                                   'Bollinger Bandwidth',
                                                                   'Breadth Indicator',
                                                                   'Candle Absolute Returns',
+                                                                  'GANN lines angles',
+                                                                  'GMMA',
+                                                                  'Moving Average Convergence Divergence (MACD)',
+                                                                  'MA high low',
+                                                                  'Price Volume Trend Indicator (PVI)',
+                                                                  'Price Volume Trend (PVT)',
+                                                                  'Rate of Change (ROC)',
+                                                                  'Return on Investment (ROI)',
+                                                                  'Relative Strength Index (RSI)',
+                                                                  'RSI BollingerBands',
+                                                                  'Simple Moving Average (SMA)',
+                                                                  'Weighted Moving Average (WMA)',
+                                                                  'Triangular Moving Average (TRIMA)',
+                                                                  'Time-Weighted Average Price (TWAP)',
+                                                                  'Volume Weighted Average Price (VWAP)',
                                                                   'Central Pivot Range (CPR)',
                                                                   'Chaikin Money Flow',
                                                                   'Chaikin Oscillator',
@@ -5537,6 +5584,7 @@ def main():
                                                                   'Moving Linear Regression',
                                                                   'New Highs/New Lows',
                                                                   'Pivot Point',
+                                                                  'Money Flow Index (MFI)',
                                                                   'Price Channels',
                                                                   'Price Relative',
                                                                   'Realized Volatility',
@@ -5555,135 +5603,3906 @@ def main():
                                                                   'Volume Price Confirmation Indicator',
                                                                   'Volume Weighted Moving Average (VWMA)'])
 
-        if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
-            pass
-        if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
-            pass
-        if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
-            pass
-        if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
-            pass
-        if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
-            pass
-        if pred_option_Technical_Indicators == "Acceleration Bands":
-            pass
-        if pred_option_Technical_Indicators == "Accumulation Distribution Line":
-            pass
-        if pred_option_Technical_Indicators == "Aroon":
-            pass
-        if pred_option_Technical_Indicators == "Aroon Oscillator":
-            pass
-        if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
-            pass
-        if pred_option_Technical_Indicators == "Average True Range (ATR)":
-            pass
-        if pred_option_Technical_Indicators == "Balance of Power":
-            pass
-        if pred_option_Technical_Indicators == "Beta Indicator":
-            pass
-        if pred_option_Technical_Indicators == "Bollinger Bands":
-            pass
-        if pred_option_Technical_Indicators == "Bollinger Bandwidth":
-            pass
-        if pred_option_Technical_Indicators == "Breadth Indicator":
-            pass
-        if pred_option_Technical_Indicators == "Candle Absolute Returns":
-            pass
-        if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
-            pass
-        if pred_option_Technical_Indicators == "Chaikin Money Flow":
-            pass
-        if pred_option_Technical_Indicators == "Chaikin Oscillator":
-            pass
-        if pred_option_Technical_Indicators == "Commodity Channel Index (CCI)":
-            pass
-        if pred_option_Technical_Indicators == "Correlation Coefficient":
-            pass
-        if pred_option_Technical_Indicators == "Covariance":
-            pass
-        if pred_option_Technical_Indicators == "Detrended Price Oscillator (DPO)":
-            pass
-        if pred_option_Technical_Indicators == "Donchain Channel":
-            pass
-        if pred_option_Technical_Indicators == "Double Exponential Moving Average (DEMA)":
-            pass
-        if pred_option_Technical_Indicators == "Dynamic Momentum Index":
-            pass
-        if pred_option_Technical_Indicators == "Ease of Movement":
-            pass
-        if pred_option_Technical_Indicators == "Force Index":
-            pass
-        if pred_option_Technical_Indicators == "Geometric Return Indicator":
-            pass
-        if pred_option_Technical_Indicators == "Golden/Death Cross":
-            pass
-        if pred_option_Technical_Indicators == "High Minus Low":
-            pass
-        if pred_option_Technical_Indicators == "Hull Moving Average":
-            pass
-        if pred_option_Technical_Indicators == "Keltner Channels":
-            pass
-        if pred_option_Technical_Indicators == "Linear Regression":
-            pass
-        if pred_option_Technical_Indicators == "Linear Regression Slope":
-            pass
-        if pred_option_Technical_Indicators == "Linear Weighted Moving Average (LWMA)":
-            pass
-        if pred_option_Technical_Indicators == "McClellan Oscillator":
-            pass
-        if pred_option_Technical_Indicators == "Momentum":
-            pass
-        if pred_option_Technical_Indicators == "Moving Average Envelopes":
-            pass
-        if pred_option_Technical_Indicators == "Moving Average High/Low":
-            pass
-        if pred_option_Technical_Indicators == "Moving Average Ribbon":
-            pass
-        if pred_option_Technical_Indicators == "Moving Average Envelopes (MMA)":
-            pass
-        if pred_option_Technical_Indicators == "Moving Linear Regression":
-            pass
-        if pred_option_Technical_Indicators == "New Highs/New Lows":
-            pass
-        if pred_option_Technical_Indicators == "Pivot Point":
-            pass
-        if pred_option_Technical_Indicators == "Price Channels":
-            pass
-        if pred_option_Technical_Indicators == "Price Relative":
-            pass
-        if pred_option_Technical_Indicators == "Realized Volatility":
-            pass
-        if pred_option_Technical_Indicators == "Relative Volatility Index":
-            pass
-        if pred_option_Technical_Indicators == "Smoothed Moving Average":
-            pass
-        if pred_option_Technical_Indicators == "Speed Resistance Lines":
-            pass
-        if pred_option_Technical_Indicators == "Standard Deviation Volatility":
-            pass
-        if pred_option_Technical_Indicators == "Stochastic RSI":
-            pass
-        if pred_option_Technical_Indicators == "Stochastic Fast":
-            pass
-        if pred_option_Technical_Indicators == "Stochastic Full":
-            pass
-        if pred_option_Technical_Indicators == "Stochastic Slow":
-            pass
-        if pred_option_Technical_Indicators == "Super Trend":
-            pass
-        if pred_option_Technical_Indicators == "True Strength Index":
-            pass
-        if pred_option_Technical_Indicators == "Ultimate Oscillator":
-            pass
-        if pred_option_Technical_Indicators == "Variance Indicator":
-            pass
-        if pred_option_Technical_Indicators == "Volume Price Confirmation Indicator":
-            pass
-        if pred_option_Technical_Indicators == "Volume Weighted Moving Average (VWMA)":
-            pass
+        if pred_option_Technical_Indicators == "Exponential Moving Average (EMA)":
+            st.success("This program allows you to view the Exponential Moving Average of a stock ")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):
+                    symbol = ticker
+                    start = start_date
+                    end = end_date
 
+                    # Read data
+                    df = yf.download(symbol, start, end)
+
+                    n = 15
+                    df["EMA"] = (
+                        df["Adj Close"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
+                    )
+
+                    dfc = df.copy()
+                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                    # dfc = dfc.dropna()
+                    dfc = dfc.reset_index()
+                    dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
+                    dfc["Date"] = pd.to_datetime(dfc["Date"])  # Convert Date column to datetime
+                    dfc["Date"] = dfc["Date"].apply(mdates.date2num)
+
+                    # Plotting Moving Average using Plotly
+                    trace_adj_close = go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close')
+                    trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA')
+                    layout_ma = go.Layout(title="Stock Closing Price of " + str(n) + "-Day Exponential Moving Average",
+                                        xaxis=dict(title="Date"), yaxis=dict(title="Price"))
+                    fig_ma = go.Figure(data=[trace_adj_close, trace_ema], layout=layout_ma)
+
+                    # Plotting Candlestick with EMA using Plotly
+                    dfc = df.copy()
+                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+
+                    trace_candlestick = go.Candlestick(x=dfc.index,
+                                                    open=dfc['Open'],
+                                                    high=dfc['High'],
+                                                    low=dfc['Low'],
+                                                    close=dfc['Close'],
+                                                    name='Candlestick')
+
+                    trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA')
+
+
+                    trace_volume = go.Bar(x=dfc.index, y=dfc['Volume'], marker=dict(color=dfc['VolumePositive'].map({True: 'green', False: 'red'})),
+                                        name='Volume')
+
+                    layout_candlestick = go.Layout(title="Stock " + symbol + " Closing Price",
+                                                xaxis=dict(title="Date", type='date', tickformat='%d-%m-%Y'),
+                                                yaxis=dict(title="Price"),
+                                                yaxis2=dict(title="Volume", overlaying='y', side='right'))
+                    fig_candlestick = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout_candlestick)
+
+
+                    # Display Plotly figures in Streamlit
+                    st.plotly_chart(fig_ma)
+                    st.warning("Click candlestick, EMA or Volume to tinker with the graph")
+                    st.plotly_chart(fig_candlestick)                
+
+        if pred_option_Technical_Indicators == "EMA Volume":
+            st.success("This program allows you to view EMA But focusing on Volume of a stock ")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):
+                    symbol = ticker
+                    start = start_date
+                    end = end_date
+
+                    # Read data
+                    df = yf.download(symbol, start, end)
+
+                    n = 15
+                    df["EMA"] = (
+                        df["Adj Close"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
+                    )
+
+                    df["EMA"] = df["Adj Close"].ewm(span=n, adjust=False).mean()  # Recalculate EMA
+                    df["VolumePositive"] = df["Open"] < df["Adj Close"]
+
+                    # Create traces
+                    trace_candlestick = go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Close'],
+                                                    name='Candlestick')
+
+                    trace_volume = go.Bar(x=df.index, y=df['Volume'],
+                                        marker=dict(color=df['VolumePositive'].map({True: 'green', False: 'red'})),
+                                        name='Volume')
+
+                    trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA', line=dict(color='green'))
+
+                    # Create layout
+                    layout = go.Layout(title="Stock " + symbol + " Closing Price",
+                                    xaxis=dict(title="Date", type='date', tickformat='%d-%m-%Y'),
+                                    yaxis=dict(title="Price"),
+                                    yaxis2=dict(title="Volume", overlaying='y', side='right'))
+
+                    # Create figure
+                    fig = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout)
+
+                    # Display Plotly figure in Streamlit
+                    st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Exponential Weighted Moving Average (EWMA)":
+
+            st.success("This program allows you to view the WMA But focusing on Volume of a stock ")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):
+                    symbol = ticker
+                    start = start_date
+                    end = end_date
+                    df = yf.download(symbol, start, end)
+
+                    n = 7
+                    df["EWMA"] = df["Adj Close"].ewm(ignore_na=False, min_periods=n - 1, span=n).mean()
+                    # Plotting Candlestick with EWMA
+                    fig_candlestick = go.Figure()
+
+                    # Plot candlestick
+                    fig_candlestick.add_trace(go.Candlestick(x=df.index,
+                                                            open=df['Open'],
+                                                            high=df['High'],
+                                                            low=df['Low'],
+                                                            close=df['Close'],
+                                                            name='Candlestick'))
+                    # Plot volume
+                    volume_color = df['Open'] < df['Close']  # Color based on close > open
+                    volume_color = volume_color.map({True: 'green', False: 'red'}) 
+                    fig_candlestick.add_trace(go.Bar(x=df.index,
+                                                    y=df['Volume'],
+                                                    marker_color=volume_color,  
+                                                    name='Volume'))
+
+                    # Plot EWMA
+                    fig_candlestick.add_trace(go.Scatter(x=df.index,
+                                                        y=df['EWMA'],
+                                                        mode='lines',
+                                                        name='EWMA',
+                                                        line=dict(color='red')))
+
+                    # Update layout
+                    fig_candlestick.update_layout(title="Stock " + symbol + " Closing Price",
+                                                xaxis=dict(title="Date"),
+                                                yaxis=dict(title="Price"),
+                                                yaxis2=dict(title="Volume", overlaying='y', side='right'),
+                                                legend=dict(yanchor="top", y=1, xanchor="left", x=0))
+
+                    # Display Plotly figure in Streamlit
+                    st.plotly_chart(fig_candlestick)
+
+        if pred_option_Technical_Indicators == "GANN lines angles":
+
+            st.success("This program allows you to view the GANN lines of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Line Chart
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+
+                # Add diagonal line
+                x_lim = [df.index[0], df.index[-1]]
+                y_lim = [df["Adj Close"].iloc[0], df["Adj Close"].iloc[-1]]
+                fig_line.add_trace(go.Scatter(x=x_lim, y=y_lim, mode='lines', line=dict(color='red'), name='45 degree'))
+
+                fig_line.update_layout(title="Stock of GANN Angles", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig_line)
+
+                # GANN Angles
+                angles = [82.5, 75, 71.25, 63.75, 45, 26.25, 18.75, 15, 7.5]
+
+                fig_gann = go.Figure()
+                fig_gann.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+
+                for angle in angles:
+                    angle_radians = np.radians(angle)
+                    y_values = np.tan(angle_radians) * np.arange(len(df))
+                    fig_gann.add_trace(go.Scatter(x=df.index, y=y_values, mode='markers', name=str(angle)))
+
+                fig_gann.update_layout(title="Stock of GANN Angles", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig_gann)
+
+                # Candlestick with GANN Lines Angles
+                fig_candlestick = go.Figure()
+
+                # Candlestick
+                fig_candlestick.add_trace(go.Candlestick(x=df.index,
+                                                        open=df['Open'],
+                                                        high=df['High'],
+                                                        low=df['Low'],
+                                                        close=df['Close'],
+                                                        name='Candlestick'))
+
+                # GANN Angles
+                for angle in angles:
+                    angle_radians = np.radians(angle)
+                    y_values = np.tan(angle_radians) * np.arange(len(df))
+                    fig_candlestick.add_trace(go.Scatter(x=df.index, y=y_values, mode='markers', name=str(angle)))
+
+                # Volume
+                fig_candlestick.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=np.where(df['Open'] < df['Close'], 'green', 'red')))
+
+                fig_candlestick.update_layout(title="Stock Closing Price", xaxis_title="Date", yaxis_title="Price", 
+                                               yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))
+                st.plotly_chart(fig_candlestick)
+
+        if pred_option_Technical_Indicators == "GMMA":
+
+            st.success("This program allows you to view the GANN lines of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Short-term for EMA
+                df["EMA3"] = df["Adj Close"].ewm(span=3, adjust=False).mean()
+                df["EMA5"] = df["Adj Close"].ewm(span=5, adjust=False).mean()
+                df["EMA8"] = df["Adj Close"].ewm(span=8, adjust=False).mean()
+                df["EMA10"] = df["Adj Close"].ewm(span=10, adjust=False).mean()
+                df["EMA12"] = df["Adj Close"].ewm(span=12, adjust=False).mean()
+                df["EMA15"] = df["Adj Close"].ewm(span=15, adjust=False).mean()
+
+                # Long-term for EMA
+                df["EMA30"] = df["Adj Close"].ewm(span=30, adjust=False).mean()
+                df["EMA35"] = df["Adj Close"].ewm(span=35, adjust=False).mean()
+                df["EMA40"] = df["Adj Close"].ewm(span=40, adjust=False).mean()
+                df["EMA45"] = df["Adj Close"].ewm(span=45, adjust=False).mean()
+                df["EMA50"] = df["Adj Close"].ewm(span=50, adjust=False).mean()
+                df["EMA60"] = df["Adj Close"].ewm(span=60, adjust=False).mean()
+
+                EMA_Short = df[["EMA3", "EMA5", "EMA8", "EMA10", "EMA12", "EMA15"]]
+                EMA_Long = df[["EMA30", "EMA35", "EMA40", "EMA45", "EMA50", "EMA60"]]
+
+                # Short-term for SMA
+                df["SMA3"] = df["Adj Close"].rolling(window=3).mean()
+                df["SMA5"] = df["Adj Close"].rolling(window=5).mean()
+                df["SMA8"] = df["Adj Close"].rolling(window=8).mean()
+                df["SMA10"] = df["Adj Close"].rolling(window=10).mean()
+                df["SMA12"] = df["Adj Close"].rolling(window=12).mean()
+                df["SMA15"] = df["Adj Close"].rolling(window=15).mean()
+
+                # Long-term for SMA
+                df["SMA30"] = df["Adj Close"].rolling(window=30).mean()
+                df["SMA35"] = df["Adj Close"].rolling(window=35).mean()
+                df["SMA40"] = df["Adj Close"].rolling(window=40).mean()
+                df["SMA45"] = df["Adj Close"].rolling(window=45).mean()
+                df["SMA50"] = df["Adj Close"].rolling(window=50).mean()
+                df["SMA60"] = df["Adj Close"].rolling(window=60).mean()
+
+                SMA_Short = df[["SMA3", "SMA5", "SMA8", "SMA10", "SMA12", "SMA15"]]
+                SMA_Long = df[["SMA30", "SMA35", "SMA40", "SMA45", "SMA50", "SMA60"]]
+
+                # Plot EMA
+                fig_ema = go.Figure()
+                fig_ema.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                for col in EMA_Short.columns:
+                    fig_ema.add_trace(go.Scatter(x=df.index, y=EMA_Short[col], mode='lines', name=col, line=dict(color='blue')))
+                for col in EMA_Long.columns:
+                    fig_ema.add_trace(go.Scatter(x=df.index, y=EMA_Long[col], mode='lines', name=col, line=dict(color='orange')))
+                fig_ema.update_layout(title="Guppy Multiple Moving Averages of EMA", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig_ema)
+
+                # Plot SMA
+                fig_sma = go.Figure()
+                fig_sma.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                for col in SMA_Short.columns:
+                    fig_sma.add_trace(go.Scatter(x=df.index, y=SMA_Short[col], mode='lines', name=col, line=dict(color='blue')))
+                for col in SMA_Long.columns:
+                    fig_sma.add_trace(go.Scatter(x=df.index, y=SMA_Long[col], mode='lines', name=col, line=dict(color='orange')))
+                fig_sma.update_layout(title="Guppy Multiple Moving Averages of SMA", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig_sma)
+
+                st.warning("Untick the volume to view the candlesticks and the movement lines")
+
+                # Candlestick with GMMA
+                fig_candlestick = go.Figure()
+
+                # Candlestick
+                fig_candlestick.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='Candlestick'))
+
+                # Plot EMA on Candlestick
+                for col in EMA_Short.columns:
+                    fig_candlestick.add_trace(go.Scatter(x=df.index, y=EMA_Short[col], mode='lines', name=col, line=dict(color='orange')))
+                for col in EMA_Long.columns:
+                    fig_candlestick.add_trace(go.Scatter(x=df.index, y=EMA_Long[col], mode='lines', name=col, line=dict(color='blue')))
+
+                # Volume
+                fig_candlestick.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=np.where(df['Open'] < df['Close'], 'green', 'red')))
+
+                fig_candlestick.update_layout(title="Stock Closing Price", xaxis_title="Date", yaxis_title="Price",
+                                            yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))  # Set tick format to not show in millions
+                st.plotly_chart(fig_candlestick)
+
+
+        if pred_option_Technical_Indicators == "Moving Average Convergence Divergence (MACD)":
+            st.success("This program allows you to view the GANN lines of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["macd"], df["macdsignal"], df["macdhist"] = ta.MACD(
+                    df["Adj Close"], fastperiod=12, slowperiod=26, signalperiod=9
+                )
+                df = df.dropna()
+                df = add_all_ta_features(df, open="Open", high="High", low="Low", close="Close", volume="Volume")
+
+                # Line Chart
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_hline(y=df["Adj Close"].mean(), line_dash="dash", line_color="red", name='Mean')
+
+                # Volume
+                fig_volume = go.Figure()
+                fig_volume.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=df['Volume'].map(lambda x: 'green' if x > 0 else 'red')))
+                # MACD
+                fig_macd = go.Figure()
+                fig_macd.add_trace(go.Scatter(x=df.index, y=df["macd"], mode='lines', name='MACD'))
+                fig_macd.add_trace(go.Scatter(x=df.index, y=df["macdsignal"], mode='lines', name='Signal'))
+                fig_macd.add_trace(go.Bar(x=df.index, y=df["macdhist"], name='Histogram', marker_color=df['macdhist'].map(lambda x: 'green' if x > 0 else 'red')))
+
+                st.plotly_chart(fig_line)
+                st.plotly_chart(fig_volume)
+                st.plotly_chart(fig_macd)
+            
+        if pred_option_Technical_Indicators == "Money Flow Index (MFI)":
+            st.success("This program allows you to view the GANN lines of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Money Flow Index (MFI)
+                def calculate_mfi(high, low, close, volume, period=14):
+                    typical_price = (high + low + close) / 3
+                    raw_money_flow = typical_price * volume
+                    positive_flow = (raw_money_flow * (close > close.shift(1))).rolling(window=period).sum()
+                    negative_flow = (raw_money_flow * (close < close.shift(1))).rolling(window=period).sum()
+                    money_ratio = positive_flow / negative_flow
+                    mfi = 100 - (100 / (1 + money_ratio))
+                    return mfi
+
+                df["MFI"] = calculate_mfi(df["High"], df["Low"], df["Close"], df["Volume"])    
+        
+                # Plot interactive chart for closing price
+                fig_close = go.Figure()
+                fig_close.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", name="Close"))
+                fig_close.update_layout(
+                    title="Interactive Chart for Closing Price",
+                    xaxis=dict(title="Date"),
+                    yaxis=dict(title="Price"),
+                    legend=dict(x=0, y=1),
+                )
+
+                # Find min and max price
+                min_price = df["Close"].min()
+                max_price = df["Close"].max()
+
+                # Plot interactive chart for MFI
+                fig_mfi = go.Figure()
+                fig_mfi.add_trace(go.Scatter(x=df.index, y=df["MFI"], mode="lines", name="MFI"))
+                fig_mfi.update_layout(
+                    title="Interactive Chart for Money Flow Index (MFI)",
+                    xaxis=dict(title="Date"),
+                    yaxis=dict(title="MFI"),
+                    legend=dict(x=0, y=1),
+                    shapes=[
+                        dict(
+                            type="line",
+                            x0=df.index[0],
+                            y0=min_price,
+                            x1=df.index[-1],
+                            y1=min_price,
+                            line=dict(color="blue", width=1, dash="dash"),
+                        ),
+                        dict(
+                            type="line",
+                            x0=df.index[0],
+                            y0=max_price,
+                            x1=df.index[-1],
+                            y1=max_price,
+                            line=dict(color="red", width=1, dash="dash"),
+                        ),
+                    ],
+                )
+                
+                # Plot interactive chart
+                fig_main = go.Figure()
+
+                # Add closing price trace
+                fig_main.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", name="Close"))
+
+                # Add MFI trace
+                fig_main.add_trace(go.Scatter(x=df.index, y=df["MFI"], mode="lines", name="MFI"))
+
+                # Update layout
+                fig_main.update_layout(
+                    title="Interactive Chart with Money Flow Index (MFI)",
+                    xaxis=dict(title="Date"),
+                    yaxis=dict(title="Price"),
+                    yaxis2=dict(title="MFI", overlaying="y", side="right"),
+                    legend=dict(x=0, y=1),
+                )
+
+                # Show interactive chart
+                st.plotly_chart(fig_close)
+                st.plotly_chart(fig_mfi)
+                st.plotly_chart(fig_main) 
+
+
+        if pred_option_Technical_Indicators == "MA high low":
+            st.success("This program allows you to view the MA High/low of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["MA_High"] = df["High"].rolling(10).mean()
+                df["MA_Low"] = df["Low"].rolling(10).mean()
+                df = df.dropna()
+
+                # Moving Average Line Chart
+                fig1 = px.line(df, x=df.index, y=["Adj Close", "MA_High", "MA_Low"], title="Moving Average of High and Low for Stock")
+                fig1.update_xaxes(title_text="Date")
+                fig1.update_yaxes(title_text="Price")
+                st.plotly_chart(fig1)
+
+                # Candlestick with Moving Averages High and Low
+                fig2 = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'])])
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df['MA_High'], mode='lines', name='MA High'))
+                fig2.add_trace(go.Scatter(x=df.index, y=df['MA_Low'], mode='lines', name='MA Low'))
+
+                fig2.update_layout(title="Candlestick with Moving Averages High and Low",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+
+                st.plotly_chart(fig2)
+        if pred_option_Technical_Indicators == "Price Volume Trend Indicator (PVI)":
+            st.success("This program allows you to visualize the PVI of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date  
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                returns = df["Adj Close"].pct_change()
+                vol_increase = df["Volume"].shift(1) < df["Volume"]
+                pvi = pd.Series(data=np.nan, index=df["Adj Close"].index, dtype="float64")
+
+                pvi.iloc[0] = 1000
+                for i in range(1, len(pvi)):
+                    if vol_increase.iloc[i]:
+                        pvi.iloc[i] = pvi.iloc[i - 1] * (1.0 + returns.iloc[i])
+                    else:
+                        pvi.iloc[i] = pvi.iloc[i - 1]
+
+                pvi = pvi.replace([np.inf, -np.inf], np.nan).fillna(1000)
+
+                df["PVI"] = pd.Series(pvi)
+
+                # Line Chart with PVI
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=df.index, y=df["PVI"], mode='lines', name='Positive Volume Index'))
+
+                fig1.update_layout(title="Adj Close and Positive Volume Index (PVI) Over Time",
+                                xaxis_title="Date",
+                                yaxis_title="Price/PVI")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with PVI
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["PVI"], mode='lines', name='Positive Volume Index', line=dict(color='green')))
+
+                fig2.update_layout(title="Candlestick Chart with Positive Volume Index (PVI)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+        if pred_option_Technical_Indicators == "Positive Volume Trend (PVT)":
+            st.success("This program allows you to view the PVT trend of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                df = yf.download(symbol, start, end)
+
+                # Calculate Price Volume Trend (PVT)
+                df["Momentum_1D"] = (df["Adj Close"] - df["Adj Close"].shift(1)).fillna(0)
+                df["PVT"] = (df["Momentum_1D"] / df["Adj Close"].shift(1)) * df["Volume"]
+                df["PVT"] = df["PVT"] - df["PVT"].shift(1)
+                df["PVT"] = df["PVT"].fillna(0)
+
+                # Line Chart with PVT
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=df.index, y=df["PVT"], mode='lines', name='Price Volume Trend'))
+
+                fig1.update_layout(title="Adj Close and Price Volume Trend (PVT) Over Time",
+                                xaxis_title="Date",
+                                yaxis_title="Price/PVT")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with PVT
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["PVT"], mode='lines', name='Price Volume Trend', line=dict(color='blue')))
+
+                fig2.update_layout(title="Candlestick Chart with Price Volume Trend (PVT)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+        if pred_option_Technical_Indicators == "Rate of Change (ROC)":
+            st.success("This program allows you to view the ROC of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Rate of Change (ROC)
+                n = 12
+                df["ROC"] = ((df["Adj Close"] - df["Adj Close"].shift(n)) / df["Adj Close"].shift(n)) * 100
+
+                # Line Chart with ROC
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=df.index, y=df["ROC"], mode='lines', name='Rate of Change'))
+
+                fig1.update_layout(title="Adj Close and Rate of Change (ROC) Over Time",
+                                xaxis_title="Date",
+                                yaxis_title="Price/ROC")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with ROC
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["ROC"], mode='lines', name='Rate of Change', line=dict(color='blue')))
+
+                fig2.update_layout(title="Candlestick Chart with Rate of Change (ROC)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+        if pred_option_Technical_Indicators == "Return on Investment (ROI)":
+            st.success("This program allows you to view the ROI over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Return on Investment (ROI)
+                df["ROI"] = ((df["Adj Close"] - df["Adj Close"].shift(1)) / df["Adj Close"].shift(1) * 100)
+
+                # Line Chart with ROI
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=df.index, y=df["ROI"], mode='lines', name='Return on Investment'))
+
+                fig1.update_layout(title="Adj Close and Return on Investment (ROI) Over Time",
+                                xaxis_title="Date",
+                                yaxis_title="Price/ROI")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with ROI
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = pd.to_datetime(dfc["Date"])
+                dfc["Date"] = dfc["Date"].apply(mdates.date2num)
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["ROI"], mode='lines', name='Return on Investment', line=dict(color='red')))
+
+                fig2.update_layout(title="Candlestick Chart with Return on Investment (ROI)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+                
+        if pred_option_Technical_Indicators == "Relative Strength Index (RSI)":
+            st.success("This program allows you to view the RSI over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 14  # Number of period
+                change = df["Adj Close"].diff(1)
+                df["Gain"] = change.mask(change < 0, 0)
+                df["Loss"] = abs(change.mask(change > 0, 0))
+                df["AVG_Gain"] = df.Gain.rolling(n).mean()
+                df["AVG_Loss"] = df.Loss.rolling(n).mean()
+                df["RS"] = df["AVG_Gain"] / df["AVG_Loss"]
+                df["RSI"] = 100 - (100 / (1 + df["RS"]))
+
+                # Create RSI plot
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+
+                fig1.add_trace(go.Scatter(x=df.index, y=df["RSI"], mode='lines', name='Relative Strength Index'))
+
+                fig1.update_layout(title=symbol + " Closing Price and Relative Strength Index (RSI)",
+                                xaxis_title="Date",
+                                yaxis_title="Price/RSI")
+
+                st.plotly_chart(fig1)
+
+                # Candlestick with RSI
+                dfc = df.copy()
+                dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
+                dfc = dfc.reset_index()
+                dfc["Date"] = pd.to_datetime(dfc["Date"])
+                dfc["Date"] = dfc["Date"].apply(mdates.date2num)
+
+                fig2 = go.Figure()
+
+                # Candlestick chart
+                fig2.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                # Volume bars
+                fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
+
+                fig2.add_trace(go.Scatter(x=df.index, y=df["RSI"], mode='lines', name='Relative Strength Index', line=dict(color='blue')))
+
+                fig2.update_layout(title=symbol + " Candlestick Chart with Relative Strength Index (RSI)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                st.plotly_chart(fig2)
+
+        if pred_option_Technical_Indicators == "RSI BollingerBands":
+            st.success("This program allows you to view the RSI with emphasis on BollingerBands over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Simple Line Chart
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.update_layout(title=symbol + " Closing Price", xaxis_title="Date", yaxis_title="Price")
+
+                st.plotly_chart(fig1)
+
+                # RSI
+                rsi = ta.RSI(df["Adj Close"], timeperiod=14)
+                rsi = rsi.dropna()
+
+                # Bollinger Bands
+                df["20 Day MA"] = df["Adj Close"].rolling(window=20).mean()
+                df["20 Day STD"] = df["Adj Close"].rolling(window=20).std()
+                df["Upper Band"] = df["20 Day MA"] + (df["20 Day STD"] * 2)
+                df["Lower Band"] = df["20 Day MA"] - (df["20 Day STD"] * 2)
+
+                fig2 = go.Figure()
+                fig2.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig2.add_trace(go.Scatter(x=df.index, y=df["20 Day MA"], mode='lines', name='20 Day MA'))
+                fig2.add_trace(go.Scatter(x=df.index, y=df["Upper Band"], mode='lines', name='Upper Band'))
+                fig2.add_trace(go.Scatter(x=df.index, y=df["Lower Band"], mode='lines', name='Lower Band'))
+                fig2.update_layout(title=f"30 Day Bollinger Band for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig2)
+
+                dfc = df.reset_index()
+                dfc["Date"] = pd.to_datetime(dfc["Date"])
+
+                # Candlestick with Bollinger Bands
+                fig3 = go.Figure()
+                fig3.add_trace(go.Candlestick(x=dfc['Date'],
+                                open=dfc['Open'],
+                                high=dfc['High'],
+                                low=dfc['Low'],
+                                close=dfc['Adj Close'], name='Candlestick'))
+
+                fig3.add_trace(go.Scatter(x=dfc['Date'], y=df["20 Day MA"], mode='lines', name='20 Day MA'))
+                fig3.add_trace(go.Scatter(x=dfc['Date'], y=df["Upper Band"], mode='lines', name='Upper Band'))
+                fig3.add_trace(go.Scatter(x=dfc['Date'], y=df["Lower Band"], mode='lines', name='Lower Band'))
+
+                fig3.update_layout(title=f"{symbol.upper()} Candlestick Chart with Bollinger Bands", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig3)
+
+                # Combine RSI and Bollinger Bands
+                fig4 = go.Figure()
+
+                fig4.add_trace(go.Scatter(x=df.index, y=df["20 Day MA"], mode='lines', name='20 Day MA'))
+                fig4.add_trace(go.Scatter(x=df.index, y=df["Upper Band"], mode='lines', name='Upper Band'))
+                fig4.add_trace(go.Scatter(x=df.index, y=df["Lower Band"], mode='lines', name='Lower Band'))
+
+                fig4.add_trace(go.Scatter(x=df.index, y=rsi, mode='lines', name='RSI'))
+
+                fig4.update_layout(title=f"Bollinger Bands & RSI for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price/RSI")
+                st.plotly_chart(fig4)
+               
+        if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
+            st.success("This program allows you to view the VWAP over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                def VWAP(df):
+                    return (df["Adj Close"] * df["Volume"]).sum() / df["Volume"].sum()
+
+                n = 14
+                df["VWAP"] = pd.concat(
+                    [
+                        (pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]]))
+                        for i in range(len(df) - n)
+                    ]
+                )
+               
+                vwap_series = pd.concat([(pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]])) for i in range(len(df) - n)])
+                vwap_series = vwap_series.dropna()
+
+
+                # Simple Line Chart
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig1.add_trace(go.Scatter(x=vwap_series.index, y=vwap_series, mode='lines', name='VWAP'))
+                fig1.update_layout(title="Volume Weighted Average Price for Stock", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig1)
+
+                # Candlestick with VWAP
+                df.loc[:, "VolumePositive"] = df["Open"] < df["Adj Close"]
+              
+                df = df.dropna()
+                df = df.reset_index()
+                df["Date"] = pd.to_datetime(df["Date"])
+                df["Date"] = df["Date"].apply(mdates.date2num)
+
+                fig2 = go.Figure()
+
+                fig2.add_trace(go.Candlestick(x=df['Date'],
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Adj Close'], name='Candlestick'))
+
+                fig2.add_trace(go.Scatter(x=df['Date'], y=df["VWAP"], mode='lines', name='VWAP'))
+
+                fig2.update_layout(title=f"Stock {symbol} Closing Price with VWAP", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig2)
+
+        if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                def WMA(data, n):
+                    ws = np.zeros(data.shape[0])
+                    t_sum = sum(range(1, n + 1))
+                    for i in range(n - 1, data.shape[0]):
+                        ws[i] = sum(data[i - n + 1 : i + 1] * np.linspace(1, n, n)) / t_sum
+                    return ws
+
+                df["WMA"] = WMA(df["Adj Close"], 5)
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index[4:], y=df["WMA"][4:], mode='lines', name='WMA'))
+                fig.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color='#0079a3', opacity=0.4))
+
+                fig.update_layout(title=f'Stock {symbol} Closing Price', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig)
+
+                # Candlestick with WMA
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index[4:], y=df["WMA"][4:], mode='lines', name='WMA'))
+
+                fig.update_layout(title=f'Stock {symbol} Candlestick Chart with WMA', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+                
+                def WSMA(df, column="Adj Close", n=14):
+                    ema = df[column].ewm(span=n, min_periods=n - 1).mean()
+                    K = 1 / n
+                    wsma = df[column] * K + ema * (1 - K)
+                    return wsma
+
+                df["WSMA"] = WSMA(df, column="Adj Close", n=14)
+                df = df.dropna()
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["WSMA"], mode='lines', name="WSMA"))
+                fig.update_layout(title="Wilder's Smoothing Moving Average for Stock",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick with WSMA
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["WSMA"], mode='lines', name="WSMA"))
+
+                fig.update_layout(title=f"Stock {symbol} Candlestick Chart with WSMA",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)       
+        if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+               
+                # Read data
+                df = yf.download(symbol, start, end)
+            
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                from scipy.stats import zscore
+
+                df["z_score"] = zscore(df["Adj Close"])
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                # Z-Score Chart
+                fig.add_trace(go.Scatter(x=df.index, y=df["z_score"], mode='lines', name="Z-Score"))
+                fig.update_layout(title="Z-Score for " + symbol,
+                                xaxis_title="Date",
+                                yaxis_title="Z-Score",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick with Z-Score
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["z_score"], mode='lines', name="Z-Score"))
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Z-Score",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                
+                st.plotly_chart(fig)
+        if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
+            st.success("This program allows you to view the WMA over time of a ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["HL"] = (df["High"] + df["Low"]) / 2
+                df["HLC"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3
+                df["HLCC"] = (df["High"] + df["Low"] + df["Adj Close"] + df["Adj Close"]) / 4
+                df["OHLC"] = (df["Open"] + df["High"] + df["Low"] + df["Adj Close"]) / 4
+
+                df["Long_Cycle"] = df["Adj Close"].rolling(20).mean()
+                df["Short_Cycle"] = df["Adj Close"].rolling(5).mean()
+                df["APO"] = df["Long_Cycle"] - df["Short_Cycle"]
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                # Absolute Price Oscillator (APO) Chart
+                fig.add_trace(go.Scatter(x=df.index, y=df["APO"], mode='lines', name="Absolute Price Oscillator", line=dict(color='green')))
+                fig.update_layout(title="Absolute Price Oscillator (APO) for " + symbol,
+                                xaxis_title="Date",
+                                yaxis_title="APO",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick with Absolute Price Oscillator (APO)
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["APO"], mode='lines', name="Absolute Price Oscillator", line=dict(color='green')))
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with APO",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Acceleration Bands":
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+               
+
+                n = 7
+                UBB = df["High"] * (1 + 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
+                df["Upper_Band"] = UBB.rolling(n, center=False).mean()
+                df["Middle_Band"] = df["Adj Close"].rolling(n).mean()
+                LBB = df["Low"] * (1 - 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
+                df["Lower_Band"] = LBB.rolling(n, center=False).mean()
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper_Band"], mode='lines', name='Upper Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Middle_Band"], mode='lines', name='Middle Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower_Band"], mode='lines', name='Lower Band'))
+                fig.update_layout(title="Stock Closing Price of " + str(n) + "-Day Acceleration Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper_Band"], mode='lines', name='Upper Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Middle_Band"], mode='lines', name='Middle Band'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower_Band"], mode='lines', name='Lower Band'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price with Acceleration Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                
+                st.plotly_chart(fig)
+
+
+        if pred_option_Technical_Indicators == "Accumulation Distribution Line":
+            st.success("This program allows you to view the ADL of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+                
+                df["MF Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (
+                    df["High"] - df["Low"]
+                )
+                df["MF Volume"] = df["MF Multiplier"] * df["Volume"]
+                df["ADL"] = df["MF Volume"].cumsum()
+                df = df.drop(["MF Multiplier", "MF Volume"], axis=1)
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["ADL"], mode='lines', name='Accumulation Distribution Line'))
+                fig.update_layout(yaxis2=dict(title="Accumulation Distribution Line"))
+
+                fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color='rgba(0, 0, 255, 0.4)'))
+                fig.update_layout(yaxis3=dict(title="Volume"))
+
+                st.plotly_chart(fig)
+
+                # Candlestick Chart
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["ADL"], mode='lines', name='Accumulation Distribution Line'))
+                fig.update_layout(yaxis2=dict(title="Accumulation Distribution Line"))
+
+                fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color='rgba(0, 0, 255, 0.4)'))
+                fig.update_layout(yaxis3=dict(title="Volume"))
+
+                st.plotly_chart(fig)
+               
+        if pred_option_Technical_Indicators == "Aroon":
+            st.success("This program allows you to view the Aroon of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                df = yf.download(symbol, start, end)
+
+                n = 25
+                high_max = lambda xs: np.argmax(xs[::-1])
+                low_min = lambda xs: np.argmin(xs[::-1])
+
+                df["Days since last High"] = (
+                    df["High"]
+                    .rolling(center=False, min_periods=0, window=n)
+                    .apply(func=high_max)
+                    .astype(int)
+                )
+
+                df["Days since last Low"] = (
+                    df["Low"]
+                    .rolling(center=False, min_periods=0, window=n)
+                    .apply(func=low_min)
+                    .astype(int)
+                )
+
+                df["Aroon_Up"] = ((25 - df["Days since last High"]) / 25) * 100
+                df["Aroon_Down"] = ((25 - df["Days since last Low"]) / 25) * 100
+
+                df = df.drop(["Days since last High", "Days since last Low"], axis=1)
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Up"], mode='lines', name='Aroon UP', line=dict(color='green')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Down"], mode='lines', name='Aroon DOWN', line=dict(color='red')))
+                fig.update_layout(yaxis2=dict(title="Aroon"))
+
+                st.plotly_chart(fig)
+
+                # Candlestick Chart
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Up"], mode='lines', name='Aroon UP', line=dict(color='green')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Down"], mode='lines', name='Aroon DOWN', line=dict(color='red')))
+                fig.update_layout(yaxis2=dict(title="Aroon"))
+
+                st.plotly_chart(fig)
+
+
+        if pred_option_Technical_Indicators == "Aroon Oscillator":
+            st.success("This program allows you to view the Aroon Oscillator bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 25
+                high_max = lambda xs: np.argmax(xs[::-1])
+                low_min = lambda xs: np.argmin(xs[::-1])
+
+                df["Days since last High"] = (
+                    df["High"]
+                    .rolling(center=False, min_periods=0, window=n)
+                    .apply(func=high_max)
+                    .astype(int)
+                )
+
+                df["Days since last Low"] = (
+                    df["Low"]
+                    .rolling(center=False, min_periods=0, window=n)
+                    .apply(func=low_min)
+                    .astype(int)
+                )
+
+                df["Aroon_Up"] = ((25 - df["Days since last High"]) / 25) * 100
+                df["Aroon_Down"] = ((25 - df["Days since last Low"]) / 25) * 100
+
+                df["Aroon_Oscillator"] = df["Aroon_Up"] - df["Aroon_Down"]
+
+                df = df.drop(
+                    ["Days since last High", "Days since last Low", "Aroon_Up", "Aroon_Down"], axis=1
+                )
+
+                # Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Oscillator"], mode='lines', name='Aroon Oscillator', line=dict(color='green')))
+                fig.add_trace(go.Scatter(x=df.index, y=[0]*len(df), mode='lines', name='Zero Line', line=dict(color='red', dash='dash')))
+                st.plotly_chart(fig)
+
+                # Bar Chart
+                fig = go.Figure()
+                df["Positive"] = df["Aroon_Oscillator"] > 0
+                fig.add_trace(go.Bar(x=df.index, y=df["Aroon_Oscillator"], marker_color=df.Positive.map({True: "green", False: "red"})))
+                fig.add_shape(type="line", x0=df.index[0], y0=0, x1=df.index[-1], y1=0, line=dict(color="red", width=1, dash="dash"))
+
+                fig.update_layout(title="Aroon Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Aroon Oscillator",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                st.plotly_chart(fig)
+
+                # Candlestick Chart
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Oscillator"], mode='lines', name='Aroon Oscillator', line=dict(color='green')))
+                fig.add_trace(go.Scatter(x=df.index, y=[0]*len(df), mode='lines', name='Zero Line', line=dict(color='red', dash='dash')))
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
+            st.success("This program allows you to view the ADX  of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Simple Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                st.plotly_chart(fig)
+
+                # ADX calculation
+                adx = ta.ADX(df["High"], df["Low"], df["Adj Close"], timeperiod=14)
+                adx = adx.dropna()
+
+                # Line Chart with ADX
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=adx.index, y=adx, mode='lines', name='ADX'))
+                fig.add_shape(type="line", x0=adx.index[0], y0=20, x1=adx.index[-1], y1=20, line=dict(color="red", width=1, dash="dash"))
+                fig.add_shape(type="line", x0=adx.index[0], y0=50, x1=adx.index[-1], y1=50, line=dict(color="red", width=1, dash="dash"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with ADX
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with ADX",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=adx.index, y=adx, mode='lines', name='ADX'))
+                fig.add_shape(type="line", x0=adx.index[0], y0=20, x1=adx.index[-1], y1=20, line=dict(color="red", width=1, dash="dash"))
+                fig.add_shape(type="line", x0=adx.index[0], y0=50, x1=adx.index[-1], y1=50, line=dict(color="red", width=1, dash="dash"))
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Average True Range (ATR)":
+            st.success("This program allows you to view the ATR of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+    
+                n = 14
+                df["HL"] = df["High"] - df["Low"]
+                df["HC"] = abs(df["High"] - df["Adj Close"].shift())
+                df["LC"] = abs(df["Low"] - df["Adj Close"].shift())
+                df["TR"] = df[["HL", "HC", "LC"]].max(axis=1)
+                df["ATR"] = df["TR"].rolling(n).mean()
+                df = df.drop(["HL", "HC", "LC", "TR"], axis=1)
+
+                # Simple Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # ATR Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["ATR"], mode='lines', name='ATR'))
+                fig.add_shape(type="line", x0=df.index[0], y0=1, x1=df.index[-1], y1=1, line=dict(color="black", width=1, dash="dash"))
+                fig.update_layout(title="Average True Range (ATR)",
+                                xaxis_title="Date",
+                                yaxis_title="ATR",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with ATR
+                fig = go.Figure()
+
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with ATR",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["ATR"], mode='lines', name='ATR'))
+                fig.add_shape(type="line", x0=df.index[0], y0=1, x1=df.index[-1], y1=1, line=dict(color="black", width=1, dash="dash"))
+                
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Balance of Power":
+            st.success("This program allows you to view the BoP of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["BOP"] = (df["Adj Close"] - df["Open"]) / (df["High"] - df["Low"])
+
+                # Simple Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=[df["Adj Close"].mean()] * len(df), mode='lines', name='Mean', line=dict(color='red')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Low"], mode='lines', name='Low', line=dict(color='blue', dash='dash')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["High"], mode='lines', name='High', line=dict(color='red', dash='dash')))
+                fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name='Volume', marker_color='#0079a3', opacity=0.4))
+
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # BOP Bar Chart
+                fig = go.Figure()
+                fig.add_trace(go.Bar(x=df.index, y=df["BOP"], name='Balance of Power', marker_color=df["BOP"].apply(lambda x: 'green' if x >= 0 else 'red')))
+                fig.update_layout(title="Balance of Power",
+                                xaxis_title="Date",
+                                yaxis_title="BOP",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with BOP
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["BOP"], mode='lines', name='Balance of Power', line=dict(color='black')))
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with BOP",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Beta Indicator":
+            st.success("This program allows you to view the Beta Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                market = "^GSPC"
+                # Read data
+                df = yf.download(symbol, start, end)
+                mk = yf.download(market, start, end)
+
+                df["Returns"] = df["Adj Close"].pct_change().dropna()
+                mk["Returns"] = mk["Adj Close"].pct_change().dropna()
+
+                n = 5
+                covar = df["Returns"].rolling(n).cov(mk["Returns"])
+                variance = mk["Returns"].rolling(n).var()
+                df["Beta"] = covar / variance
+
+                # Stock Closing Price Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.update_layout(title="Stock " + symbol + " Closing Price",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # Beta Line Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Beta"], mode='lines', name='Beta', line=dict(color='red')))
+                fig.update_layout(title="Beta",
+                                xaxis_title="Date",
+                                yaxis_title="Beta")
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Beta
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Beta",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                fig.add_trace(go.Scatter(x=df.index, y=df["Beta"], mode='lines', name='Beta', line=dict(color='red')))
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Bollinger Bands":
+            st.success("This program allows you to view the Acclerations bands of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+            
+                # Read data
+                df = yf.download(symbol, start, end)
+                df["VolumePositive"] = df["Open"] < df["Adj Close"]
+
+                n = 20
+                MA = pd.Series(df["Adj Close"].rolling(n).mean())
+                STD = pd.Series(df["Adj Close"].rolling(n).std())
+                bb1 = MA + 2 * STD
+                df["Upper Bollinger Band"] = pd.Series(bb1)
+                bb2 = MA - 2 * STD
+                df["Lower Bollinger Band"] = pd.Series(bb2)
+
+                # Bollinger Bands Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper Bollinger Band"], mode='lines', name='Upper Bollinger Band', line=dict(color='red')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower Bollinger Band"], mode='lines', name='Lower Bollinger Band', line=dict(color='blue')))
+                fig.update_layout(title=f"{symbol} Bollinger Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Bollinger Bands
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick')])
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper Bollinger Band"], mode='lines', name='Upper Bollinger Band', line=dict(color='red')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower Bollinger Band"], mode='lines', name='Lower Bollinger Band', line=dict(color='blue')))
+                fig.update_layout(title="Candlestick Chart with Bollinger Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # Volume Chart
+                fig = go.Figure()
+                fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name='Volume', marker_color=df.VolumePositive.map({True: "green", False: "red"})))
+                fig.update_layout(title="Volume",
+                                xaxis_title="Date",
+                                yaxis_title="Volume")
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Bollinger Bandwidth":
+            st.success("This program allows you to view the Bollinger bandwidth of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 20
+                MA = pd.Series(df["Adj Close"].rolling(n).mean())
+                STD = pd.Series(df["Adj Close"].rolling(n).std())
+                bb1 = MA + 2 * STD
+                df["Upper Bollinger Band"] = pd.Series(bb1)
+                bb2 = MA - 2 * STD
+                df["Lower Bollinger Band"] = pd.Series(bb2)
+                df["SMA"] = df["Adj Close"].rolling(n).mean()
+
+                df["BBWidth"] = ((df["Upper Bollinger Band"] - df["Lower Bollinger Band"]) / df["SMA"] * 100)
+
+                # Bollinger Bands Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Upper Bollinger Band"], mode='lines', name='Upper Bollinger Band', line=dict(color='red')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Lower Bollinger Band"], mode='lines', name='Lower Bollinger Band', line=dict(color='blue')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Mean Average', line=dict(color='orange', dash='dash')))
+                fig.update_layout(title=f"{symbol} Bollinger Bands",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # BB Width Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["BBWidth"], mode='lines', name='BB Width', line=dict(color='black')))
+                fig.add_trace(go.Scatter(x=df.index, y=df["BBWidth"].rolling(20).mean(), mode='lines', name='200 Moving Average', line=dict(color='darkblue')))
+                fig.update_layout(title="Bollinger Bands Width",
+                                xaxis_title="Date",
+                                yaxis_title="BB Width")
+                st.plotly_chart(fig)
+
+
+
+        if pred_option_Technical_Indicators == "Breadth Indicator":
+            st.success("This program allows you to view the Breadth Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+           
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                #df["Adj Close"][1:]
+
+                # ## On Balance Volume
+                OBV = ta.OBV(df["Adj Close"], df["Volume"])
+
+                Advances = q.get("URC/NYSE_ADV", start_date="2017-07-27")["Numbers of Stocks"]
+                Declines = q.get("URC/NYSE_DEC", start_date="2017-07-27")["Numbers of Stocks"]
+
+                adv_vol = q.get("URC/NYSE_ADV_VOL", start_date="2017-07-27")["Numbers of Stocks"]
+                dec_vol = q.get("URC/NYSE_DEC_VOL", start_date="2017-07-27")["Numbers of Stocks"]
+
+                data = pd.DataFrame()
+                data["Advances"] = Advances
+                data["Declines"] = Declines
+                data["adv_vol"] = adv_vol
+                data["dec_vol"] = dec_vol
+
+                data["Net_Advances"] = data["Advances"] - data["Declines"]
+                data["Ratio_Adjusted"] = (
+                    data["Net_Advances"] / (data["Advances"] + data["Declines"])
+                ) * 1000
+                data["19_EMA"] = ta.EMA(data["Ratio_Adjusted"], timeperiod=19)
+                data["39_EMA"] = ta.EMA(data["Ratio_Adjusted"], timeperiod=39)
+                data["RANA"] = (
+                    (data["Advances"] - data["Declines"]) / (data["Advances"] + data["Declines"]) * 1000
+                )
+
+                # Finding the TRIN Value
+                data["ad_ratio"] = data["Advances"].divide(data["Declines"])  # AD Ratio
+                data["ad_vol"] = data["adv_vol"].divide(data["dec_vol"])  # AD Volume Ratio
+                data["TRIN"] = data["ad_ratio"].divide(data["adv_vol"])  # TRIN Value
+
+                # Function to calculate Force Index
+                def ForceIndex(data, n):
+                    ForceIndex = pd.Series(df["Adj Close"].diff(n) * df["Volume"], name="ForceIndex")
+                    data = data.join(ForceIndex)
+                    return data
+
+                # Calculate Force Index
+                n = 10
+                ForceIndex = ForceIndex(df, n)
+                ForceIndex = ForceIndex["ForceIndex"]
+
+                # Market Price Chart
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Close Price'))
+                fig.update_layout(title="Market Price Chart",
+                                xaxis_title="Date",
+                                yaxis_title="Close Price")
+                st.plotly_chart(fig)
+
+                # Force Index
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=ForceIndex, mode='lines', name='Force Index'))
+                fig.update_layout(title="Force Index",
+                                xaxis_title="Date",
+                                yaxis_title="Force Index")
+                st.plotly_chart(fig)
+
+
+                # Function to calculate Chaikin Oscillator
+                def Chaikin(data):
+                    money_flow_volume = (
+                        (2 * data["Adj Close"] - data["High"] - data["Low"])
+                        / (data["High"] - data["Low"])
+                        * data["Volume"]
+                    )
+                    ad = money_flow_volume.cumsum()
+                    Chaikin = pd.Series(
+                        ad.ewm(com=(3 - 1) / 2).mean() - ad.ewm(com=(10 - 1) / 2).mean(), name="Chaikin"
+                    )
+                    #data["Chaikin"] = data.join(Chaikin)
+                    data["Chaikin"] = Chaikin
+                    return data
+
+
+                # Calculate Chaikin Oscillator
+                Chaikin(df)
+              
+
+                # Chaikin Oscillator Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Chaikin"], mode='lines', name='Chaikin Oscillator'))
+                fig.update_layout(title="Chaikin Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Chaikin Oscillator")
+                
+                st.plotly_chart(fig)
+
+
+                # Calculate Cumulative Volume Index
+                data["CVI"] = data["Net_Advances"].shift(1) + (data["Advances"] - data["Declines"])
+
+                # Cumulative Volume Index Plot
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=data.index, y=data["CVI"], mode='lines', name='Cumulative Volume Index'))
+                fig.update_layout(title="Cumulative Volume Index",
+                                xaxis_title="Date",
+                                yaxis_title="CVI")
+                
+                st.plotly_chart(fig)
+
+
+        if pred_option_Technical_Indicators == "Candle Absolute Returns":
+            st.success("This program allows you to view the Candle absolute returns  of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+           
+                # Read data
+                df = yf.download(symbol, start, end)
+                df["Absolute_Return"] = (
+                    100 * (df["Adj Close"] - df["Adj Close"].shift(1)) / df["Adj Close"].shift(1)
+                )
+
+                # Plot the closing price
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode="lines", name="Closing Price"))
+                fig.update_layout(title="Stock " + symbol + " Closing Price", xaxis_title="Date", yaxis_title="Price")
+                st.plotly_chart(fig)
+
+                # Plot the Absolute Return
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Absolute_Return"], mode="lines", name="Absolute Return", line=dict(color="red")))
+                fig.update_layout(title="Absolute Return", xaxis_title="Date", yaxis_title="Absolute Return")
+                
+                st.plotly_chart(fig)
+        if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
+            st.success("This program allows you to view the CPR of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate CPR
+                df["Pivot"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3.0
+                df["BC"] = (df["High"] + df["Low"]) / 2.0
+                df["TC"] = (df["Pivot"] - df["BC"]) + df["Pivot"]
+
+                # Plot candlestick with CPR
+                candlestick = go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Close'],
+                                            name='Candlestick')
+
+                pivot = go.Scatter(x=df.index, y=df["Pivot"], mode='lines', name='Pivot')
+                bc = go.Scatter(x=df.index, y=df["BC"], mode='lines', name='BC')
+                tc = go.Scatter(x=df.index, y=df["TC"], mode='lines', name='TC')
+
+                data = [candlestick, pivot, bc, tc]
+
+                layout = go.Layout(title=f'Stock {symbol} Closing Price with Central Pivot Range (CPR)',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Price'),
+                                showlegend=True)
+
+                fig = go.Figure(data=data, layout=layout)
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Chaikin Money Flow":
+            st.success("This program allows you to view the Chaikin Money Flow (CMF) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate CMF
+                n = 20
+                df["MF_Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (df["High"] - df["Low"])
+                df["MF_Volume"] = df["MF_Multiplier"] * df["Volume"]
+                df["CMF"] = df["MF_Volume"].rolling(n).sum() / df["Volume"].rolling(n).sum()
+                df = df.drop(["MF_Multiplier", "MF_Volume"], axis=1)
+
+                # Plot CMF
+                cmf_chart = go.Scatter(x=df.index, y=df["CMF"], mode='lines', name='Chaikin Money Flow')
+
+                layout = go.Layout(title=f'Chaikin Money Flow for Stock {symbol}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='CMF'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cmf_chart], layout=layout)
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Chaikin Oscillator":
+            st.success("This program allows you to view the Chaikin Oscillator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Chaikin Oscillator
+                df["MF_Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (df["High"] - df["Low"])
+                df["MF_Volume"] = df["MF_Multiplier"] * df["Volume"]
+                df["ADL"] = df["MF_Volume"].cumsum()
+                df["ADL_3_EMA"] = df["ADL"].ewm(ignore_na=False, span=3, min_periods=2, adjust=True).mean()
+                df["ADL_10_EMA"] = df["ADL"].ewm(ignore_na=False, span=10, min_periods=9, adjust=True).mean()
+                df["Chaikin_Oscillator"] = df["ADL_3_EMA"] - df["ADL_10_EMA"]
+                df = df.drop(["MF_Multiplier", "MF_Volume", "ADL", "ADL_3_EMA", "ADL_10_EMA"], axis=1)
+
+                # Plot Chaikin Oscillator
+                co_chart = go.Scatter(x=df.index, y=df["Chaikin_Oscillator"], mode='lines', name='Chaikin Oscillator')
+
+                layout = go.Layout(title=f'Chaikin Oscillator for Stock {symbol}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Chaikin Oscillator'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[co_chart], layout=layout)
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Commodity Channel Index (CCI)":
+            st.success("This program allows you to view the Commodity Channel Index (CCI) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate CCI
+                n = 20
+                df["TP"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3
+                df["SMA_TP"] = df["TP"].rolling(n).mean()
+                df["SMA_STD"] = df["TP"].rolling(n).std()
+                df["CCI"] = (df["TP"] - df["SMA_TP"]) / (0.015 * df["SMA_STD"])
+                df = df.drop(["TP", "SMA_TP", "SMA_STD"], axis=1)
+
+                # Plot CCI
+                cci_chart = go.Scatter(x=df.index, y=df["CCI"], mode='lines', name='Commodity Channel Index (CCI)')
+
+                layout = go.Layout(title=f'Commodity Channel Index (CCI) for Stock {symbol}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='CCI'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cci_chart], layout=layout)
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Correlation Coefficient":
+            st.success("This program allows you to view the Correlation Coefficient between two tickers over time")
+            symbol1 = st.text_input("Enter the first ticker")
+            symbol2 = st.text_input("Enter the second ticker")
+            if symbol1 and symbol2:
+                message = (f"Tickers captured : {symbol1}, {symbol2}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                start = start_date
+                end = end_date
+
+                # Read data
+                df1 = yf.download(symbol1, start, end)
+                df2 = yf.download(symbol2, start, end)
+
+                # Calculate correlation coefficient
+                cc = df1["Adj Close"].corr(df2["Adj Close"])
+
+                # Plot correlation coefficient
+                cc_chart = go.Scatter(x=df1.index, y=cc, mode='lines', name='Correlation Coefficient')
+
+                layout = go.Layout(title=f'Correlation Coefficient between {symbol1} and {symbol2}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Correlation Coefficient'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cc_chart], layout=layout)
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Covariance":
+            st.success("This program allows you to view the Covariance between two tickers over time")
+            symbol1 = st.text_input("Enter the first ticker")
+            symbol2 = st.text_input("Enter the second ticker")
+            if symbol1 and symbol2:
+                message = (f"Tickers captured : {symbol1}, {symbol2}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                start = start_date
+                end = end_date
+
+                # Read data
+                df1 = yf.download(symbol1, start, end)
+                df2 = yf.download(symbol2, start, end)
+
+                # Calculate covariance
+                c = df1["Adj Close"].cov(df2["Adj Close"])
+
+                # Plot covariance
+                cov_chart = go.Scatter(x=df1.index, y=c, mode='lines', name='Covariance')
+
+                layout = go.Layout(title=f'Covariance between {symbol1} and {symbol2}',
+                                xaxis=dict(title='Date'),
+                                yaxis=dict(title='Covariance'),
+                                showlegend=True)
+
+                fig = go.Figure(data=[cov_chart], layout=layout)
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Detrended Price Oscillator (DPO)":
+            st.success("This program allows you to view the Detrended Price Oscillator (DPO) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 15
+                df["DPO"] = (df["Adj Close"].shift(int((0.5 * n) + 1)) - df["Adj Close"].rolling(n).mean())
+
+                # Plot DPO
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['DPO'],
+                                                mode='lines',
+                                                name='DPO')])
+                fig.update_layout(title=f"Detrended Price Oscillator (DPO) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Donchian Channel":
+            st.success("This program allows you to view the Donchian Channel of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["Upper_Channel_Line"] = pd.Series.rolling(df["High"], window=20).max()
+                df["Lower_Channel_Line"] = pd.Series.rolling(df["Low"], window=20).min()
+                df["Middle_Channel_Line"] = (df["Upper_Channel_Line"] + df["Lower_Channel_Line"]) / 2
+                df = df.dropna()
+
+                # Plot Donchian Channel
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['Upper_Channel_Line'],
+                                                mode='lines',
+                                                name='Upper Channel Line'),
+                                    go.Scatter(x=df.index,
+                                                y=df['Lower_Channel_Line'],
+                                                mode='lines',
+                                                name='Lower Channel Line'),
+                                    go.Scatter(x=df.index,
+                                                y=df['Middle_Channel_Line'],
+                                                mode='lines',
+                                                name='Middle Channel Line')])
+                fig.update_layout(title=f"Donchian Channel for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Double Exponential Moving Average (DEMA)":
+            st.success("This program allows you to view the Double Exponential Moving Average (DEMA) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["EMA"] = ta.EMA(df["Adj Close"], timeperiod=5)
+                df["EMA_S"] = ta.EMA(df["EMA"], timeperiod=5)
+                df["DEMA"] = (2 * df["EMA"]) - df["EMA_S"]
+
+                # Plot DEMA
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['DEMA'],
+                                                mode='lines',
+                                                name='DEMA')])
+                fig.update_layout(title=f"Double Exponential Moving Average (DEMA) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Dynamic Momentum Index":
+            st.success("This program allows you to view the Dynamic Momentum Index (DMI) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["sd"] = df["Adj Close"].rolling(5).std()
+                df["asd"] = df["sd"].rolling(10).mean()
+                df["DMI"] = 14 / (df["sd"] / df["asd"])
+                df = df.drop(["sd", "asd"], axis=1)
+
+                # Plot DMI
+                fig = go.Figure(data=[go.Candlestick(x=df.index,
+                                                    open=df['Open'],
+                                                    high=df['High'],
+                                                    low=df['Low'],
+                                                    close=df['Adj Close'],
+                                                    name='Candlestick'),
+                                    go.Scatter(x=df.index,
+                                                y=df['DMI'],
+                                                mode='lines',
+                                                name='Dynamic Momentum Index')])
+                fig.update_layout(title=f"Dynamic Momentum Index (DMI) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Ease of Movement":
+            st.success("This program allows you to view the Ease of Movement (EVM) indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+                # Create a function for Ease of Movement
+                def EVM(data, ndays):
+                    dm = ((data["High"] + data["Low"]) / 2) - (
+                        (data["High"].shift(1) + data["Low"].shift(1)) / 2
+                    )
+                    br = (data["Volume"] / 100000000) / ((data["High"] - data["Low"]))
+                    EVM = dm / br
+                    EVM_MA = pd.Series(EVM.rolling(ndays).mean(), name="EVM")
+                    data = data.join(EVM_MA)
+                    return data
+
+                # Compute the 14-day Ease of Movement for stock
+                n = 14
+                Stock_EVM = EVM(df, n)
+                EVM = Stock_EVM["EVM"]
+
+                # Compute EVM
+                df = EVM(df, 14)
+
+                # Plot EVM
+                fig = go.Figure(data=[
+                    go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Adj Close'],
+                                name='Candlestick'),
+                    go.Scatter(x=df.index,
+                            y=df['EVM'],
+                            mode='lines',
+                            name='Ease of Movement')
+                ])
+                fig.update_layout(title=f"Ease of Movement (EVM) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Force Index":
+            st.success("This program allows you to view the Force Index of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 13
+                df["FI_1"] = (df["Adj Close"] - df["Adj Close"].shift()) * df["Volume"]
+                df["FI_13"] = df["FI_1"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
+
+                # Plot Force Index
+                fig = go.Figure(data=[
+                    go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Adj Close'],
+                                name='Candlestick'),
+                    go.Scatter(x=df.index,
+                            y=df['FI_13'],
+                            mode='lines',
+                            name='Force Index')
+                ])
+                fig.update_layout(title=f"Force Index for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Geometric Return Indicator":
+            st.success("This program allows you to view the Geometric Return Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute Geometric Return Indicator
+                n = 10
+                df["Geometric_Return"] = pd.Series(df["Adj Close"]).rolling(n).apply(gmean)
+
+                # Plot Geometric Return Indicator with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Geometric_Return'], mode='lines', name='Geometric Return Indicator'))
+                fig.update_layout(title=f"Geometric Return Indicator for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Golden/Death Cross":
+            st.success("This program allows you to view the Golden/Death Cross of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute Golden/Death Cross
+                df["MA_50"] = df["Adj Close"].rolling(center=False, window=50).mean()
+                df["MA_200"] = df["Adj Close"].rolling(center=False, window=200).mean()
+                df["diff"] = df["MA_50"] - df["MA_200"]
+
+                # Plot Golden/Death Cross with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['MA_50'], mode='lines', name='MA_50'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['MA_200'], mode='lines', name='MA_200'))
+                fig.update_layout(title=f"Golden/Death Cross for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "High Minus Low":
+            st.success("This program allows you to view the High Minus Low of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute High Minus Low
+                df["H-L"] = df["High"] - df["Low"]
+
+                # Plot High Minus Low with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['H-L'], mode='lines', name='High Minus Low'))
+                fig.update_layout(title=f"High Minus Low for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Hull Moving Average":
+            st.success("This program allows you to view the Hull Moving Average (HMA) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Compute Hull Moving Average
+                period = 20
+                df['WMA'] = df['Adj Close'].rolling(window=period).mean()
+                half_period = int(period / 2)
+                sqrt_period = int(np.sqrt(period))
+                df['Weighted_MA'] = df['Adj Close'].rolling(window=half_period).mean() * 2 - df['Adj Close'].rolling(window=period).mean()
+                df['HMA'] = df['Weighted_MA'].rolling(window=sqrt_period).mean()
+
+                # Plot Hull Moving Average with Candlestick graph
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['HMA'], mode='lines', name='Hull Moving Average'))
+                fig.update_layout(title=f"Hull Moving Average (HMA) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Keltner Channels":
+            st.success("This program allows you to visualize Keltner Channels for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Keltner Channels
+                n = 20
+                df["EMA"] = ta.EMA(df["Adj Close"], timeperiod=n)
+                df["ATR"] = ta.ATR(df["High"], df["Low"], df["Adj Close"], timeperiod=10)
+                df["Upper Line"] = df["EMA"] + 2 * df["ATR"]
+                df["Lower Line"] = df["EMA"] - 2 * df["ATR"]
+
+                # Plot Keltner Channels
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['EMA'], mode='lines', name='EMA'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Upper Line'], mode='lines', name='Upper Line'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Lower Line'], mode='lines', name='Lower Line'))
+                fig.update_layout(title=f"Keltner Channels for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Linear Regression":
+            st.success("This program allows you to visualize Linear Regression for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Linear Regression
+                avg = df["Adj Close"].mean()
+                df["Linear_Regression"] = avg - (df["Adj Close"].mean() - df["Adj Close"]) / 20
+
+                # Plot Linear Regression
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Linear_Regression'], mode='lines', name='Linear Regression'))
+                fig.update_layout(title=f"Linear Regression for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Linear Regression Slope":
+            st.success("This program allows you to visualize Linear Regression Slope for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Linear Regression Slope
+                avg1 = df["Adj Close"].mean()
+                avg2 = df["Adj Close"].mean()
+                df["AVGS1_S1"] = avg1 - df["Adj Close"]
+                df["AVGS2_S2"] = avg2 - df["Adj Close"]
+                df["Average_SQ"] = df["AVGS1_S1"] ** 2
+                df["AVG_AVG"] = df["AVGS1_S1"] * df["AVGS2_S2"]
+                sum_sq = df["Average_SQ"].sum()
+                sum_avg = df["AVG_AVG"].sum()
+                slope = sum_avg / sum_sq
+                intercept = avg2 - (slope * avg1)
+                df["Linear_Regression"] = intercept + slope * (df["Adj Close"])
+                df = df.drop(["AVGS1_S1", "AVGS2_S2", "Average_SQ", "AVG_AVG"], axis=1)
+
+                # Plot Linear Regression Slope
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Linear_Regression'], mode='lines', name='Linear Regression Slope'))
+                fig.update_layout(title=f"Linear Regression Slope for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Linear Weighted Moving Average (LWMA)":
+            st.success("This program allows you to visualize Linearly Weighted Moving Average (LWMA) for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Linear Weighted Moving Average (LWMA)
+                def linear_weight_moving_average(close, n):
+                    lwma = [np.nan] * n
+                    for i in range(n, len(close)):
+                        lwma.append(
+                            (close[i - n : i] * (np.arange(n) + 1)).sum() / (np.arange(n) + 1).sum()
+                        )
+                    return lwma
+
+                period = 14
+                df["LWMA"] = linear_weight_moving_average(df["Adj Close"], period)
+
+                # Plot Linear Weighted Moving Average (LWMA)
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['LWMA'], mode='lines', name='LWMA'))
+                fig.update_layout(title=f"Linear Weighted Moving Average (LWMA) for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "McClellan Oscillator":
+            st.success("This program allows you to visualize McClellan Oscillator for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate McClellan Oscillator
+                ema_19 = ta.EMA(df["Advancing Issues"] - df["Declining Issues"], timeperiod=19)
+                ema_39 = ta.EMA(df["Advancing Issues"] - df["Declining Issues"], timeperiod=39)
+                mcclellan_oscillator = ema_19 - ema_39
+
+                # Plot McClellan Oscillator
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=mcclellan_oscillator, mode='lines', name='McClellan Oscillator'))
+                fig.update_layout(title=f"McClellan Oscillator for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Value',
+                                template='plotly_dark')
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Momentum":
+            st.success("This program allows you to visualize Momentum for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Momentum
+                period = 14
+                df['Momentum'] = df['Adj Close'].diff(period)
+
+                # Plot Momentum
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                            open=df['Open'],
+                                            high=df['High'],
+                                            low=df['Low'],
+                                            close=df['Adj Close'],
+                                            name='Candlestick'))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Momentum'], mode='lines', name='Momentum'))
+                fig.update_layout(title=f"Momentum for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                template='plotly_dark')
+                st.plotly_chart(fig)        
+
+        if pred_option_Technical_Indicators == "Moving Average Envelopes":
+            st.success("This program allows you to visualize Moving Average Envelopes for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["20SMA"] = ta.SMA(df["Adj Close"], timeperiod=20)
+                df["Upper_Envelope"] = df["20SMA"] + (df["20SMA"] * 0.025)
+                df["Lower_Envelope"] = df["20SMA"] - (df["20SMA"] * 0.025)
+
+                # Plot Line Chart with Moving Average Envelopes
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
+                fig_line.update_layout(title=f"Stock of Moving Average Envelopes for {symbol}",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+                # Candlestick with Moving Average Envelopes
+                fig_candlestick = go.Figure(data=[go.Candlestick(x=df.index,
+                                                                open=df['Open'],
+                                                                high=df['High'],
+                                                                low=df['Low'],
+                                                                close=df['Adj Close'],
+                                                                name='Candlestick')])
+                fig_candlestick.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
+                fig_candlestick.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
+                fig_candlestick.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
+                fig_candlestick.update_layout(title=f"Stock {symbol} Candlestick with Moving Average Envelopes",
+                                            xaxis_title='Date',
+                                            yaxis_title='Price')
+        
+                st.plotly_chart(fig_candlestick)
+
+        if pred_option_Technical_Indicators == "Moving Average High/Low":
+            st.success("This program allows you to visualize Moving Average High/Low for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 14  # number of periods
+                df["MA_High"] = df["High"].rolling(n).mean()
+                df["MA_Low"] = df["Low"].rolling(n).mean()
+
+                # Plot Line Chart with Moving Average High/Low
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA_High"], mode='lines', name='Moving Average of High'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA_Low"], mode='lines', name='Moving Average of Low'))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Average High/Low",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+        if pred_option_Technical_Indicators == "Moving Average Ribbon":
+            st.success("This program allows you to visualize Moving Average Ribbon for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["MA10"] = df["Adj Close"].rolling(10).mean()
+                df["MA20"] = df["Adj Close"].rolling(20).mean()
+                df["MA30"] = df["Adj Close"].rolling(30).mean()
+                df["MA40"] = df["Adj Close"].rolling(40).mean()
+                df["MA50"] = df["Adj Close"].rolling(50).mean()
+                df["MA60"] = df["Adj Close"].rolling(60).mean()
+
+                # Plot Line Chart with Moving Average Ribbon
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA10"], mode='lines', name='MA10'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA20"], mode='lines', name='MA20'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA30"], mode='lines', name='MA30'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA40"], mode='lines', name='MA40'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA50"], mode='lines', name='MA50'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["MA60"], mode='lines', name='MA60'))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Average Ribbon",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+        if pred_option_Technical_Indicators == "Moving Average Envelopes (MMA)":
+            st.success("This program allows you to visualize Moving Average Envelopes (MMA) for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df["20SMA"] = ta.SMA(df["Adj Close"], timeperiod=20)
+                df["Upper_Envelope"] = df["20SMA"] + (df["20SMA"] * 0.025)
+                df["Lower_Envelope"] = df["20SMA"] - (df["20SMA"] * 0.025)
+
+                # Plot Line Chart with Moving Average Envelopes (MMA)
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Average Envelopes (MMA)",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+        if pred_option_Technical_Indicators == "Moving Linear Regression":
+            st.success("This program allows you to visualize Moving Linear Regression for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df['Slope'] = ta.LINEARREG_SLOPE(df['Adj Close'], timeperiod=14)
+
+                # Plot Line Chart with Moving Linear Regression
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Slope"], mode='lines', name='Slope', line=dict(color='red')))
+                fig_line.update_layout(title=f"Stock {symbol} Moving Linear Regression",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+        if pred_option_Technical_Indicators == "New Highs/New Lows":
+            st.success("This program allows you to visualize New Highs/New Lows for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                df['52wHigh'] = df['Adj Close'].rolling(window=252).max()
+                df['52wLow'] = df['Adj Close'].rolling(window=252).min()
+
+                # Plot Line Chart with New Highs/New Lows
+                fig_line = go.Figure()
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["52wHigh"], mode='lines', name='52 Weeks High', line=dict(color='green')))
+                fig_line.add_trace(go.Scatter(x=df.index, y=df["52wLow"], mode='lines', name='52 Weeks Low', line=dict(color='red')))
+                fig_line.update_layout(title=f"Stock {symbol} New Highs/New Lows",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig_line)
+
+        if pred_option_Technical_Indicators == "Pivot Point":
+            st.success("This program allows you to visualize Pivot Points for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Pivot Points
+                PP = (dataset["High"] + dataset["Low"] + dataset["Close"]) / 3
+                R1 = 2 * PP - dataset["Low"]
+                S1 = 2 * PP - dataset["High"]
+                R2 = PP + dataset["High"] - dataset["Low"]
+                S2 = PP - dataset["High"] + dataset["Low"]
+                R3 = dataset["High"] + 2 * (PP - dataset["Low"])
+                S3 = dataset["Low"] - 2 * (dataset["High"] - PP)
+
+                # Plot Pivot Points
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=PP, mode='lines', name='Pivot Point'),
+                                    go.Scatter(x=dataset.index, y=R1, mode='lines', name='R1'),
+                                    go.Scatter(x=dataset.index, y=S1, mode='lines', name='S1'),
+                                    go.Scatter(x=dataset.index, y=R2, mode='lines', name='R2'),
+                                    go.Scatter(x=dataset.index, y=S2, mode='lines', name='S2'),
+                                    go.Scatter(x=dataset.index, y=R3, mode='lines', name='R3'),
+                                    go.Scatter(x=dataset.index, y=S3, mode='lines', name='S3')])
+                fig.update_layout(title=f"{symbol} Pivot Points",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig)
+       
+        if pred_option_Technical_Indicators == "Price Channels":
+            st.success("This program allows you to visualize Price Channels for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Price Channels
+                rolling_high = dataset['High'].rolling(window=20).max()
+                rolling_low = dataset['Low'].rolling(window=20).min()
+                midline = (rolling_high + rolling_low) / 2
+
+                # Plot Price Channels
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=rolling_high, mode='lines', name='Upper Channel'),
+                                    go.Scatter(x=dataset.index, y=rolling_low, mode='lines', name='Lower Channel'),
+                                    go.Scatter(x=dataset.index, y=midline, mode='lines', name='Midline')])
+                fig.update_layout(title=f"{symbol} Price Channels",
+                                xaxis_title='Date',
+                                yaxis_title='Price')
+                
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Price Relative":
+            st.success("This program allows you to visualize Price Relative for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            benchmark_ticker = st.text_input("Enter the benchmark ticker")
+            if ticker and benchmark_ticker:
+                message = (f"Ticker captured : {ticker}, Benchmark Ticker : {benchmark_ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                benchmark = benchmark_ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+                benchmark_data = yf.download(benchmark, start, end)
+
+                # Calculate Price Relative
+                price_relative = dataset['Adj Close'] / benchmark_data['Adj Close']
+
+                # Plot Price Relative
+                fig = go.Figure(data=[go.Scatter(x=price_relative.index, y=price_relative, mode='lines', name='Price Relative')])
+                fig.update_layout(title=f"{symbol} Price Relative to {benchmark}",
+                                xaxis_title='Date',
+                                yaxis_title='Price Relative')
+                
+                st.plotly_chart(fig)
+
+
+        if pred_option_Technical_Indicators == "Realized Volatility":
+            st.success("This program allows you to visualize Realized Volatility for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Realized Volatility
+                returns = dataset["Adj Close"].pct_change().dropna()
+                realized_volatility = returns.std() * np.sqrt(252)  # Annualized volatility assuming 252 trading days
+
+                # Plot Realized Volatility
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=returns.index, y=returns, mode='lines', name='Daily Returns'))
+                fig.add_trace(go.Scatter(x=returns.index, y=np.ones(len(returns)) * realized_volatility, mode='lines', name='Realized Volatility', line=dict(color='red', dash='dash')))
+                fig.update_layout(title=f"{symbol} Daily Returns and Realized Volatility",
+                                xaxis_title="Date",
+                                yaxis_title="Returns / Realized Volatility")
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Relative Volatility Index":
+            st.success("This program allows you to visualize Relative Volatility Index for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Relative Volatility Index (RVI)
+                n = 14  # Number of period
+                change = dataset["Adj Close"].diff(1)
+                gain = change.mask(change < 0, 0)
+                loss = abs(change.mask(change > 0, 0))
+                avg_gain = gain.rolling(n).std()
+                avg_loss = loss.rolling(n).std()
+                RS = avg_gain / avg_loss
+                RVI = 100 - (100 / (1 + RS))
+
+                # Plot RVI
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=RVI.index, y=RVI, mode='lines', name='Relative Volatility Index', line=dict(color='blue')))
+                fig.add_shape(type="line", x0=RVI.index[0], y0=60, x1=RVI.index[-1], y1=60, line=dict(color="red", width=1, dash="dash"), name="Overbought")
+                fig.add_shape(type="line", x0=RVI.index[0], y0=40, x1=RVI.index[-1], y1=40, line=dict(color="green", width=1, dash="dash"), name="Oversold")
+                fig.update_layout(title=f"{symbol} Relative Volatility Index",
+                                xaxis_title="Date",
+                                yaxis_title="RVI")
+                st.plotly_chart(fig)
+
+
+        if pred_option_Technical_Indicators == "Smoothed Moving Average":
+            st.success("This program allows you to visualize Smoothed Moving Average for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                n = 7
+                dataset["SMMA"] = dataset["Adj Close"].ewm(alpha=1 / float(n)).mean()
+
+                # Plot Smoothed Moving Average
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["SMMA"], mode='lines', name='Smoothed Moving Average', line=dict(color='red'))])
+                fig.update_layout(title=f"{symbol} Smoothed Moving Average",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Speed Resistance Lines":
+            st.success("This program allows you to visualize Speed Resistance Lines for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                dataset["Middle_Line"] = dataset["Low"] + (dataset["High"] - dataset["Low"]) * 0.667
+                dataset["Lower_Line"] = dataset["Low"] + (dataset["High"] - dataset["Low"]) * 0.333
+
+                # Plot Speed Resistance Lines
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["Middle_Line"], mode='lines', name='Middle Line', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["Lower_Line"], mode='lines', name='Lower Line', line=dict(color='green'))])
+                fig.update_layout(title=f"{symbol} Speed Resistance Lines",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Standard Deviation Volatility":
+            st.success("This program allows you to visualize Standard Deviation Volatility for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                dataset["STD"] = dataset["Adj Close"].rolling(10).std()
+
+                # Plot Standard Deviation Volatility
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["STD"], mode='lines', name='Standard Deviation Volatility', line=dict(color='red'))])
+                fig.update_layout(title=f"{symbol} Standard Deviation Volatility",
+                                xaxis_title="Date",
+                                yaxis_title="Price")
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Stochastic RSI":
+            st.success("This program allows you to visualize Stochastic RSI for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate RSI
+                n = 14
+                change = dataset["Adj Close"].diff(1)
+                gain = change.mask(change < 0, 0)
+                loss = abs(change.mask(change > 0, 0))
+                avg_gain = gain.rolling(n).mean()
+                avg_loss = loss.rolling(n).mean()
+                RS = avg_gain / avg_loss
+                RSI = 100 - (100 / (1 + RS))
+
+                # Calculate Stochastic RSI
+                LL_RSI = RSI.rolling(14).min()
+                HH_RSI = RSI.rolling(14).max()
+                dataset["Stoch_RSI"] = (RSI - LL_RSI) / (HH_RSI - LL_RSI)
+
+                # Plot Stochastic RSI
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["Stoch_RSI"], mode='lines', name='Stochastic RSI', line=dict(color='red'))])
+                fig.update_layout(title=f"{symbol} Stochastic RSI",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic RSI")
+                st.plotly_chart(fig)
+        if pred_option_Technical_Indicators == "Stochastic Fast":
+            st.success("This program allows you to visualize Stochastic Fast for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Stochastic Fast
+                low_min = dataset['Low'].rolling(window=14).min()
+                high_max = dataset['High'].rolling(window=14).max()
+                dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
+                dataset['%D'] = dataset['%K'].rolling(window=3).mean()
+
+                # Plot Stochastic Fast
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Fast %K', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["%D"], mode='lines', name='Stochastic Fast %D', line=dict(color='blue'))])
+                fig.update_layout(title=f"{symbol} Stochastic Fast",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic Fast")
+                st.plotly_chart(fig)
+        if pred_option_Technical_Indicators == "Stochastic Full":
+            st.success("This program allows you to visualize Stochastic Full for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Stochastic Full
+                low_min = dataset['Low'].rolling(window=14).min()
+                high_max = dataset['High'].rolling(window=14).max()
+                dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
+                dataset['%D'] = dataset['%K'].rolling(window=3).mean()
+                dataset['%D_full'] = dataset['%D'].rolling(window=3).mean()
+
+                # Plot Stochastic Full
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Full %K', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["%D_full"], mode='lines', name='Stochastic Full %D', line=dict(color='blue'))])
+                fig.update_layout(title=f"{symbol} Stochastic Full",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic Full")
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "Stochastic Slow":
+            st.success("This program allows you to visualize Stochastic Slow for a selected ticker")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = f"Ticker captured: {ticker}"
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+
+                # Read data
+                dataset = yf.download(symbol, start, end)
+
+                # Calculate Stochastic Slow
+                low_min = dataset['Low'].rolling(window=14).min()
+                high_max = dataset['High'].rolling(window=14).max()
+                dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
+                dataset['%D'] = dataset['%K'].rolling(window=3).mean()
+
+                # Plot Stochastic Slow
+                fig = go.Figure(data=[go.Candlestick(x=dataset.index,
+                                                    open=dataset['Open'],
+                                                    high=dataset['High'],
+                                                    low=dataset['Low'],
+                                                    close=dataset['Close'],
+                                                    name='Candlesticks'),
+                                    go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Slow %K', line=dict(color='red')),
+                                    go.Scatter(x=dataset.index, y=dataset["%D"], mode='lines', name='Stochastic Slow %D', line=dict(color='blue'))])
+                fig.update_layout(title=f"{symbol} Stochastic Slow",
+                                xaxis_title="Date",
+                                yaxis_title="Stochastic Slow")
+                st.plotly_chart(fig)
+
+        
+        
+        if pred_option_Technical_Indicators == "Super Trend":
+            st.success("This program allows you to view the Super Trend of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                n = 7  # Number of periods
+                df["H-L"] = abs(df["High"] - df["Low"])
+                df["H-PC"] = abs(df["High"] - df["Adj Close"].shift(1))
+                df["L-PC"] = abs(df["Low"] - df["Adj Close"].shift(1))
+                df["TR"] = df[["H-L", "H-PC", "L-PC"]].max(axis=1)
+                df["ATR"] = df["TR"].rolling(n).mean()
+
+                df["Upper Basic"] = (df["High"] + df["Low"]) / 2 + (2 * df["ATR"])
+                df["Lower Basic"] = (df["High"] + df["Low"]) / 2 - (2 * df["ATR"])
+
+                df["Upper Band"] = df["Upper Basic"]
+                df["Lower Band"] = df["Lower Basic"]
+
+                for i in range(n, len(df)):
+                    if df["Close"][i - 1] <= df["Upper Band"][i - 1]:
+                        df["Upper Band"][i] = min(df["Upper Basic"][i], df["Upper Band"][i - 1])
+                    else:
+                        df["Upper Band"][i] = df["Upper Basic"][i]
+
+                for i in range(n, len(df)):
+                    if df["Close"][i - 1] >= df["Lower Band"][i - 1]:
+                        df["Lower Band"][i] = max(df["Lower Basic"][i], df["Lower Band"][i - 1])
+                    else:
+                        df["Lower Band"][i] = df["Lower Basic"][i]
+
+                df["SuperTrend"] = 0.00
+                for i in range(n, len(df)):
+                    if df["Close"][i] <= df["Upper Band"][i]:
+                        df["SuperTrend"][i] = df["Upper Band"][i]
+                    elif df["Close"][i] > df["Upper Band"][i]:
+                        df["SuperTrend"][i] = df["Lower Band"][i]
+
+                # Candlestick Chart with Super Trend
+                fig = go.Figure()
+                fig.add_trace(go.Candlestick(x=df.index,
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'], name='Candlestick'))
+
+                fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Super Trend",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+
+                fig.add_trace(go.Scatter(x=df.index, y=df["SuperTrend"], mode='lines', name='SuperTrend'))
+                st.plotly_chart(fig)
+
+        if pred_option_Technical_Indicators == "True Strength Index":
+            st.success("This program allows you to view the True Strength Index (TSI) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate True Strength Index (TSI)
+                df["PC"] = df["Adj Close"] - df["Adj Close"].shift()
+                df["EMA_FS"] = df["PC"].ewm(span=25, min_periods=25, adjust=True).mean()
+                df["EMA_SS"] = df["EMA_FS"].ewm(span=13, min_periods=13, adjust=True).mean()
+                df["Absolute_PC"] = abs(df["Adj Close"] - df["Adj Close"].shift())
+                df["Absolute_FS"] = df["Absolute_PC"].ewm(span=25, min_periods=25).mean()
+                df["Absolute_SS"] = df["Absolute_FS"].ewm(span=13, min_periods=13).mean()
+                df["TSI"] = 100 * df["EMA_SS"] / df["Absolute_SS"]
+                df = df.drop(["PC", "EMA_FS", "EMA_SS", "Absolute_PC", "Absolute_FS", "Absolute_SS"], axis=1)
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["TSI"], mode='lines', name='True Strength Index'))
+                fig.update_layout(title="Stock " + symbol + " True Strength Index",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with True Strength Index
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["TSI"], mode='lines', name='True Strength Index'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with True Strength Index",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+       
+        if pred_option_Technical_Indicators == "Ultimate Oscillator":
+            st.success("This program allows you to view the Ultimate Oscillator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Ultimate Oscillator
+                df["Prior Close"] = df["Adj Close"].shift()
+                df["BP"] = df["Adj Close"] - df[["Low", "Prior Close"]].min(axis=1)
+                df["TR"] = df[["High", "Prior Close"]].max(axis=1) - df[["Low", "Prior Close"]].min(axis=1)
+                df["Average7"] = df["BP"].rolling(7).sum() / df["TR"].rolling(7).sum()
+                df["Average14"] = df["BP"].rolling(14).sum() / df["TR"].rolling(14).sum()
+                df["Average28"] = df["BP"].rolling(28).sum() / df["TR"].rolling(28).sum()
+                df["UO"] = 100 * (4 * df["Average7"] + 2 * df["Average14"] + df["Average28"]) / (4 + 2 + 1)
+                df = df.drop(["Prior Close", "BP", "TR", "Average7", "Average14", "Average28"], axis=1)
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["UO"], mode='lines', name='Ultimate Oscillator'))
+                fig.update_layout(title="Stock " + symbol + " Ultimate Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Ultimate Oscillator
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["UO"], mode='lines', name='Ultimate Oscillator'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Ultimate Oscillator",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
+        if pred_option_Technical_Indicators == "Variance Indicator":
+            st.success("This program allows you to view the Variance Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Variance Indicator
+                n = 14
+                df["Variance"] = df["Adj Close"].rolling(n).var()
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Variance"], mode='lines', name='Variance Indicator'))
+                fig.update_layout(title="Stock " + symbol + " Variance Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Variance Indicator
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["Variance"], mode='lines', name='Variance Indicator'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Variance Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
+        if pred_option_Technical_Indicators == "Volume Price Confirmation Indicator":
+            st.success("This program allows you to view the Volume Price Confirmation Indicator of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Volume Price Confirmation Indicator
+                short_term = 5
+                long_term = 20
+                vwma_lt = ((df["Adj Close"] * df["Volume"]) + (df["Adj Close"].shift(1) * df["Volume"].shift(1)) + (df["Adj Close"].shift(2) * df["Volume"].shift(2))) / (df["Volume"].rolling(long_term).sum())
+                vwma_st = ((df["Adj Close"] * df["Volume"]) + (df["Adj Close"].shift(1) * df["Volume"].shift(1)) + (df["Adj Close"].shift(2) * df["Volume"].shift(2))) / (df["Volume"].rolling(short_term).sum())
+                vpc = vwma_lt - df["Adj Close"].rolling(long_term).mean()
+                vpr = vwma_st / df["Adj Close"].rolling(short_term).mean()
+                vm = df["Adj Close"].rolling(short_term).mean() / df["Adj Close"].rolling(long_term).mean()
+                vpci = vpc * vpr * vm
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=vpci, mode='lines', name='Volume Price Confirmation Indicator'))
+                fig.update_layout(title="Stock " + symbol + " Volume Price Confirmation Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Volume Price Confirmation Indicator
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=vpci, mode='lines', name='Volume Price Confirmation Indicator'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Price Confirmation Indicator",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
+
+        if pred_option_Technical_Indicators == "Volume Weighted Moving Average (VWMA)":
+            st.success("This program allows you to view the Volume Weighted Moving Average (VWMA) of a ticker over time")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:")
+            with col2:
+                end_date = st.date_input("End Date:")
+            if st.button("Check"):    
+                symbol = ticker
+                start = start_date
+                end = end_date
+                # Read data
+                df = yf.download(symbol, start, end)
+
+                # Calculate Volume Weighted Moving Average (VWMA)
+                df["Volume_x_Close"] = df["Volume"] * df["Close"]
+                df["VWMA"] = df["Volume_x_Close"].rolling(window=14).sum() / df["Volume"].rolling(window=14).sum()
+
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode='lines', name='Closing Price'))
+                fig.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
+                fig.update_layout(title="Stock " + symbol + " Volume Weighted Moving Average (VWMA)",
+                                xaxis_title="Date",
+                                yaxis_title="Value",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig)
+
+                # Candlestick Chart with Volume Weighted Moving Average (VWMA)
+                fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
+                                        open=df['Open'],
+                                        high=df['High'],
+                                        low=df['Low'],
+                                        close=df['Close'], name='Candlestick')])
+                fig_candle.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
+                fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Weighted Moving Average (VWMA)",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                legend=dict(x=0, y=1, traceorder="normal"))
+                st.plotly_chart(fig_candle)
     elif option =='Portfolio Strategies':
-        pred_option_portfolio_strategies = st.selectbox('Make a choice', ['Backtest All Strategies',
+        pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                   'Astral Timing signals',
                                                                   'Backtest Strategies',
                                                                   'Backtrader Backtest',
@@ -5711,61 +9530,2088 @@ def main():
                                                                   'Stock Spread Plotter',
                                                                   'Support Resistance Finder'])
 
-        if pred_option_portfolio_strategies == "Backtest All Strategies":
-            pass
         if pred_option_portfolio_strategies == "Astral Timing signals":
-            pass
+            st.success("This program allows you to start backtesting using Astral Timing signals")
+            ticker = st.text_input("Enter the ticker you want to monitor")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+
+            if st.button("Check"):
+                # Apply Astral Timing signals to stock data.
+                def astral(data, completion, step, step_two, what, high, low, where_long, where_short):
+                    data['long_signal'] = 0
+                    data['short_signal'] = 0
+
+                    # Iterate through the DataFrame
+                    for i in range(len(data)):
+                        # Long signal logic
+                        if data.iloc[i][what] < data.iloc[i - step][what] and data.iloc[i][low] < data.iloc[i - step_two][low]:
+                            data.at[data.index[i], 'long_signal'] = -1
+                        elif data.iloc[i][what] >= data.iloc[i - step][what]:
+                            data.at[data.index[i], 'long_signal'] = 0
+
+                        # Short signal logic
+                        if data.iloc[i][what] > data.iloc[i - step][what] and data.iloc[i][high] > data.iloc[i - step_two][high]:
+                            data.at[data.index[i], 'short_signal'] = 1
+                        elif data.iloc[i][what] <= data.iloc[i - step][what]:
+                            data.at[data.index[i], 'short_signal'] = 0
+
+                    return data
+
+                # Define stock ticker and date range
+               
+                start = start_date
+                end = end_date
+
+                # Fetch stock data
+                data = pdr.get_data_yahoo(ticker, start, end)
+
+                # Apply Astral Timing signals
+                astral_data = astral(data, 8, 1, 5, 'Close', 'High', 'Low', 'long_signal', 'short_signal')
+
+                # Display the results
+                # Create candlestick chart with signals
+                fig = go.Figure(data=[go.Candlestick(x=astral_data.index,
+                                                    open=astral_data['Open'],
+                                                    high=astral_data['High'],
+                                                    low=astral_data['Low'],
+                                                    close=astral_data['Close'])])
+
+                # Add long and short signals to the plot
+                fig.add_trace(go.Scatter(x=astral_data.index, y=astral_data['long_signal'],
+                                        mode='markers', marker=dict(color='blue'), name='Long Signal'))
+                fig.add_trace(go.Scatter(x=astral_data.index, y=astral_data['short_signal'],
+                                        mode='markers', marker=dict(color='red'), name='Short Signal'))
+
+                # Customize layout
+                fig.update_layout(title=f"{ticker} Candlestick Chart with Signals",
+                                xaxis_title="Date",
+                                yaxis_title="Price",
+                                xaxis_rangeslider_visible=False)
+
+                # Display the interactive plot
+                st.plotly_chart(fig)
+                st.write(astral_data[['long_signal', 'short_signal']])
+
         if pred_option_portfolio_strategies == "Backtest Strategies":
-            pass
+            st.success("This portion allows you backtest a ticker for a period using SMA Logic ")
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Function to fetch stock data
+                def get_stock_data(stock, start, end):
+                    """
+                    Fetches stock data from Yahoo Finance.
+                    """
+                    return pdr.get_data_yahoo(stock, start, end)
+
+                # Trading statistics calculation
+                def calculate_trading_statistics(df, buy_sell_logic, additional_logic=None):
+                        """
+                        Calculates trading statistics based on buy/sell logic.
+                        """
+                        position = 0
+                        percentChange = []
+                        buyP = sellP = 0  # Initialize buyP and sellP
+                        for i in df.index:
+                            close = df.loc[i, "Adj Close"]
+                            if buy_sell_logic(df, i, position):
+                                position = 0 if position == 1 else 1
+                                buyP = close if position == 1 else buyP
+                                sellP = close if position == 0 else sellP
+                                if position == 0:
+                                    perc = (sellP / buyP - 1) * 100
+                                    percentChange.append(perc)
+                            if additional_logic: additional_logic(df, i)
+                        return calculate_statistics_from_percent_change(percentChange)
+
+                # Compute statistics from percent change
+                def calculate_statistics_from_percent_change(percentChange):
+                    """
+                    Computes statistics from percentage change in stock prices.
+                    """
+                    gains = sum(p for p in percentChange if p > 0)
+                    losses = sum(p for p in percentChange if p < 0)
+                    numGains = sum(1 for p in percentChange if p > 0)
+                    numLosses = sum(1 for p in percentChange if p < 0)
+                    totReturn = round(np.prod([((p / 100) + 1) for p in percentChange]) * 100 - 100, 2)
+                    avgGain = gains / numGains if numGains > 0 else 0
+                    avgLoss = losses / numLosses if numLosses > 0 else 0
+                    maxReturn = max(percentChange) if numGains > 0 else 0
+                    maxLoss = min(percentChange) if numLosses > 0 else 0
+                    ratioRR = -avgGain / avgLoss if numLosses > 0 else "inf"
+                    batting_avg = numGains / (numGains + numLosses) if numGains + numLosses > 0 else 0
+                    return {
+                        "total_return": totReturn,
+                        "avg_gain": avgGain,
+                        "avg_loss": avgLoss,
+                        "max_return": maxReturn,
+                        "max_loss": maxLoss,
+                        "gain_loss_ratio": ratioRR,
+                        "num_trades": numGains + numLosses,
+                        "batting_avg": batting_avg
+                    }
+
+                # SMA strategy logic
+                def sma_strategy_logic(df, i, position):
+                    """
+                    Logic for Simple Moving Average (SMA) trading strategy.
+                    """
+                    SMA_short, SMA_long = df["SMA_20"], df["SMA_50"]
+                    return (SMA_short[i] > SMA_long[i] and position == 0) or (SMA_short[i] < SMA_long[i] and position == 1)
+
+            
+                stock = ticker
+                num_of_years = years
+                start = start_date
+                end = end_date
+                df = get_stock_data(stock, start, end)
+
+                # Implementing SMA strategy
+                df["SMA_20"] = df["Adj Close"].rolling(window=20).mean()
+                df["SMA_50"] = df["Adj Close"].rolling(window=50).mean()
+                sma_stats = calculate_trading_statistics(df, sma_strategy_logic)
+                st.write("Simple Moving Average Strategy Stats:", sma_stats)
+
         if pred_option_portfolio_strategies == "Backtrader Backtest":
-            pass
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Setting chart resolution
+                plt.rcParams['figure.dpi'] = 140
+
+                # API credentials
+                API_KEY = API_KEY_ALPACA
+                SECRET_KEY = SECRET_KEY_ALPACA
+
+                # Initialize REST API
+                rest_api = REST(API_KEY, SECRET_KEY, 'https://paper-api.alpaca.markets')
+
+                def run_backtest(strategy, symbol, start, end, timeframe=TimeFrame.Day, cash=10000):
+                    cerebro = bt.Cerebro(stdstats=True)
+                    cerebro.broker.setcash(cash)
+                    cerebro.addstrategy(strategy)
+
+                    # Adding analyzers
+                    cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trade_analyzer')
+                    cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe_ratio')
+
+                    # Loading data
+                    data = rest_api.get_bars(symbol, timeframe, start, end, adjustment='all').df
+                    bt_data = bt.feeds.PandasData(dataname=data, name=symbol)
+                    cerebro.adddata(bt_data)
+
+                    # Running the backtest
+                    initial_value = cerebro.broker.getvalue()
+                    st.write(f'Starting Portfolio Value: {initial_value}')
+                    results = cerebro.run()
+                    final_value = cerebro.broker.getvalue()
+                    st.write(f'Final Portfolio Value: {round(final_value, 2)}')
+
+                    strategy_return = 100 * (final_value - initial_value)/initial_value
+                    st.write(f'Strategy Return: {round(strategy_return, 2)}%')
+
+                    # Display results
+                    strategy_statistics(results, initial_value, data)
+
+                    # Plotting the results
+                    cerebro.plot(iplot=False)
+                  
+                def strategy_statistics(results, initial_value, data):
+                    # Analyzing the results
+                    strat = results[0]
+                    trade_analysis = strat.analyzers.trade_analyzer.get_analysis()
+
+                    # Sharpe Ratio
+                    sharpe_ratio = round(strat.analyzers.sharpe_ratio.get_analysis()['sharperatio'], 2)
+
+                    # Total number of trades
+                    total_trades = trade_analysis.total.closed
+
+                    # Win Rate
+                    win_rate = round((trade_analysis.won.total / total_trades) * 100, 2) if total_trades > 0 else 0
+
+                    # Average Percent Gain and Loss
+                    avg_percent_gain = round(trade_analysis.won.pnl.average / initial_value * 100, 2) if trade_analysis.won.total > 0 else 0
+                    avg_percent_loss = round(trade_analysis.lost.pnl.average / initial_value * 100, 2) if trade_analysis.lost.total > 0 else 0
+
+                    # Profit Factor
+                    profit_factor = round((avg_percent_gain * win_rate) / (avg_percent_loss * (1 - win_rate)), 2) if avg_percent_loss != 0 else float('inf')
+
+                    # Gain/Loss Ratio
+                    gain_loss_ratio = round(avg_percent_gain / -avg_percent_loss, 2) if avg_percent_loss != 0 else float('inf')
+
+                    # Max Return and Max Loss as Percentages
+                    max_return = round(trade_analysis.won.pnl.max / initial_value * 100, 2) if trade_analysis.won.total > 0 else 0
+                    max_loss = round(trade_analysis.lost.pnl.max / initial_value * 100, 2) if trade_analysis.lost.total > 0 else 0
+
+                    # Buy and Hold Return
+                    buy_and_hold_return = round((data['close'].iloc[-1] / data['close'].iloc[0] - 1) * 100, 2)
+
+                    # Displaying results
+                    st.write(f'Buy and Hold Return: {buy_and_hold_return}%')
+                    st.write('Sharpe Ratio:', sharpe_ratio)
+                    st.write('Total Trades:', total_trades)
+                    st.write('Win Rate (%):', win_rate)
+                    st.write('Average % Gain per Trade:', avg_percent_gain)
+                    st.write('Average % Loss per Trade:', avg_percent_loss)
+                    st.write('Profit Factor:', profit_factor)
+                    st.write('Gain/Loss Ratio:', gain_loss_ratio)
+                    st.write('Max % Return on a Trade:', max_return)
+                    st.write('Max % Loss on a Trade:', max_loss)
+
+                # Class for SMA Crossover strategy
+                class SmaCross(bt.Strategy):
+                    params = dict(pfast=13, pslow=25)
+
+                    # Define trading strategy
+                    def __init__(self):
+                        sma1 = bt.ind.SMA(period=self.p.pfast)
+                        sma2 = bt.ind.SMA(period=self.p.pslow)
+                        self.crossover = bt.ind.CrossOver(sma1, sma2)
+
+                        # Custom trade tracking
+                        self.trade_data = []
+
+                    # Execute trades
+                    def next(self):
+                        # Trading the entire portfolio
+                        size = int(self.broker.get_cash() / self.data.close[0])
+
+                        if not self.position:
+                            if self.crossover > 0:
+                                self.buy(size=size)
+                                self.entry_bar = len(self)  # Record entry bar index
+                        elif self.crossover < 0:
+                            self.close()
+
+                    # Record trade details
+                    def notify_trade(self, trade):
+                        if trade.isclosed:
+                            exit_bar = len(self)
+                            holding_period = exit_bar - self.entry_bar
+                            trade_record = {
+                                'entry': self.entry_bar,
+                                'exit': exit_bar,
+                                'duration': holding_period,
+                                'profit': trade.pnl
+                            }
+                            self.trade_data.append(trade_record)
+
+                    # Caclulating holding periods
+                    def stop(self):
+                        # Calculate and st.write average holding periods
+                        total_holding = sum([trade['duration'] for trade in self.trade_data])
+                        total_trades = len(self.trade_data)
+                        avg_holding_period = round(total_holding / total_trades) if total_trades > 0 else 0
+
+                        # Calculating for winners and losers separately
+                        winners = [trade for trade in self.trade_data if trade['profit'] > 0]
+                        losers = [trade for trade in self.trade_data if trade['profit'] < 0]
+                        avg_winner_holding = round(sum(trade['duration'] for trade in winners) / len(winners))if winners else 0
+                        avg_loser_holding = round(sum(trade['duration'] for trade in losers) / len(losers)) if losers else 0
+
+                        # Display average holding period statistics
+                        st.write('Average Holding Period:', avg_holding_period)
+                        st.write('Average Winner Holding Period:', avg_winner_holding)
+                        st.write('Average Loser Holding Period:', avg_loser_holding)
+
+                    # Run backtest
+                run_backtest(SmaCross, ticker, start_date, end_date, TimeFrame.Day, portfolio)
+           
         if pred_option_portfolio_strategies == "Best Moving Averages Analysis":
-            pass
+            st.success("This portion allows you backtest a ticker for a period using the best moving averages Logic ")
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Define stock symbol and historical data range
+                symbol = ticker
+                num_of_years = years
+                start_date = start_date
+                end_date = end_date
+
+                # Fetch stock data using yfinance
+                data = yf.download(symbol, start=start_date, end=end_date)
+
+                # Calculate Simple Moving Averages (SMAs) for different periods
+                data['SMA_20'] = data['Close'].rolling(window=20).mean()
+                data['SMA_50'] = data['Close'].rolling(window=50).mean()
+                data['SMA_200'] = data['Close'].rolling(window=200).mean()
+
+                # Create interactive plot for stock price and its SMAs
+                fig_stock = go.Figure()
+                fig_stock.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Price'))
+                fig_stock.add_trace(go.Scatter(x=data.index, y=data['SMA_20'], mode='lines', name='20-period SMA'))
+                fig_stock.add_trace(go.Scatter(x=data.index, y=data['SMA_50'], mode='lines', name='50-period SMA'))
+                fig_stock.add_trace(go.Scatter(x=data.index, y=data['SMA_200'], mode='lines', name='200-period SMA'))
+
+                fig_stock.update_layout(title=f'{symbol} Stock Price and SMAs',
+                                        xaxis_title='Date',
+                                        yaxis_title='Price')
+
+                # Display the interactive plot
+                st.plotly_chart(fig_stock)
+
+                # Analysis to find the best SMA for predicting future returns
+                days_forward = 10
+                results = []
+
+                # Testing different SMA lengths
+                for sma_length in range(20, 500):
+                    data['SMA'] = data['Close'].rolling(sma_length).mean()
+                    data['Position'] = data['Close'] > data['SMA']
+                    data['Forward Close'] = data['Close'].shift(-days_forward)
+                    data['Forward Return'] = (data['Forward Close'] - data['Close']) / data['Close']
+                    
+                    # Splitting into training and test datasets
+                    train_data = data[:int(0.6 * len(data))]
+                    test_data = data[int(0.6 * len(data)):]
+                    
+                    # Calculating average forward returns
+                    train_return = train_data[train_data['Position']]['Forward Return'].mean()
+                    test_return = test_data[test_data['Position']]['Forward Return'].mean()
+                    
+                    # Statistical test
+                    p_value = ttest_ind(train_data[train_data['Position']]['Forward Return'],
+                                        test_data[test_data['Position']]['Forward Return'],
+                                        equal_var=False)[1]
+                    
+                    results.append({'SMA Length': sma_length, 
+                                    'Train Return': train_return, 
+                                    'Test Return': test_return, 
+                                    'p-value': p_value})
+
+                # Sorting results and printing the best SMA
+                best_result = sorted(results, key=lambda x: x['Train Return'], reverse=True)[0]
+                st.write(f"Best SMA Length: {best_result['SMA Length']}")
+                st.write(f"Train Return: {best_result['Train Return']:.4f}")
+                st.write(f"Test Return: {best_result['Test Return']:.4f}")
+                st.write(f"p-value: {best_result['p-value']:.4f}")
+
+                # Create interactive plot for the best SMA
+                data['Best SMA'] = data['Close'].rolling(best_result['SMA Length']).mean()
+                fig_best_sma = go.Figure()
+                fig_best_sma.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Price'))
+                fig_best_sma.add_trace(go.Scatter(x=data.index, y=data['Best SMA'], mode='lines', name=f"{best_result['SMA Length']} periods SMA"))
+
+                fig_best_sma.update_layout(title=f'{symbol} Stock Price and Best SMA',
+                                            xaxis_title='Date',
+                                            yaxis_title='Price')
+
+                # Display the interactive plot for the best SMA
+                st.plotly_chart(fig_best_sma)
+
         if pred_option_portfolio_strategies == "EMA Crossover Strategy":
-            pass
+            tickers = []
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+                tickers.append(ticker)
+            more_input = st.selectbox("Please Add one/more ticker(s) for comparison", ("","Yes", "No"))
+            if more_input == "Yes":
+                ticker_2 =  st.text_input("Enter another ticker to continue the investigation")
+                tickers.append(ticker_2)
+                portfolio = st.number_input("Enter the portfolio size in USD")
+                if portfolio:
+                    st.write(f"The portfolio size in USD Captured is : {portfolio}")
+                min_date = datetime(1980, 1, 1)
+                # Date input widget with custom minimum date
+                col1, col2 = st.columns([2, 2])
+                with col1:
+                    start_date = st.date_input("Start date:", min_value=min_date)
+                with col2:
+                    end_date = st.date_input("End Date:")
+                years = end_date.year - start_date.year
+                st.success(f"years captured : {years}")
+                if st.button("Check"):
+                
+                    # Define the analysis period
+                    num_of_years = years
+                    start =  start_date
+                    end = end_date
+
+                    # Define tickers for analysis
+
+                    # Fetch stock data using Yahoo Finance
+                    df = pdr.get_data_yahoo(tickers, start, end)['Close']
+
+                    # Calculate moving averages
+                    short_rolling = df.rolling(window=20).mean()
+                    long_rolling = df.rolling(window=100).mean()
+                    ema_short = df.ewm(span=20, adjust=False).mean()
+
+                    # Determine trading position based on EMA
+                    trade_positions_raw = df - ema_short
+                    trade_positions = trade_positions_raw.apply(np.sign) / 3  # Equal weighting
+                    trade_positions_final = trade_positions.shift(1)  # Shift to simulate next-day trading
+
+                    # Calculate asset and portfolio returns
+                    asset_log_returns = np.log(df).diff()
+                    portfolio_log_returns = trade_positions_final * asset_log_returns
+                    cumulative_portfolio_log_returns = portfolio_log_returns.cumsum()
+                    cumulative_portfolio_relative_returns = np.exp(cumulative_portfolio_log_returns) - 1
+
+                    # Plot cumulative returns
+                    cumulative_fig = go.Figure()
+                    for ticker in asset_log_returns:
+                        cumulative_fig.add_trace(go.Scatter(x=cumulative_portfolio_relative_returns.index,
+                                                            y=100 * cumulative_portfolio_relative_returns[ticker],
+                                                            mode='lines',
+                                                            name=ticker))
+
+                    cumulative_fig.update_layout(title='Cumulative Log Returns (%)',
+                                                xaxis_title='Date',
+                                                yaxis_title='Cumulative Log Returns (%)',
+                                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(cumulative_fig)
+
+                    # Comparing exact and approximate cumulative returns
+                    cumulative_return_exact = cumulative_portfolio_relative_returns.sum(axis=1)
+                    cumulative_log_return = cumulative_portfolio_log_returns.sum(axis=1)
+                    cumulative_return_approx = np.exp(cumulative_log_return) - 1
+
+                    # Plot exact vs approximate returns
+                    approx_fig = go.Figure()
+                    approx_fig.add_trace(go.Scatter(x=cumulative_return_exact.index,
+                                                    y=100 * cumulative_return_exact,
+                                                    mode='lines',
+                                                    name='Exact'))
+                    approx_fig.add_trace(go.Scatter(x=cumulative_return_approx.index,
+                                                    y=100 * cumulative_return_approx,
+                                                    mode='lines',
+                                                    name='Approx'))
+
+                    approx_fig.update_layout(title='Total Cumulative Relative Returns (%)',
+                                            xaxis_title='Date',
+                                            yaxis_title='Total Cumulative Relative Returns (%)',
+                                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(approx_fig)
+
+                    # Function to print portfolio statistics
+                    def print_portfolio_statistics(portfolio_returns, num_of_years):
+                        total_return = portfolio_returns[-1]
+                        avg_yearly_return = (1 + total_return) ** (1 / num_of_years) - 1
+                        st.write(f'Total Portfolio Return: {total_return * 100:.2f}%')
+                        st.write(f'Average Yearly Return: {avg_yearly_return * 100:.2f}%')
+
+                    # Printing statistics for EMA crossover strategy
+                    print_portfolio_statistics(cumulative_return_exact, num_of_years)
+            if more_input == "No":
+                st.error("The EMA crossover cannot proceed without a comparison")
+
         if pred_option_portfolio_strategies == "Factor Analysis":
-            pass
+            tickers = []
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+                tickers.append(ticker)
+            more_input = st.selectbox("Please Add one/more ticker(s) for comparison", ("","Yes", "No"))
+            if more_input == "Yes":
+                ticker_2 =  st.text_input("Enter another ticker to continue the investigation")
+                tickers.append(ticker_2)
+                portfolio = st.number_input("Enter the portfolio size in USD")
+                if portfolio:
+                    st.write(f"The portfolio size in USD Captured is : {portfolio}")
+                min_date = datetime(1980, 1, 1)
+                # Date input widget with custom minimum date
+                col1, col2 = st.columns([2, 2])
+                with col1:
+                    start_date = st.date_input("Start date:", min_value=min_date)
+                with col2:
+                    end_date = st.date_input("End Date:")
+                years = end_date.year - start_date.year
+                st.success(f"years captured : {years}")
+                if st.button("Check"):
+
+                    # Setting plot aesthetics
+                    sns.set(style='darkgrid', context='talk', palette='Dark2')
+
+                    # Defining the time frame for data collection
+                    end_date = dt.datetime.now()
+                    start_date = end_date - dt.timedelta(days=365 * 7)
+
+                    # List of stock symbols for factor analysis
+                    symbols = tickers
+
+                    # Fetching adjusted close prices for the specified symbols
+                    df = pd.DataFrame({symbol: yf.download(symbol, start_date, end_date)['Adj Close']
+                                    for symbol in symbols})
+
+                    # Initializing FactorAnalyzer and fitting it to our data
+                    fa = FactorAnalyzer(rotation=None, n_factors=df.shape[1])
+                    fa.fit(df.dropna())
+
+                    # Extracting communalities, eigenvalues, and factor loadings
+                    communalities = fa.get_communalities()
+                    eigenvalues, _ = fa.get_eigenvalues()
+                    loadings = fa.loadings_
+
+                    # Plotting the Scree plot to assess the number of factors
+                    # Plotting the Scree plot to assess the number of factors
+                    scree_fig = go.Figure()
+                    scree_fig.add_trace(go.Scatter(x=list(range(1, df.shape[1] + 1)),
+                                                y=eigenvalues,
+                                                mode='markers+lines',
+                                                name='Eigenvalues',
+                                                marker=dict(color='blue')))
+                    scree_fig.update_layout(title='Scree Plot',
+                                            xaxis_title='Number of Factors',
+                                            yaxis_title='Eigenvalue',
+                                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(scree_fig)
+
+                    # Bartlett's test of sphericity
+                    chi_square_value, p_value = calculate_bartlett_sphericity(df.dropna())
+                    st.write('Bartlett sphericity test:\nChi-square value:', chi_square_value, '\nP-value:', p_value)
+
+                    # Kaiser-Meyer-Olkin (KMO) test
+                    kmo_all, kmo_model = calculate_kmo(df.dropna())
+                    st.write('Kaiser-Meyer-Olkin (KMO) Test:\nOverall KMO:', kmo_all, '\nKMO per variable:', kmo_model)
+
+                    # Printing results
+                    st.write("\nFactor Analysis Results:")
+                    st.write("\nCommunalities:\n", communalities)
+                    st.write("\nFactor Loadings:\n", loadings)
+            if more_input == "No":
+                st.error("The EMA crossover cannot proceed without a comparison")
+
+
         if pred_option_portfolio_strategies == "Financial Signal Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis
+                index = 'SPY'  # S&P500 as the index for comparison
+                num_of_years = years  # Number of years for historical data
+                start = start_date
+
+                # Download historical stock prices
+                stock_data = yf.download(ticker, start=start)['Adj Close']
+                # Plotting stock prices and their distribution
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data.values, mode='lines', name=f'{ticker.upper()} Price'))
+                fig1.update_layout(title=f'{ticker.upper()} Price', xaxis_title='Date', yaxis_title='Price')
+                st.plotly_chart(fig1)
+
+                fig2 = go.Figure()
+                fig2.add_trace(go.Histogram(x=stock_data, name=f'{ticker.upper()} Price Distribution'))
+                fig2.update_layout(title=f'{ticker.upper()} Price Distribution', xaxis_title='Price', yaxis_title='Frequency')
+                st.plotly_chart(fig2)
+
+                # Calculating and plotting stock returns
+                stock_returns = stock_data.apply(np.log).diff(1)
+                fig3 = go.Figure()
+                fig3.add_trace(go.Scatter(x=stock_returns.index, y=stock_returns.values, mode='lines', name=f'{ticker.upper()} Returns'))
+                fig3.update_layout(title=f'{ticker.upper()} Returns', xaxis_title='Date', yaxis_title='Returns')
+                st.plotly_chart(fig3)
+
+                fig4 = go.Figure()
+                fig4.add_trace(go.Histogram(x=stock_returns, name=f'{ticker.upper()} Returns Distribution'))
+                fig4.update_layout(title=f'{ticker.upper()} Returns Distribution', xaxis_title='Returns', yaxis_title='Frequency')
+                st.plotly_chart(fig4)
+
+                # Rolling statistics for stock returns
+                rolling_window = 22
+                rolling_mean = stock_returns.rolling(rolling_window).mean()
+                rolling_std = stock_returns.rolling(rolling_window).std()
+                rolling_skew = stock_returns.rolling(rolling_window).skew()
+                rolling_kurtosis = stock_returns.rolling(rolling_window).kurt()
+
+                # Combining rolling statistics into a DataFrame
+                signals = pd.concat([rolling_mean, rolling_std, rolling_skew, rolling_kurtosis], axis=1)
+                signals.columns = ['Mean', 'Std Dev', 'Skewness', 'Kurtosis']
+
+                fig5 = go.Figure()
+                for col in signals.columns:
+                    fig5.add_trace(go.Scatter(x=signals.index, y=signals[col], mode='lines', name=col))
+                fig5.update_layout(title='Rolling Statistics for Stock Returns', xaxis_title='Date', yaxis_title='Value')
+                st.plotly_chart(fig5)
+
+                # Volatility analysis for S&P500
+                index_data = yf.download(index, start=start)['Adj Close']
+                index_returns = index_data.apply(np.log).diff(1)
+                index_volatility = index_returns.rolling(rolling_window).std()
+
+                # Drop NaN values from index_volatility
+                index_volatility.dropna(inplace=True)
+
+                # Gaussian Mixture Model on S&P500 volatility
+                gmm_labels = GaussianMixture(2).fit_predict(index_volatility.values.reshape(-1, 1))
+                index_data = index_data.reindex(index_volatility.index)
+
+                # Plotting volatility regimes
+                fig6 = go.Figure()
+                fig6.add_trace(go.Scatter(x=index_data[gmm_labels == 0].index,
+                                        y=index_data[gmm_labels == 0].values,
+                                        mode='markers',
+                                        marker=dict(color='blue'),
+                                        name='Regime 1'))
+                fig6.add_trace(go.Scatter(x=index_data[gmm_labels == 1].index,
+                                        y=index_data[gmm_labels == 1].values,
+                                        mode='markers',
+                                        marker=dict(color='red'),
+                                        name='Regime 2'))
+                fig6.update_layout(title=f'{index} Volatility Regimes (Gaussian Mixture)',
+                                xaxis_title='Date',
+                                yaxis_title='Price',
+                                showlegend=True)
+                st.plotly_chart(fig6)
         if pred_option_portfolio_strategies == "Geometric Brownian Motion":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis
+                num_of_years = years  # Number of years for historical data
+                start = start_date
+                stock = ticker
+                index = '^GSPC'
+
+                # Fetching historical data from Yahoo Finance
+                stock_data = pdr.get_data_yahoo(stock, start_date, end_date)
+                index_data = pdr.get_data_yahoo(index, start_date, end_date)
+
+                # Resampling data to monthly frequency and calculating returns
+                stock_monthly = stock_data.resample('M').last()
+                index_monthly = index_data.resample('M').last()
+                combined_data = pd.DataFrame({'Stock': stock_monthly['Adj Close'], 
+                                            'Index': index_monthly['Adj Close']})
+                combined_returns = combined_data.pct_change().dropna()
+
+                # Calculating covariance matrix for the returns
+                cov_matrix = np.cov(combined_returns['Stock'], combined_returns['Index'])
+
+                # Class for Geometric Brownian Motion simulation
+                class GBM:
+                    def __init__(self, initial_price, drift, volatility, time_period, total_time):
+                        self.initial_price = initial_price
+                        self.drift = drift
+                        self.volatility = volatility
+                        self.time_period = time_period
+                        self.total_time = total_time
+                        self.simulate()
+
+                    def simulate(self):
+                        self.prices = [self.initial_price]
+                        while self.total_time > 0:
+                            dS = self.prices[-1] * (self.drift * self.time_period + 
+                                                    self.volatility * np.random.normal(0, math.sqrt(self.time_period)))
+                            self.prices.append(self.prices[-1] + dS)
+                            self.total_time -= self.time_period
+
+                # Parameters for GBM simulation
+                num_simulations = 20
+                initial_price = stock_data['Adj Close'][-1]
+                drift = 0.24
+                volatility = math.sqrt(cov_matrix[0, 0])
+                time_period = 1 / 365
+                total_time = 1
+
+                # Running multiple GBM simulations
+                simulations = [GBM(initial_price, drift, volatility, time_period, total_time) for _ in range(num_simulations)]
+
+                # Plotting the simulations
+                fig = go.Figure()
+                for i, sim in enumerate(simulations):
+                    fig.add_trace(go.Scatter(x=np.arange(len(sim.prices)), y=sim.prices, mode='lines', name=f'Simulation {i+1}'))
+
+                fig.add_trace(go.Scatter(x=np.arange(len(sim.prices)), y=[initial_price] * len(sim.prices),
+                                        mode='lines', name='Initial Price', line=dict(color='red', dash='dash')))
+                fig.update_layout(title=f'Geometric Brownian Motion for {stock.upper()}',
+                                xaxis_title='Time Steps',
+                                yaxis_title='Price')
+                st.plotly_chart(fig)
+
+          
         if pred_option_portfolio_strategies == "Long Hold Stats Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis         
+                # Function to download stock data
+                def download_stock_data(symbol, start, end):
+                    return yf.download(symbol, start, end)['Adj Close']
+
+                # Function to calculate investment statistics
+                def calculate_investment_stats(df, investment_amount, symbol):
+                    # Calculate number of shares bought and investment values
+                    shares = int(investment_amount / df.iloc[0])
+                    begin_value = round(shares * df.iloc[0], 2)
+                    current_value = round(shares * df.iloc[-1], 2)
+
+                    # Calculate daily returns and various statistics
+                    returns = df.pct_change().dropna()
+                    stats = {
+                        'mean': round(returns.mean() * 100, 2),
+                        'std_dev': round(returns.std() * 100, 2),
+                        'skew': round(returns.skew(), 2),
+                        'kurt': round(returns.kurtosis(), 2),
+                        'total_return': round((1 + returns).cumprod().iloc[-1], 4) * 100
+                    }
+                    return shares, begin_value, current_value, stats
+
+                # User inputs
+                symbol = ticker
+                num_of_years = years
+                investment_amount = portfolio
+
+                # Calculate date range
+                start = dt.datetime.now() - dt.timedelta(days=int(365.25 * num_of_years))
+                end = dt.datetime.now()
+
+                # Download and process stock data
+                df = download_stock_data(ticker, start_date, end_date)
+                shares, begin_value, current_value, stats = calculate_investment_stats(df, investment_amount, symbol)
+
+                # Print statistics
+                st.write(f'\nNumber of Shares for {symbol}: {shares}')
+                st.write(f'Beginning Value: ${begin_value}')
+                st.write(f'Current Value: ${current_value}')
+                st.write(f"\nStatistics:\nMean: {stats['mean']}%\nStd. Dev: {stats['std_dev']}%\nSkew: {stats['skew']}\nKurt: {stats['kurt']}\nTotal Return: {stats['total_return']}%")
+
+                # Plotting returns and other statistics
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df.pct_change(), mode='lines', name='Daily Returns'))
+                fig.update_layout(title=f'{symbol} Daily Returns', xaxis_title='Date', yaxis_title='Returns')
+                st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "LS DCA Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Constants for analysis         
+                # Function to download stock data
+                def download_stock_data(symbol, start, end):
+                    return yf.download(symbol, start, end)['Adj Close']
+
+                # Function to calculate investment statistics
+                def calculate_investment_stats(df, investment_amount, symbol):
+                    # Calculate number of shares bought and investment values
+                    shares = int(investment_amount / df.iloc[0])
+                    begin_value = round(shares * df.iloc[0], 2)
+                    current_value = round(shares * df.iloc[-1], 2)
+
+                    # Calculate daily returns and various statistics
+                    returns = df.pct_change().dropna()
+                    stats = {
+                        'mean': round(returns.mean() * 100, 2),
+                        'std_dev': round(returns.std() * 100, 2),
+                        'skew': round(returns.skew(), 2),
+                        'kurt': round(returns.kurtosis(), 2),
+                        'total_return': round((1 + returns).cumprod().iloc[-1], 4) * 100
+                    }
+                    return shares, begin_value, current_value, stats
+
+                # User inputs
+                symbol = ticker
+                num_of_years = years
+                investment_amount = portfolio
+
+                # Calculate date range
+                start = dt.datetime.now() - dt.timedelta(days=int(365.25 * num_of_years))
+                end = dt.datetime.now()
+
+                # Download and process stock data
+                df = download_stock_data(ticker, start_date, end_date)
+                shares, begin_value, current_value, stats = calculate_investment_stats(df, investment_amount, symbol)
+
+                # Print statistics
+                st.write(f'\nNumber of Shares for {symbol}: {shares}')
+                st.write(f'Beginning Value: ${begin_value}')
+                st.write(f'Current Value: ${current_value}')
+                st.write(f"\nStatistics:\nMean: {stats['mean']}%\nStd. Dev: {stats['std_dev']}%\nSkew: {stats['skew']}\nKurt: {stats['kurt']}\nTotal Return: {stats['total_return']}%")
+
+                # Plotting returns and other statistics
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df.pct_change(), mode='lines', name='Daily Returns'))
+                fig.update_layout(title=f'{symbol} Daily Returns', xaxis_title='Date', yaxis_title='Returns')
+                st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "Monte Carlo":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+             
+                # Function to download stock data
+                def download_data(symbol, source, start, end):
+                    start = datetime.strptime(start, '%d-%m-%Y')
+                    end = datetime.strptime(end, '%d-%m-%Y')
+                    df = web.DataReader(symbol, data_source=source, start=start, end=end)
+                    return df
+
+                # Function to calculate annual volatility
+                def annual_volatility(df):
+                    quote = df['Close']
+                    returns = quote.pct_change()
+                    return returns.std() * np.sqrt(252)
+
+                # Function to calculate CAGR
+                def cagr(df):
+                    quote = df['Close']
+                    days = (quote.index[-1] - quote.index[0]).days
+                    return ((((quote[-1]) / quote[1])) ** (365.0/days)) - 1
+
+                # Monte Carlo Simulation Function
+                def monte_carlo_simulation(symbol, source, start, end, simulations, days_predicted):
+                    df = download_data(symbol, source, start, end)
+                    mu = cagr(df)
+                    vol = annual_volatility(df)
+                    start_price = df['Close'][-1]
+
+                    results = []
+                    
+                    # Run simulations
+                    for _ in range(simulations):
+                        prices = [start_price]
+                        for _ in range(days_predicted):
+                            shock = np.random.normal(mu / days_predicted, vol / math.sqrt(days_predicted))
+                            prices.append(prices[-1] * (1 + shock))
+                        results.append(prices[-1])
+
+                    return pd.DataFrame({
+                        "Results": results,
+                        "Percentile 5%": np.percentile(results, 5),
+                        "Percentile 95%": np.percentile(results, 95)
+                    })
+
+                # Main function
+                def main():
+                    st.title("Monte Carlo Simulation")
+                    
+                    symbol = ticker
+                    start_date = '01-01-2015'
+                    end_date = '01-01-2020'
+                    simulations = 1000
+                    days_predicted = 252
+
+                    # Perform Monte Carlo Simulation
+                    simulation_results = monte_carlo_simulation(symbol, 'yahoo', start_date, end_date, simulations, days_predicted)
+
+                    # Plotting
+                    fig = go.Figure()
+                    fig.add_trace(go.Histogram(x=simulation_results['Results'], histnorm='probability'))
+                    fig.update_layout(title=f"{symbol} Monte Carlo Simulation Histogram", xaxis_title="Price", yaxis_title="Probability Density")
+                    st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "Moving Average Crossover Signals":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Function to retrieve stock data
+                def get_stock_data(ticker, start_date, end_date):
+                    return yf.download(ticker, start_date, end_date)
+
+                # Function to calculate Simple Moving Averages (SMA)
+                def calculate_sma(data, window):
+                    return data['Close'].rolling(window=window).mean()
+
+                # Function to generate buy and sell signals
+                def generate_signals(data):
+                    signal_buy = []
+                    signal_sell = []
+                    flag = -1
+
+                    for i in range(len(data)):
+                        if data['SMA 50'][i] > data['SMA 200'][i] and flag != 1:
+                            signal_buy.append(data['Close'][i])
+                            signal_sell.append(np.nan)
+                            flag = 1
+                        elif data['SMA 50'][i] < data['SMA 200'][i] and flag != 0:
+                            signal_buy.append(np.nan)
+                            signal_sell.append(data['Close'][i])
+                            flag = 0
+                        else:
+                            signal_buy.append(np.nan)
+                            signal_sell.append(np.nan)
+
+                    return signal_buy, signal_sell
+
+                # Main function to run the analysis
+                def main():
+                    st.title("Stock Data Analysis with Moving Averages and Signals")
+
+                    ticker = st.text_input("Enter a ticker:")
+                    if not ticker:
+                        st.warning("Please enter a valid ticker.")
+                        return
+
+                    num_of_years = 6
+                    start_date = dt.datetime.now() - dt.timedelta(int(365.25 * num_of_years))
+                    end_date = dt.datetime.now()
+
+                    # Retrieve and process stock data
+                    stock_data = get_stock_data(ticker, start_date, end_date)
+                    stock_data['SMA 50'] = calculate_sma(stock_data, 50)
+                    stock_data['SMA 200'] = calculate_sma(stock_data, 200)
+
+                    # Generate buy and sell signals
+                    buy_signals, sell_signals = generate_signals(stock_data)
+
+                    # Plotting
+                    fig = go.Figure()
+
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Close'], mode='lines', name='Close Price'))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA 50'], mode='lines', name='SMA 50'))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['SMA 200'], mode='lines', name='SMA 200'))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=buy_signals, mode='markers', name='Buy Signal', marker=dict(symbol='triangle-up', color='green')))
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=sell_signals, mode='markers', name='Sell Signal', marker=dict(symbol='triangle-down', color='red')))
+
+                    fig.update_layout(title=f'{ticker.upper()} Close Price History with Buy & Sell Signals',
+                                    xaxis_title='Date',
+                                    yaxis_title='Close Price')
+
+                    st.plotly_chart(fig)
+         
         if pred_option_portfolio_strategies == "Moving Average Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+               
+                # Function to download stock data
+                def download_stock_data(ticker, start_date, end_date):
+                    return yf.download(ticker, start_date, end_date)
+
+                # Function to calculate moving averages
+                def calculate_moving_averages(data, windows):
+                    for window in windows:
+                        data[f'SMA_{window}'] = data['Adj Close'].rolling(window).mean()
+                    return data
+
+                # Main function
+                def main():
+                    st.title("Stock Data Analysis with Moving Averages")
+
+                    ticker = st.text_input("Enter a ticker:")
+                    if not ticker:
+                        st.warning("Please enter a valid ticker.")
+                        return
+
+                    num_of_years = 6
+                    start_date = dt.datetime.now() - dt.timedelta(int(365.25 * num_of_years))
+                    end_date = dt.datetime.now()
+
+                    # Download and process stock data
+                    stock_data = download_stock_data(ticker, start_date, end_date)
+                    stock_data = calculate_moving_averages(stock_data, [20, 40, 80])
+
+                    # Plotting
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Adj Close'], mode='lines', name='Close Price'))
+                    for window in [20, 40, 80]:
+                        fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[f'SMA_{window}'], mode='lines', name=f'{window}-days SMA'))
+                    
+                    fig.update_layout(title=f'{ticker.upper()} Close Price with Moving Averages',
+                                    xaxis_title='Date',
+                                    yaxis_title='Close Price')
+
+                    st.plotly_chart(fig)
+
         if pred_option_portfolio_strategies == "Optimal Portfolio":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Function to download stock data and calculate annual returns
+                def annual_returns(symbols, start_date, end_date):
+                    df = yf.download(symbols, start_date, end_date)['Adj Close']
+                    log_rets = np.log(df / df.shift(1))
+                    return np.exp(log_rets.groupby(log_rets.index.year).sum()) - 1
+
+                # Function to calculate portfolio variance
+                def portfolio_var(returns, weights):
+                    cov_matrix = np.cov(returns.T)
+                    return np.dot(weights.T, np.dot(cov_matrix, weights))
+
+                # Function to calculate Sharpe ratio
+                def sharpe_ratio(returns, weights, rf_rate):
+                    portfolio_return = np.dot(returns.mean(), weights)
+                    portfolio_volatility = np.sqrt(portfolio_var(returns, weights))
+                    return (portfolio_return - rf_rate) / portfolio_volatility
+
+                # Function to optimize portfolio for maximum Sharpe ratio
+                def optimize_portfolio(returns, initial_weights, rf_rate):
+                    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+                    bounds = tuple((0, 1) for _ in range(len(initial_weights)))
+                    optimized = fmin(lambda x: -sharpe_ratio(returns, x, rf_rate), initial_weights, disp=False)
+                    return optimized
+
+                # Main function to execute the script
+                def main():
+                    st.title("Optimal Portfolio Optimization")
+
+                    symbols = st.text_input("Enter stock symbols (comma-separated):")
+                    start_date = st.date_input("Enter start date:")
+                    end_date = st.date_input("Enter end date:")
+                    rf_rate = st.number_input("Enter risk-free rate (in decimal):", min_value=0.0, value=0.003)
+
+                    if not symbols or not start_date or not end_date:
+                        st.warning("Please provide all required inputs.")
+                        return
+
+                    symbols = symbols.split(',')
+
+                    # Calculate annual returns
+                    returns = annual_returns(symbols, start_date, end_date)
+
+                    # Initialize equal weights
+                    initial_weights = np.ones(len(symbols)) / len(symbols)
+
+                    # Calculate equal weighted portfolio Sharpe ratio
+                    equal_weighted_sharpe = sharpe_ratio(returns, initial_weights, rf_rate)
+                    
+                    # Optimize portfolio
+                    optimal_weights = optimize_portfolio(returns, initial_weights, rf_rate)
+                    optimal_sharpe = sharpe_ratio(returns, optimal_weights, rf_rate)
+
+                    # Display results
+                    st.write(f"Equal Weighted Portfolio Sharpe Ratio: {equal_weighted_sharpe}")
+                    st.write(f"Optimal Portfolio Weights: {optimal_weights}")
+                    st.write(f"Optimal Portfolio Sharpe Ratio: {optimal_sharpe}")
+
+      
         if pred_option_portfolio_strategies == "Optimized Bollinger Bands":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+            # Function to download stock data from Yahoo Finance
+                def get_stock_data(ticker):
+                    df = yf.download(ticker)
+                    df = df[['Adj Close']]
+                    return df
+
+                # Function to add Bollinger Bands to DataFrame
+                def add_bollinger_bands(df, window_size=20, num_std_dev=2):
+                    df['SMA'] = df['Adj Close'].rolling(window=window_size).mean()
+                    df['Upper Band'] = df['SMA'] + (df['Adj Close'].rolling(window=window_size).std() * num_std_dev)
+                    df['Lower Band'] = df['SMA'] - (df['Adj Close'].rolling(window=window_size).std() * num_std_dev)
+                    return df
+
+                # Function to plot stock prices with Bollinger Bands
+                def plot_with_bollinger_bands(df, ticker):
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Adj Close'], mode='lines', name=f'{ticker} Adjusted Close'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['SMA'], mode='lines', name='20 Day SMA'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Upper Band'], mode='lines', name='Upper Bollinger Band'))
+                    fig.add_trace(go.Scatter(x=df.index, y=df['Lower Band'], mode='lines', name='Lower Bollinger Band'))
+                    fig.update_layout(title=f'{ticker} Stock Price with Bollinger Bands',
+                                    xaxis_title='Date',
+                                    yaxis_title='Price')
+                    st.plotly_chart(fig)
+
+                # Main function to execute the script
+                st.title("Stock Price with Bollinger Bands")
+
+                ticker = st.text_input("Enter stock ticker:")
+                if not ticker:
+                    st.warning("Please enter a valid ticker.")
+                    return
+
+                df = get_stock_data(ticker)
+                df = add_bollinger_bands(df)
+
+                plot_with_bollinger_bands(df, ticker)
+
         if pred_option_portfolio_strategies == "Pairs Trading":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+    
+                # Function to download stock data from Yahoo Finance
+                def download_stock_data(symbols, start_date, end_date):
+                    """Download historical stock data for given symbols from Yahoo Finance."""
+                    stock_data = yf.download(symbols, start=start_date, end=end_date)['Adj Close']
+                    return stock_data.dropna()
+
+                # Function to identify cointegrated pairs of stocks
+                def find_cointegrated_pairs(data):
+                    """Identify cointegrated pairs of stocks."""
+                    n = data.shape[1]
+                    score_matrix, pvalue_matrix = np.zeros((n, n)), np.ones((n, n))
+                    pairs = []
+                    for i in range(n):
+                        for j in range(i+1, n):
+                            S1, S2 = data[data.columns[i]], data[data.columns[j]]
+                            _, pvalue, _ = coint(S1, S2)
+                            score_matrix[i, j], pvalue_matrix[i, j] = _, pvalue
+                            if pvalue < 0.05:  # Using a p-value threshold of 0.05
+                                pairs.append((data.columns[i], data.columns[j]))
+                    return score_matrix, pvalue_matrix, pairs
+
+                # Function to plot heatmap of p-values for cointegration test using Plotly
+                def plot_cointegration_heatmap(pvalues, tickers):
+                    """Plot heatmap of p-values for cointegration test."""
+                    fig = go.Figure(data=go.Heatmap(
+                        z=pvalues,
+                        x=tickers,
+                        y=tickers,
+                        colorscale='Viridis',
+                        zmin=0,
+                        zmax=0.05
+                    ))
+                    fig.update_layout(title="P-Values for Pairs Cointegration Test")
+                    return fig
+
+                # Pairs Trading Section
+                def pairs_trading():
+                    st.title("Pairs Trading")
+
+                    # Inputs
+                    ticker = st.text_input("Please enter the ticker needed for investigation")
+                    portfolio = st.number_input("Enter the portfolio size in USD")
+                    min_date = datetime.datetime(1980, 1, 1)
+                    start_date = st.date_input("Start date:", min_value=min_date)
+                    end_date = st.date_input("End Date:")
+                    years = end_date.year - start_date.year
+
+                    if st.button("Check"):
+                        # Download and process data
+                        data = download_stock_data([ticker], start_date, end_date)
+
+                        # Find cointegrated pairs
+                        _, pvalues, pairs = find_cointegrated_pairs(data)
+
+                        # Plot heatmap of p-values
+                        fig = plot_cointegration_heatmap(pvalues, [ticker])
+                        st.plotly_chart(fig)
+
+                        # Display the found pairs
+                        st.write("Cointegrated Pairs:", pairs)
+                  
         if pred_option_portfolio_strategies == "Portfolio Analysis":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"): 
+                # Override yfinance with Pandas Datareader's Yahoo Finance API
+                yf.pdr_override()
+
+                def get_historical_prices(symbols, start_date, end_date):
+                    """Retrieve historical stock prices for specified symbols."""
+                    return yf.download(symbols, start=start_date, end=end_date)['Adj Close']
+
+                def calculate_daily_returns(prices):
+                    """Calculate daily returns from stock prices."""
+                    return np.log(prices / prices.shift(1))
+
+                def calculate_monthly_returns(daily_returns):
+                    """Calculate monthly returns from daily returns."""
+                    return np.exp(daily_returns.groupby(lambda date: date.month).sum()) - 1
+
+                def calculate_annual_returns(daily_returns):
+                    """Calculate annual returns from daily returns."""
+                    return np.exp(daily_returns.groupby(lambda date: date.year).sum()) - 1
+
+                def portfolio_variance(returns, weights=None):
+                    """Calculate the variance of a portfolio."""
+                    if weights is None:
+                        weights = np.ones(len(returns.columns)) / len(returns.columns)
+                    covariance_matrix = np.cov(returns.T)
+                    return np.dot(weights, np.dot(covariance_matrix, weights))
+
+                def sharpe_ratio(returns, weights=None, risk_free_rate=0.001):
+                    """Calculate the Sharpe ratio of a portfolio."""
+                    if weights is None:
+                        weights = np.ones(len(returns.columns)) / len(returns.columns)
+                    port_var = portfolio_variance(returns, weights)
+                    port_return = np.dot(returns.mean(), weights)
+                    return (port_return - risk_free_rate) / np.sqrt(port_var)
+
+                # Example usage
+                symbols = ['AAPL', 'MSFT', 'GOOGL']
+                start_date = dt.datetime.now() - dt.timedelta(days=365*5)
+                end_date = dt.datetime.now()
+
+                # Fetch historical data
+                historical_prices = get_historical_prices(symbols, start_date, end_date)
+
+                # Calculate returns
+                daily_returns = calculate_daily_returns(historical_prices)
+                monthly_returns = calculate_monthly_returns(daily_returns)
+                annual_returns = calculate_annual_returns(daily_returns)
+
+                # Calculate portfolio metrics
+                portfolio_variance = portfolio_variance(annual_returns)
+                portfolio_sharpe_ratio = sharpe_ratio(daily_returns)
+
+                # Display results
+                st.write(f"Portfolio Variance: {portfolio_variance}")
+                st.write(f"Portfolio Sharpe Ratio: {portfolio_sharpe_ratio}")
+
+                # Plot historical prices using Plotly
+                fig = go.Figure()
+                for symbol in symbols:
+                    fig.add_trace(go.Scatter(x=historical_prices.index, y=historical_prices[symbol], mode='lines', name=symbol))
+
+                fig.update_layout(title="Historical Prices",
+                                xaxis_title="Date",
+                                yaxis_title="Adjusted Closing Price",
+                                legend_title="Symbols")
+                st.plotly_chart(fig)
+
+
         if pred_option_portfolio_strategies == "Portfolio Optimization":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+
+
+                # Registering converters for using matplotlib's plot_date() function.
+                register_matplotlib_converters()
+
+                # Setting display options for pandas
+                pd.set_option("display.max_columns", None)
+                pd.set_option("display.max_rows", None)
+
+                # Defining stocks to include in the portfolio
+                stocks = ["SCHB", "AAPL", "AMZN", "TSLA", "AMD", "MSFT", "NFLX"]
+
+                # Getting historical data from Yahoo Finance
+                start = datetime.date(2020, 8, 13)
+                end = datetime.datetime.now()
+                df = pdr.get_data_yahoo(stocks, start=start, end=end)["Close"]
+
+                # Calculating daily returns of each stock
+                returns = df.pct_change()
+
+                # Define a function to generate random portfolios
+                def random_portfolios(num_portfolios, mean_returns, cov_matrix, risk_free_rate):
+                    results = np.zeros((3, num_portfolios))
+                    weights_record = []
+                    for i in range(num_portfolios):
+                        weights = np.random.random(n)
+                        weights /= np.sum(weights)
+                        weights_record.append(weights)
+                        portfolio_std_dev, portfolio_return = portfolio_performance(
+                            weights, mean_returns, cov_matrix
+                        )
+                        results[0, i] = portfolio_std_dev
+                        results[1, i] = portfolio_return
+                        results[2, i] = (portfolio_return - risk_free_rate) / portfolio_std_dev
+                    return results, weights_record
+
+                # Calculating mean returns and covariance matrix of returns
+                mean_returns = returns.mean()
+                cov_matrix = returns.cov()
+
+                # Setting the number of random portfolios to generate and the risk-free rate
+                num_portfolios = 50000
+                risk_free_rate = 0.021
+
+                # Define a function to calculate the negative Sharpe ratio
+                def neg_sharpe_ratio(weights, mean_returns, cov_matrix, risk_free_rate):
+                    p_var, p_ret = portfolio_performance(weights, mean_returns, cov_matrix)
+                    return -(p_ret - risk_free_rate) / p_var
+
+                # Define a function to find the portfolio with maximum Sharpe ratio
+                def max_sharpe_ratio(mean_returns, cov_matrix, risk_free_rate):
+                    num_assets = len(mean_returns)
+                    args = (mean_returns, cov_matrix, risk_free_rate)
+                    constraints = {"type": "eq", "fun": lambda x: np.sum(x) - 1}
+                    bound = (0.0, 1.0)
+                    bounds = tuple(bound for asset in range(num_assets))
+                    result = sco.minimize(
+                        neg_sharpe_ratio,
+                        num_assets
+                        * [
+                            1.0 / num_assets,
+                        ],
+                        args=args,
+                        method="SLSQP",
+                        bounds=bounds,
+                        constraints=constraints,
+                    )
+                    return result
+
+                # Helper function to calculate portfolio performance
+                def portfolio_performance(weights, mean_returns, cov_matrix):
+                    returns = np.sum(mean_returns * weights) * 252
+                    std_dev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(252)
+                    return std_dev, returns
+
+                # Calculate portfolio volatility
+                def portfolio_volatility(weights, mean_returns, cov_matrix):
+                    return portfolio_performance(weights, mean_returns, cov_matrix)[0]
+
+                # Function to find portfolio with minimum variance
+                def min_variance(mean_returns, cov_matrix):
+                    num_assets = len(mean_returns)
+                    args = (mean_returns, cov_matrix)
+                    bounds = tuple((0.0, 1.0) for asset in range(num_assets))
+                    constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+
+                    result = sco.minimize(portfolio_volatility, [1./num_assets]*num_assets,
+                                        args=args, method='SLSQP', bounds=bounds, constraints=constraints)
+                    return result
+
+                # Function to calculate efficient return
+                def efficient_return(mean_returns, cov_matrix, target_return):
+                    num_assets = len(mean_returns)
+                    args = (mean_returns, cov_matrix)
+                    bounds = tuple((0.0, 1.0) for asset in range(num_assets))
+                    constraints = [{'type': 'eq', 'fun': lambda x: portfolio_performance(x, mean_returns, cov_matrix)[1] - target_return},
+                                {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}]
+
+                    result = sco.minimize(portfolio_volatility, [1./num_assets]*num_assets,
+                                        args=args, method='SLSQP', bounds=bounds, constraints=constraints)
+                    return result
+
+                # Function to construct efficient frontier
+                def efficient_frontier(mean_returns, cov_matrix, returns_range):
+                    efficient_portfolios = []
+                    for ret in returns_range:
+                        efficient_portfolios.append(efficient_return(mean_returns, cov_matrix, ret))
+                    return efficient_portfolios
+
+                # Calculating efficient frontier
+                target_returns = np.linspace(0.0, 0.5, 100)
+                efficient_portfolios = efficient_frontier(mean_returns, cov_matrix, target_returns)
+
+                # Extracting volatility and return for each portfolio
+                volatility = [p['fun'] for p in efficient_portfolios]
+                returns = [portfolio_performance(p['x'], mean_returns, cov_matrix)[1] for p in efficient_portfolios]
+
+                # Plotting the efficient frontier
+                fig_efficient_frontier = go.Figure()
+                fig_efficient_frontier.add_trace(go.Scatter(x=volatility, y=returns, mode='lines', name='Efficient Frontier'))
+                fig_efficient_frontier.add_trace(go.Scatter(x=[p['fun'] for p in min_variance(mean_returns, cov_matrix)], y=[p['x'].mean() for p in min_variance(mean_returns, cov_matrix)], mode='markers', marker=dict(size=10, color='red'), name='Minimum Variance Portfolio'))
+                fig_efficient_frontier.update_layout(title='Efficient Frontier', xaxis_title='Volatility', yaxis_title='Return')
+                st.plotly_chart(fig_efficient_frontier)
+
         if pred_option_portfolio_strategies == "Portfolio VAR Simulation":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Define the tickers and time parameters
+                tickers = ['GOOGL', 'FB', 'AAPL', 'NFLX', 'AMZN']
+                Time = 1440  # Number of trading days in minutes
+                pvalue = 1000  # Portfolio value in dollars
+                num_of_years = 3
+                start_date = dt.datetime.now() - dt.timedelta(days=365.25 * num_of_years)
+                end_date = dt.datetime.now()
+
+                # Fetching and preparing stock data
+                price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
+                df_stocks = pd.concat(price_data, axis=1)
+                df_stocks.columns = tickers
+
+                # Calculating expected returns and covariance matrix
+                mu = expected_returns.mean_historical_return(df_stocks)
+                Sigma = risk_models.sample_cov(df_stocks)
+
+                # Portfolio Optimization using Efficient Frontier
+                ef = EfficientFrontier(mu, Sigma, weight_bounds=(0,1))
+                sharpe_pwt = ef.max_sharpe()
+                cleaned_weights = ef.clean_weights()
+
+                # Plotting Cumulative Returns of All Stocks
+                cum_returns = ((df_stocks.pct_change() + 1).cumprod() - 1)
+                fig_cum_returns = go.Figure()
+                for column in cum_returns.columns:
+                    fig_cum_returns.add_trace(go.Scatter(x=cum_returns.index, y=cum_returns[column], mode='lines', name=column))
+                fig_cum_returns.update_layout(title='Cumulative Returns', xaxis_title='Date', yaxis_title='Cumulative Returns')
+                st.plotly_chart(fig_cum_returns)
+
+                # Portfolio VaR Simulation
+                ticker_returns = cum_returns.pct_change().dropna()
+                weighted_returns = ticker_returns.dot(np.array(list(cleaned_weights.values())))
+                portfolio_return = weighted_returns.mean()
+                portfolio_vol = weighted_returns.std()
+
+                # Simulating daily returns for VAR calculation
+                simulated_daily_returns = [np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), Time) for _ in range(10000)]
+
+                # Plotting Range of Returns in a Day
+                fig_returns_range = go.Figure()
+                for i in range(10000):
+                    fig_returns_range.add_trace(go.Scatter(y=simulated_daily_returns[i], mode='lines', name=f'Simulation {i+1}'))
+                fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 5), mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 95), mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                fig_returns_range.add_trace(go.Scatter(y=np.mean(simulated_daily_returns), mode='lines', name='Mean', line=dict(color='blue')))
+                fig_returns_range.update_layout(title=f'Range of Returns in a Day of {Time} Minutes', xaxis_title='Minute', yaxis_title='Returns')
+                st.plotly_chart(fig_returns_range)
+
+                # Histogram of Daily Returns
+                fig_hist_returns = go.Figure()
+                fig_hist_returns.add_trace(go.Histogram(x=simulated_daily_returns.flatten(), nbinsx=15))
+                fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 5), np.percentile(simulated_daily_returns, 5)], y=[0, 1500], mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 95), np.percentile(simulated_daily_returns, 95)], y=[0, 1500], mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                fig_hist_returns.update_layout(title='Histogram of Daily Returns', xaxis_title='Returns', yaxis_title='Frequency')
+                st.plotly_chart(fig_hist_returns)
+
+                # Printing VaR results
+                st.write(f"5th Percentile: {np.percentile(simulated_daily_returns, 5)}")
+                st.write(f"95th Percentile: {np.percentile(simulated_daily_returns, 95)}")
+                st.write(f"Amount required to cover minimum losses for one day: ${pvalue * -np.percentile(simulated_daily_returns, 5)}")
+
+
         if pred_option_portfolio_strategies == "Risk Management":
-            pass
-        if pred_option_portfolio_strategies == "Robinhood Bot":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                               
+                # Define the start and end dates for data retrieval
+                start = dt.datetime(2019, 1, 1)
+                now = dt.datetime.now()
+
+                # Define the moving averages and exponential moving averages to be used
+                smaUsed = [50, 200]
+                emaUsed = [21]
+
+                # User inputs for stock ticker and position
+                stock = st.text_input("Enter a ticker: ")
+                position = st.selectbox("Buy or Short?", ["Buy", "Short"]).lower()
+                AvgGain = st.number_input("Enter Your Average Gain (%)", value=0.0, step=0.1)
+                AvgLoss = st.number_input("Enter Your Average Loss (%)", value=0.0, step=0.1)
+
+                # Fetch historical data from Yahoo Finance
+                df = yf.download(stock, start=start, end=now)
+
+                # Calculate the maximum stop value and target returns based on user's position
+                if position == "buy":
+                    close = df["Adj Close"][-1]
+                    maxStop = close * (1 - AvgLoss / 100)
+                    targets = [round(close * (1 + (i * AvgGain / 100)), 2) for i in range(1, 4)]
+                elif position == "short":
+                    close = df["Adj Close"][-1]
+                    maxStop = close * (1 + AvgLoss / 100)
+                    targets = [round(close * (1 - (i * AvgGain / 100)), 2) for i in range(1, 4)]
+
+                # Calculate SMA and EMA for the stock
+                for x in smaUsed:
+                    df[f"SMA_{x}"] = df["Adj Close"].rolling(window=x).mean()
+                for x in emaUsed:
+                    df[f"EMA_{x}"] = df["Adj Close"].ewm(span=x, adjust=False).mean()
+
+                # Fetching the latest values of SMA, EMA, and 5 day low
+                sma_values = {f"SMA_{x}": round(df[f"SMA_{x}"][-1], 2) for x in smaUsed}
+                ema_values = {f"EMA_{x}": round(df[f"EMA_{x}"][-1], 2) for x in emaUsed}
+                low5 = round(min(df["Low"].tail(5)), 2)
+
+                # Calculate the performance metrics and checks
+                performance_checks = {}
+                for key, value in {**sma_values, **ema_values, "Low_5": low5}.items():
+                    pf = round(((close / value) - 1) * 100, 2)
+                    check = value > maxStop if position == "buy" else value < maxStop
+                    performance_checks[key] = {"Performance": pf, "Check": check}
+
+                # Displaying the results
+                st.write(f"Current Stock: {stock} | Price: {round(close, 2)}")
+                st.write(" | ".join([f"{key}: {value}" for key, value in {**sma_values, **ema_values, 'Low_5': low5}.items()]))
+                st.write("-------------------------------------------------")
+                st.write(f"Max Stop: {round(maxStop, 2)}")
+                st.write(f"Price Targets: 1R: {targets[0]} | 2R: {targets[1]} | 3R: {targets[2]}")
+                for key, value in performance_checks.items():
+                    st.write(f"From {key} {value['Performance']}% - {'Within' if value['Check'] else 'Outside'} Max Stop")
+
+
         if pred_option_portfolio_strategies == "RSI Trendline Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Override the yfinance module
+                yf.pdr_override()
+
+                # Define the date range for data retrieval
+                num_of_years = 10
+                start = datetime.datetime.now() - datetime.timedelta(days=365.25 * num_of_years)
+                end = datetime.datetime.now()
+
+                # Load stock symbols
+                @st.cache
+                def load_tickers():
+                    stocklist = ti.tickers_sp500()
+                    return [stock.replace(".", "-") for stock in stocklist]  # Adjusting ticker format for Yahoo Finance
+
+                stocklist = load_tickers()
+
+                # Initialize the DataFrame for exporting results
+                exportList = pd.DataFrame(columns=['Stock', "RSI", "200 Day MA"])
+
+                # Process a limited number of stocks for demonstration
+                for stock in stocklist[:5]:
+                    time.sleep(1.5)  # To avoid hitting API rate limits
+                    st.write(f"\npulling {stock}")
+
+                    # Fetch stock data
+                    df = pdr.get_data_yahoo(stock, start=start, end=end)
+
+                    try:
+                        # Calculate indicators: 200-day MA, RSI
+                        df["SMA_200"] = df.iloc[:, 4].rolling(window=200).mean()
+                        df["rsi"] = ta.RSI(df["Close"])
+                        currentClose, moving_average_200, RSI = df["Adj Close"][-1], df["SMA_200"][-1], df["rsi"].tail(14).mean()
+                        two_day_rsi_avg = (df.rsi[-1] + df.rsi[-2]) / 2
+
+                        # Define entry criteria
+                        if currentClose > moving_average_200 and two_day_rsi_avg < 33:
+                            exportList = exportList.append({'Stock': stock, "RSI": RSI, "200 Day MA": moving_average_200}, ignore_index=True)
+                            st.write(f"{stock} made the requirements")
+
+                    except Exception as e:
+                        st.write(e)  # Handling exceptions
+
+                # Displaying the exported list
+                st.write(exportList)
+
+
         if pred_option_portfolio_strategies == "RWB Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+        
+                yf.pdr_override()
+
+                emas_used = [3, 5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60]
+
+                def get_stock_data(ticker, num_of_years):
+                    start_date = dt.date.today() - dt.timedelta(days=365.25 * num_of_years)
+                    end_date = dt.datetime.now()
+                    df = pdr.get_data_yahoo(ticker, start_date, end_date).dropna()
+                    for ema in emas_used:
+                        df[f"Ema_{ema}"] = df.iloc[:, 4].ewm(span=ema, adjust=False).mean()
+                    return df.iloc[60:]
+
+                def rwb_strategy(df):
+                    pos, num, percent_change = 0, 0, []
+                    for i in df.index:
+                        cmin = min(df[f"Ema_{ema}"][i] for ema in emas_used[:6])
+                        cmax = max(df[f"Ema_{ema}"][i] for ema in emas_used[6:])
+                        close = df["Adj Close"][i]
+                        if cmin > cmax and pos == 0:
+                            bp, pos = close, 1
+                            st.write(f"Buying now at {bp}")
+                        elif cmin < cmax and pos == 1:
+                            pos, sp = 0, close
+                            st.write(f"Selling now at {sp}")
+                            percent_change.append((sp / bp - 1) * 100)
+                        if num == df["Adj Close"].count() - 1 and pos == 1:
+                            pos, sp = 0, close
+                            st.write(f"Selling now at {sp}")
+                            percent_change.append((sp / bp - 1) * 100)
+                        num += 1
+                    return percent_change
+
+                st.title("RWB Strategy Visualization")
+
+                stock = st.text_input("Enter a ticker:", "AAPL")
+                num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
+
+                df = get_stock_data(stock, num_of_years)
+                percent_change = rwb_strategy(df)
+
+                gains = sum(i for i in percent_change if i > 0)
+                losses = sum(i for i in percent_change if i < 0)
+                total_trades = len(percent_change)
+                total_return = round((np.prod([1 + i/100 for i in percent_change]) - 1) * 100, 2)
+
+                st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
+                st.write(f"Number of Trades: {total_trades}")
+                st.write(f"Total return: {total_return}%")
+
+                fig = go.Figure()
+                for ema in emas_used:
+                    fig.add_trace(go.Scatter(x=df.index, y=df[f"Ema_{ema}"], mode='lines', name=f"Ema_{ema}"))
+                fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name="Adj Close", line=dict(color='green')))
+                fig.update_layout(title=f"RWB Strategy for {stock.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
+                st.plotly_chart(fig)
+
+
+        
         if pred_option_portfolio_strategies == "SMA Trading Strategy":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Define the function to get historical data
+                def get_stock_data(stock, num_of_years):
+                    start = dt.date.today() - dt.timedelta(days=365 * num_of_years)
+                    end = dt.datetime.now()
+                    return yf.download(stock, start, end, interval='1d')
+
+                # Define the function for SMA Trading Strategy
+                def sma_trading_strategy(df, short_sma, long_sma):
+                    df[f"SMA_{short_sma}"] = df['Adj Close'].rolling(window=short_sma).mean()
+                    df[f"SMA_{long_sma}"] = df['Adj Close'].rolling(window=long_sma).mean()
+
+                    position = 0
+                    percent_change = []
+                    for i in df.index:
+                        close = df['Adj Close'][i]
+                        SMA_short = df[f"SMA_{short_sma}"][i]
+                        SMA_long = df[f"SMA_{long_sma}"][i]
+
+                        if SMA_short > SMA_long and position == 0:
+                            buyP, position = close, 1
+                            st.write("Buy at the price:", buyP)
+                        elif SMA_short < SMA_long and position == 1:
+                            sellP, position = close, 0
+                            st.write("Sell at the price:", sellP)
+                            percent_change.append((sellP / buyP - 1) * 100)
+
+                    if position == 1:
+                        position = 0
+                        sellP = df['Adj Close'][-1]
+                        st.write("Sell at the price:", sellP)
+                        percent_change.append((sellP / buyP - 1) * 100)
+
+                    return percent_change
+
+                # Main script
+                st.title("SMA Trading Strategy Visualization")
+
+                stock = st.text_input("Enter a ticker:", "NFLX")
+                num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
+                short_sma = st.number_input("Enter short SMA:", min_value=1, value=20)
+                long_sma = st.number_input("Enter long SMA:", min_value=1, value=50)
+
+                df = get_stock_data(stock, num_of_years)
+                percent_change = sma_trading_strategy(df, short_sma, long_sma)
+                current_price = round(df['Adj Close'][-1], 2)
+
+                # Calculate strategy statistics
+                gains = 0
+                numGains = 0
+                losses = 0
+                numLosses = 0
+                totReturn = 1
+                for i in percent_change:
+                    if i > 0:
+                        gains += i
+                        numGains += 1
+                    else:
+                        losses += i
+                        numLosses += 1
+                    totReturn = totReturn * ((i / 100) + 1)
+                totReturn = round((totReturn - 1) * 100, 2)
+
+                # Plot SMA and Adj Close
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df.index, y=df[f"SMA_{short_sma}"], mode='lines', name=f"SMA_{short_sma}"))
+                fig.add_trace(go.Scatter(x=df.index, y=df[f"SMA_{long_sma}"], mode='lines', name=f"SMA_{long_sma}"))
+                fig.add_trace(go.Scatter(x=df.index, y=df['Adj Close'], mode='lines', name="Adj Close", line=dict(color='green')))
+                fig.update_layout(title=f"SMA Trading Strategy for {stock.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
+                st.plotly_chart(fig)
+
+                # Display strategy statistics
+                st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
+                st.write(f"Number of Trades: {numGains + numLosses}")
+                st.write(f"Total return: {totReturn}%")
+
+ 
+        
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                # Function to fetch stock data
+                def fetch_stock_data(tickers, start_date, end_date):
+                    data = pdr.get_data_yahoo(tickers, start=start_date, end=end_date)['Adj Close']
+                    data.index = pd.to_datetime(data.index)
+                    return data
+
+                # Function to plot the spread of two stocks
+                def plot_stock_spread(df, ticker1, ticker2, threshold=0.5, stop_loss=1):
+                    spread = df[ticker1] - df[ticker2]
+                    mean_spread = spread.mean()
+                    sell_threshold = mean_spread + threshold
+                    buy_threshold = mean_spread - threshold
+                    sell_stop = mean_spread + stop_loss
+                    buy_stop = mean_spread - stop_loss
+
+                    sns.set(style='white')
+                    fig, axes = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [2, 1]})
+                    df[[ticker1, ticker2]].plot(ax=axes[0])
+                    spread.plot(ax=axes[1], color='#85929E', linewidth=1.2)
+
+                    axes[1].axhline(sell_threshold, color='b', ls='--', linewidth=1)
+                    axes[1].axhline(buy_threshold, color='r', ls='--', linewidth=1)
+                    axes[1].axhline(sell_stop, color='g', ls='--', linewidth=1)
+                    axes[1].axhline(buy_stop, color='y', ls='--', linewidth=1)
+                    axes[1].fill_between(spread.index, sell_threshold, buy_threshold, facecolors='r', alpha=0.3)
+                    
+                    plt.legend(['Spread', 'Sell Threshold', 'Buy Threshold', 'Sell Stop', 'Buy Stop'])
+                    st.pyplot(fig)
+
+            # Main
+            st.title("Stock Spread Visualization")
+
+            stocks = st.multiselect("Select stocks:", ['CFG', 'JPM'], default=['CFG', 'JPM'])
+            start_date = st.date_input("Start Date", value=dt.date.today() - dt.timedelta(days=365))
+            end_date = st.date_input("End Date", value=dt.date.today())
+            threshold = st.slider("Threshold", min_value=0.1, max_value=5.0, value=0.5)
+            stop_loss = st.slider("Stop Loss", min_value=0.1, max_value=5.0, value=1.0)
+
+            df = fetch_stock_data(stocks, start_date, end_date)
+            plot_stock_spread(df, stocks[0], stocks[1], threshold, stop_loss)
+
+
+
         if pred_option_portfolio_strategies == "Support Resistance Finder":
-            pass
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+
+                # Function to retrieve stock data
+                def fetch_stock_data(ticker, start_date, end_date):
+                    df = yf.download(ticker, start=start_date, end=end_date)
+                    df["Date"] = df.index
+                    return df.reset_index(drop=True)
+
+                # Function to identify support and resistance levels
+                def identify_levels(df):
+                    levels = []
+                    for i in range(2, df.shape[0] - 2):
+                        if is_support(df, i):
+                            levels.append((i, df["Low"][i], "Support"))
+                        elif is_resistance(df, i):
+                            levels.append((i, df["High"][i], "Resistance"))
+                    return levels
+
+                # Define support and resistance checks
+                def is_support(df, i):
+                    return df["Low"][i] < min(df["Low"][i - 1], df["Low"][i + 1])
+
+                def is_resistance(df, i):
+                    return df["High"][i] > max(df["High"][i - 1], df["High"][i + 1])
+
+                # Function to plot support and resistance levels
+                def plot_support_resistance(df, levels):
+                    fig, ax = plt.subplots()
+                    candlestick_ohlc(ax, zip(mpl_dates.date2num(df['Date']), df['Open'], df['High'], df['Low'], df['Close']), width=0.6, colorup='green', colordown='red', alpha=0.8)
+                    ax.xaxis.set_major_formatter(mpl_dates.DateFormatter('%d-%m-%Y'))
+
+                    for level in levels:
+                        plt.hlines(level[1], xmin=df["Date"][level[0]], xmax=max(df["Date"]), colors="blue")
+                    plt.title(f"Support and Resistance for {ticker.upper()}")
+                    plt.xlabel("Date")
+                    plt.ylabel("Price")
+                    st.pyplot(fig)
+
+                # Main
+                st.title("Support and Resistance Levels Visualization")
+
+                ticker = st.text_input("Enter a ticker:")
+                num_of_years = st.slider("Number of years:", min_value=0.1, max_value=10.0, value=0.2, step=0.1)
+
+                start_date = pd.Timestamp.now() - pd.Timedelta(days=int(365.25 * num_of_years))
+                end_date = pd.Timestamp.now()
+
+                df = fetch_stock_data(ticker, start_date, end_date)
+                levels = identify_levels(df)
+                plot_support_resistance(df, levels)
+
     elif option == "AI Trading":
+        #TODO - add the Robinhood and alpaca bots
         st.write("This bot allows you to initate a trade")
         pass
 
