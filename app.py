@@ -133,22 +133,7 @@ import mplfinance as mpl
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
-<<<<<<< HEAD
-st.sidebar.info('Welcome to my Algorithmic Trading App Choose your options below')
-st.sidebar.info("This application features over 100 programmes for different roles")
-streamlit_style = """
-			<style>
-			@import url('https://fonts.google.com/specimen/Hanken+Grotesk');
-=======
 st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
->>>>>>> bc818f1875894828027d22f1cc7d359521327e97
-
-			html, body, [class*="css"]  {
-			font-family: 'Hanken-Grotesk',
-			}
-			</style>
-			"""
-st.markdown(streamlit_style, unsafe_allow_html=True)
 @st.cache_resource
 def correlated_stocks(start_date, end_date, tickers):
     print("Inside correlated_stocks function")
