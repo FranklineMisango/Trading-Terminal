@@ -11450,7 +11450,6 @@ def main():
                         numLosses += 1
                     totReturn = totReturn * ((i / 100) + 1)
                 totReturn = round((totReturn - 1) * 100, 2)
-
                 # Plot SMA and Adj Close
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=df.index, y=df[f"SMA_{short_sma}"], mode='lines', name=f"SMA_{short_sma}"))
@@ -11466,14 +11465,12 @@ def main():
 
  
         
+     
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
-            ticker = st.text_input("Please enter the ticker needed for investigation")
-            if ticker:
-                message = (f"Ticker captured : {ticker}")
-                st.success(message)
             portfolio = st.number_input("Enter the portfolio size in USD")
             if portfolio:
                 st.write(f"The portfolio size in USD Captured is : {portfolio}")
+
             min_date = datetime(1980, 1, 1)
             # Date input widget with custom minimum date
             col1, col2 = st.columns([2, 2])
@@ -11482,7 +11479,28 @@ def main():
             with col2:
                 end_date = st.date_input("End Date:")
             years = end_date.year - start_date.year
-            st.success(f"years captured : {years}")
+            st.success(f"Years captured: {years}")
+            # Initialize the stocks list in session state if it doesn't exist
+            if 'stocks' not in st.session_state:
+                st.session_state.stocks = []
+
+            # Function to add stock
+            def addStock():
+                tsk = st.text_input('Enter your tickers', key='ticker_input', placeholder='Enter a ticker')
+                if tsk:
+                    st.session_state.stocks.append(tsk)
+                    st.success(f"Ticker {tsk} added.")
+                    st.experimental_rerun()  # Refresh the app to show the updated list
+
+            # Display the add stock button and call the function if clicked
+            if st.button('Add Ticker'):
+                addStock()
+
+            # Display the list of stocks
+            st.write("Current list of tickers:")
+            st.write(st.session_state.stocks)
+            threshold = st.slider("Threshold", min_value=0.1, max_value=5.0, value=0.5)
+            stop_loss = st.slider("Stop Loss", min_value=0.1, max_value=5.0, value=1.0)
             if st.button("Check"):
                 # Function to fetch stock data
                 def fetch_stock_data(tickers, start_date, end_date):
@@ -11490,7 +11508,6 @@ def main():
                     data.index = pd.to_datetime(data.index)
                     return data
 
-                # Function to plot the spread of two stocks
                 def plot_stock_spread(df, ticker1, ticker2, threshold=0.5, stop_loss=1):
                     spread = df[ticker1] - df[ticker2]
                     mean_spread = spread.mean()
@@ -11499,31 +11516,38 @@ def main():
                     sell_stop = mean_spread + stop_loss
                     buy_stop = mean_spread - stop_loss
 
-                    sns.set(style='white')
-                    fig, axes = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [2, 1]})
-                    df[[ticker1, ticker2]].plot(ax=axes[0])
-                    spread.plot(ax=axes[1], color='#85929E', linewidth=1.2)
+                    fig = go.Figure()
 
-                    axes[1].axhline(sell_threshold, color='b', ls='--', linewidth=1)
-                    axes[1].axhline(buy_threshold, color='r', ls='--', linewidth=1)
-                    axes[1].axhline(sell_stop, color='g', ls='--', linewidth=1)
-                    axes[1].axhline(buy_stop, color='y', ls='--', linewidth=1)
-                    axes[1].fill_between(spread.index, sell_threshold, buy_threshold, facecolors='r', alpha=0.3)
-                    
-                    plt.legend(['Spread', 'Sell Threshold', 'Buy Threshold', 'Sell Stop', 'Buy Stop'])
-                    st.pyplot(fig)
+                    # Add the individual stock prices
+                    fig.add_trace(go.Scatter(x=df.index, y=df[ticker1], mode='lines', name=ticker1))
+                    fig.add_trace(go.Scatter(x=df.index, y=df[ticker2], mode='lines', name=ticker2))
 
-            # Main
-            st.title("Stock Spread Visualization")
+                    # Add the spread
+                    fig.add_trace(go.Scatter(x=df.index, y=spread, mode='lines', name='Spread', line=dict(color='#85929E')))
 
-            stocks = st.multiselect("Select stocks:", ['CFG', 'JPM'], default=['CFG', 'JPM'])
-            start_date = st.date_input("Start Date", value=dt.date.today() - dt.timedelta(days=365))
-            end_date = st.date_input("End Date", value=dt.date.today())
-            threshold = st.slider("Threshold", min_value=0.1, max_value=5.0, value=0.5)
-            stop_loss = st.slider("Stop Loss", min_value=0.1, max_value=5.0, value=1.0)
+                    # Add threshold and stop lines
+                    fig.add_hline(y=sell_threshold, line=dict(color='blue', dash='dash'), name='Sell Threshold')
+                    fig.add_hline(y=buy_threshold, line=dict(color='red', dash='dash'), name='Buy Threshold')
+                    fig.add_hline(y=sell_stop, line=dict(color='green', dash='dash'), name='Sell Stop')
+                    fig.add_hline(y=buy_stop, line=dict(color='yellow', dash='dash'), name='Buy Stop')
 
-            df = fetch_stock_data(stocks, start_date, end_date)
-            plot_stock_spread(df, stocks[0], stocks[1], threshold, stop_loss)
+                    # Update layout for better presentation
+                    fig.update_layout(
+                        title=f'Stock Spread between {ticker1} and {ticker2}',
+                        xaxis_title='Date',
+                        yaxis_title='Price',
+                        legend_title='Legend',
+                        template='plotly_white'
+                    )
+
+                    st.plotly_chart(fig)
+                # Main
+                if len(st.session_state.stocks) >= 2:
+                    df = fetch_stock_data(st.session_state.stocks, start_date, end_date)
+                    for i in range(len(st.session_state.stocks) - 1):
+                        plot_stock_spread(df, st.session_state.stocks[i], st.session_state.stocks[i + 1], threshold, stop_loss)
+                else:
+                    st.error("Please enter at least two tickers for the analysis.")
 
 
 
