@@ -11388,6 +11388,8 @@ def main():
                 end_date = st.date_input("End Date:")
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
+            short_sma = st.number_input("Enter short SMA:", min_value=1, value=20)
+            long_sma = st.number_input("Enter long SMA:", min_value=1, value=50)
             if st.button("Check"):
                 # Define the function to get historical data
                 def get_stock_data(stock, num_of_years):
@@ -11426,11 +11428,9 @@ def main():
                 # Main script
                 st.title("SMA Trading Strategy Visualization")
 
-                stock = st.text_input("Enter a ticker:", "NFLX")
-                num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
-                short_sma = st.number_input("Enter short SMA:", min_value=1, value=20)
-                long_sma = st.number_input("Enter long SMA:", min_value=1, value=50)
-
+                stock = ticker
+                num_of_years = years
+               
                 df = get_stock_data(stock, num_of_years)
                 percent_change = sma_trading_strategy(df, short_sma, long_sma)
                 current_price = round(df['Adj Close'][-1], 2)
@@ -11461,10 +11461,7 @@ def main():
                 # Display strategy statistics
                 st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
                 st.write(f"Number of Trades: {numGains + numLosses}")
-                st.write(f"Total return: {totReturn}%")
-
- 
-        
+                st.write(f"Total return: {totReturn}%")       
      
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
             portfolio = st.number_input("Enter the portfolio size in USD")
