@@ -11230,13 +11230,7 @@ def main():
 
 
         if pred_option_portfolio_strategies == "RSI Trendline Strategy":
-            ticker = st.text_input("Please enter the ticker needed for investigation")
-            if ticker:
-                message = (f"Ticker captured : {ticker}")
-                st.success(message)
-            portfolio = st.number_input("Enter the portfolio size in USD")
-            if portfolio:
-                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            st.write("captures all the tickers in S&P500 and generates the RSI Trendline")
             min_date = datetime(1980, 1, 1)
             # Date input widget with custom minimum date
             col1, col2 = st.columns([2, 2])
@@ -11249,20 +11243,20 @@ def main():
             if st.button("Check"):
 
                 # Override the yfinance module
-                yf.pdr_override()
 
                 # Define the date range for data retrieval
-                num_of_years = 10
-                start = datetime.datetime.now() - datetime.timedelta(days=365.25 * num_of_years)
-                end = datetime.datetime.now()
+                num_of_years = years
+                start =  start_date
+                end =  end_date
 
                 # Load stock symbols
-                @st.cache
+                @st.cache_resource
                 def load_tickers():
                     stocklist = ti.tickers_sp500()
                     return [stock.replace(".", "-") for stock in stocklist]  # Adjusting ticker format for Yahoo Finance
 
                 stocklist = load_tickers()
+                st.write(stocklist)
 
                 # Initialize the DataFrame for exporting results
                 exportList = pd.DataFrame(columns=['Stock', "RSI", "200 Day MA"])
@@ -11273,7 +11267,7 @@ def main():
                     st.write(f"\npulling {stock}")
 
                     # Fetch stock data
-                    df = pdr.get_data_yahoo(stock, start=start, end=end)
+                    df = yf.download(stock, start=start, end=end)
 
                     try:
                         # Calculate indicators: 200-day MA, RSI
@@ -11347,8 +11341,8 @@ def main():
 
                 st.title("RWB Strategy Visualization")
 
-                stock = st.text_input("Enter a ticker:", "AAPL")
-                num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
+                stock = ticker
+                num_of_years = years
 
                 df = get_stock_data(stock, num_of_years)
                 percent_change = rwb_strategy(df)
@@ -11368,6 +11362,7 @@ def main():
                 fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name="Adj Close", line=dict(color='green')))
                 fig.update_layout(title=f"RWB Strategy for {stock.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
                 st.plotly_chart(fig)
+                st.subheader(f"Your total returns if you put {portfolio} back in {start_date.year} would be {total_return * portfolio} Today")    
 
 
         
@@ -11461,7 +11456,8 @@ def main():
                 # Display strategy statistics
                 st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
                 st.write(f"Number of Trades: {numGains + numLosses}")
-                st.write(f"Total return: {totReturn}%")       
+                st.write(f"Total return: {totReturn}%")   
+                st.subheader(f"Your total returns if you put {portfolio} back in {start_date.year} would be {totReturn * portfolio} Today")    
      
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
             portfolio = st.number_input("Enter the portfolio size in USD")
