@@ -187,7 +187,7 @@ def main():
                 end_date = st.date_input("End Date:")
             st.title('Correlation Viewer for Stocks')
             
-            # Add more stocks to the portfolio
+            #TODO - Add more stocks to the portfolio
             sectors = {
                 "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
                 "Health Care": ['JNJ', 'PFE', 'UNH', 'MRK', 'ABBV', 'TMO', 'MDT', 'DHR', 'AMGN', 'LLY'],
