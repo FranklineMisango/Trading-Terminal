@@ -11079,6 +11079,10 @@ def main():
             if portfolio:
                 st.write(f"The portfolio size in USD captured is: {portfolio}")
 
+            simulations = st.number_input("Enter the simulations rate for VAR calculations ; ideally less than 10,000 if using normal PC")
+            if simulations:
+                st.write(f"Captured the number of simulations as : {simulations}")
+
             min_date = dt.datetime(1980, 1, 1)
             col1, col2 = st.columns([2, 2])
             
@@ -11130,8 +11134,8 @@ def main():
                         portfolio_return = weighted_returns.mean()
                         portfolio_vol = weighted_returns.std()
 
-                        # Simulating daily returns for VAR calculation
-                        simulated_daily_returns = np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), (10000, Time))
+                        # Simulating daily returns for VAR calculation - Modify the simulations
+                        simulated_daily_returns = np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), (int(simulations), Time))
 
                         # Plotting Range of Returns in a Day
                         fig_returns_range = go.Figure()
