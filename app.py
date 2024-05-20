@@ -10473,24 +10473,20 @@ def main():
                         "Percentile 95%": np.percentile(results, 95)
                     })
 
-                # Main function
-                def main():
-                    st.title("Monte Carlo Simulation")
-                    
-                    symbol = ticker
-                    start_date = '01-01-2015'
-                    end_date = '01-01-2020'
-                    simulations = 1000
-                    days_predicted = 252
+                                   
+                symbol = ticker
+                simulations = 1000
+                days_predicted = 252
+                start = str(start_date)
+                end = str(end_date)
+                # Perform Monte Carlo Simulation
+                simulation_results = monte_carlo_simulation(symbol, 'yahoo', start, end, simulations, days_predicted)
 
-                    # Perform Monte Carlo Simulation
-                    simulation_results = monte_carlo_simulation(symbol, 'yahoo', start_date, end_date, simulations, days_predicted)
-
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Histogram(x=simulation_results['Results'], histnorm='probability'))
-                    fig.update_layout(title=f"{symbol} Monte Carlo Simulation Histogram", xaxis_title="Price", yaxis_title="Probability Density")
-                    st.plotly_chart(fig)
+                # Plotting
+                fig = go.Figure()
+                fig.add_trace(go.Histogram(x=simulation_results['Results'], histnorm='probability'))
+                fig.update_layout(title=f"{symbol} Monte Carlo Simulation Histogram", xaxis_title="Price", yaxis_title="Probability Density")
+                st.plotly_chart(fig)
 
         if pred_option_portfolio_strategies == "Moving Average Crossover Signals":
             ticker = st.text_input("Please enter the ticker needed for investigation")
@@ -11156,13 +11152,20 @@ def main():
 
 
         if pred_option_portfolio_strategies == "Risk Management":
-            ticker = st.text_input("Please enter the ticker needed for investigation")
-            if ticker:
-                message = (f"Ticker captured : {ticker}")
+            stock = st.text_input("Please enter the ticker needed for investigation : ")
+            if stock:
+                message = (f"Ticker captured : {stock}")
                 st.success(message)
-            portfolio = st.number_input("Enter the portfolio size in USD")
-            if portfolio:
-                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            position = st.selectbox("Buy or Short?", ["Buy", "Short"]).lower()
+            AvgGain = st.number_input("Enter Your Average Gain - The one you are willing to expect(%)", value=0.0, step=0.1)
+            AvgLoss = st.number_input("Enter Your Average Loss - The one you are willing to accept(%)", value=0.0, step=0.1)
+
+            # # Define the moving averages and exponential moving averages to be used
+            lower_SMA = st.number_input("Enter Your Lower SMA value : ")
+            higher_SMA = st.number_input("Enter Your Higher SMA value : ")
+            ema_to_be_used = st.number_input("Enter your target EMA : ")
+            smaUsed = [int(lower_SMA), int(higher_SMA)]
+            emaUsed = [ema_to_be_used]
             min_date = datetime(1980, 1, 1)
             # Date input widget with custom minimum date
             col1, col2 = st.columns([2, 2])
@@ -11178,16 +11181,6 @@ def main():
                 start = dt.datetime(2019, 1, 1)
                 now = dt.datetime.now()
 
-                # Define the moving averages and exponential moving averages to be used
-                smaUsed = [50, 200]
-                emaUsed = [21]
-
-                # User inputs for stock ticker and position
-                stock = st.text_input("Enter a ticker: ")
-                position = st.selectbox("Buy or Short?", ["Buy", "Short"]).lower()
-                AvgGain = st.number_input("Enter Your Average Gain (%)", value=0.0, step=0.1)
-                AvgLoss = st.number_input("Enter Your Average Loss (%)", value=0.0, step=0.1)
-
                 # Fetch historical data from Yahoo Finance
                 df = yf.download(stock, start=start, end=now)
 
@@ -11202,6 +11195,8 @@ def main():
                     targets = [round(close * (1 - (i * AvgGain / 100)), 2) for i in range(1, 4)]
 
                 # Calculate SMA and EMA for the stock
+                
+
                 for x in smaUsed:
                     df[f"SMA_{x}"] = df["Adj Close"].rolling(window=x).mean()
                 for x in emaUsed:
