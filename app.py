@@ -1,5 +1,6 @@
 #Library imports
 import streamlit as st
+import pandas_datareader as web
 import scipy.optimize as sco
 import matplotlib.dates as mpl_dates
 from scipy.stats import zscore
@@ -11069,218 +11070,153 @@ def main():
                 fig_efficient_frontier.update_layout(title='Efficient Frontier', xaxis_title='Volatility', yaxis_title='Return')
                 st.plotly_chart(fig_efficient_frontier)
 
+        # Check if user selected "Portfolio VAR Simulation"
         if pred_option_portfolio_strategies == "Portfolio VAR Simulation":
+            # Capture user inputs
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
-                message = (f"Ticker captured : {ticker}")
-                st.success(message)
-            portfolio = st.number_input("Enter the portfolio size in USD")
+                st.success(f"Ticker captured: {ticker}")
+            
+            portfolio = st.number_input("Enter the portfolio size in USD", min_value=0.0, step=1.0)
             if portfolio:
-                st.write(f"The portfolio size in USD Captured is : {portfolio}")
-            min_date = datetime(1980, 1, 1)
-            # Date input widget with custom minimum date
+                st.write(f"The portfolio size in USD captured is: {portfolio}")
+
+            min_date = dt.datetime(1980, 1, 1)
             col1, col2 = st.columns([2, 2])
+            
             with col1:
-                start_date = st.date_input("Start date:", min_value=min_date)
+                start_date = st.date_input("Start date:", min_value=min_date, value=dt.date(2021, 1, 1))
+            
             with col2:
-                end_date = st.date_input("End Date:")
-            years = end_date.year - start_date.year
-            st.success(f"years captured : {years}")
-            if st.button("Check"):
+                end_date = st.date_input("End Date:", value=dt.date.today())
+            
+            if start_date and end_date and start_date < end_date:
+                years = (end_date - start_date).days / 365.25
+                st.success(f"Years captured: {years:.2f}")
 
-                # Define the tickers and time parameters
-                tickers = ['GOOGL', 'FB', 'AAPL', 'NFLX', 'AMZN']
-                Time = 1440  # Number of trading days in minutes
-                pvalue = 1000  # Portfolio value in dollars
-                num_of_years = 3
-                start_date = dt.datetime.now() - dt.timedelta(days=365.25 * num_of_years)
-                end_date = dt.datetime.now()
-
-                # Fetching and preparing stock data
-                price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
-                df_stocks = pd.concat(price_data, axis=1)
-                df_stocks.columns = tickers
-
-                # Calculating expected returns and covariance matrix
-                mu = expected_returns.mean_historical_return(df_stocks)
-                Sigma = risk_models.sample_cov(df_stocks)
-
-                # Portfolio Optimization using Efficient Frontier
-                ef = EfficientFrontier(mu, Sigma, weight_bounds=(0,1))
-                sharpe_pwt = ef.max_sharpe()
-                cleaned_weights = ef.clean_weights()
-
-                # Plotting Cumulative Returns of All Stocks
-                cum_returns = ((df_stocks.pct_change() + 1).cumprod() - 1)
-                fig_cum_returns = go.Figure()
-                for column in cum_returns.columns:
-                    fig_cum_returns.add_trace(go.Scatter(x=cum_returns.index, y=cum_returns[column], mode='lines', name=column))
-                fig_cum_returns.update_layout(title='Cumulative Returns', xaxis_title='Date', yaxis_title='Cumulative Returns')
-                st.plotly_chart(fig_cum_returns)
-
-                # Portfolio VaR Simulation
-                ticker_returns = cum_returns.pct_change().dropna()
-                weighted_returns = ticker_returns.dot(np.array(list(cleaned_weights.values())))
-                portfolio_return = weighted_returns.mean()
-                portfolio_vol = weighted_returns.std()
-
-                # Simulating daily returns for VAR calculation
-                simulated_daily_returns = [np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), Time) for _ in range(10000)]
-
-                # Plotting Range of Returns in a Day
-                fig_returns_range = go.Figure()
-                for i in range(10000):
-                    fig_returns_range.add_trace(go.Scatter(y=simulated_daily_returns[i], mode='lines', name=f'Simulation {i+1}'))
-                fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 5), mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
-                fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 95), mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
-                fig_returns_range.add_trace(go.Scatter(y=np.mean(simulated_daily_returns), mode='lines', name='Mean', line=dict(color='blue')))
-                fig_returns_range.update_layout(title=f'Range of Returns in a Day of {Time} Minutes', xaxis_title='Minute', yaxis_title='Returns')
-                st.plotly_chart(fig_returns_range)
-
-                # Histogram of Daily Returns
-                fig_hist_returns = go.Figure()
-                fig_hist_returns.add_trace(go.Histogram(x=simulated_daily_returns.flatten(), nbinsx=15))
-                fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 5), np.percentile(simulated_daily_returns, 5)], y=[0, 1500], mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
-                fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 95), np.percentile(simulated_daily_returns, 95)], y=[0, 1500], mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
-                fig_hist_returns.update_layout(title='Histogram of Daily Returns', xaxis_title='Returns', yaxis_title='Frequency')
-                st.plotly_chart(fig_hist_returns)
-
-                # Printing VaR results
-                st.write(f"5th Percentile: {np.percentile(simulated_daily_returns, 5)}")
-                st.write(f"95th Percentile: {np.percentile(simulated_daily_returns, 95)}")
-                st.write(f"Amount required to cover minimum losses for one day: ${pvalue * -np.percentile(simulated_daily_returns, 5)}")
-
-
-        if pred_option_portfolio_strategies == "Risk Management":
-            stock = st.text_input("Please enter the ticker needed for investigation : ")
-            if stock:
-                message = (f"Ticker captured : {stock}")
-                st.success(message)
-            position = st.selectbox("Buy or Short?", ["Buy", "Short"]).lower()
-            AvgGain = st.number_input("Enter Your Average Gain - The one you are willing to expect(%)", value=0.0, step=0.1)
-            AvgLoss = st.number_input("Enter Your Average Loss - The one you are willing to accept(%)", value=0.0, step=0.1)
-
-            # # Define the moving averages and exponential moving averages to be used
-            lower_SMA = st.number_input("Enter Your Lower SMA value : ")
-            higher_SMA = st.number_input("Enter Your Higher SMA value : ")
-            ema_to_be_used = st.number_input("Enter your target EMA : ")
-            smaUsed = [int(lower_SMA), int(higher_SMA)]
-            emaUsed = [ema_to_be_used]
-            min_date = datetime(1980, 1, 1)
-            # Date input widget with custom minimum date
-            col1, col2 = st.columns([2, 2])
-            with col1:
-                start_date = st.date_input("Start date:", min_value=min_date)
-            with col2:
-                end_date = st.date_input("End Date:")
-            years = end_date.year - start_date.year
-            st.success(f"years captured : {years}")
-            if st.button("Check"):
-                               
-                # Define the start and end dates for data retrieval
-                start = dt.datetime(2019, 1, 1)
-                now = dt.datetime.now()
-
-                # Fetch historical data from Yahoo Finance
-                df = yf.download(stock, start=start, end=now)
-
-                # Calculate the maximum stop value and target returns based on user's position
-                if position == "buy":
-                    close = df["Adj Close"][-1]
-                    maxStop = close * (1 - AvgLoss / 100)
-                    targets = [round(close * (1 + (i * AvgGain / 100)), 2) for i in range(1, 4)]
-                elif position == "short":
-                    close = df["Adj Close"][-1]
-                    maxStop = close * (1 + AvgLoss / 100)
-                    targets = [round(close * (1 - (i * AvgGain / 100)), 2) for i in range(1, 4)]
-
-                # Calculate SMA and EMA for the stock
-                
-
-                for x in smaUsed:
-                    df[f"SMA_{x}"] = df["Adj Close"].rolling(window=x).mean()
-                for x in emaUsed:
-                    df[f"EMA_{x}"] = df["Adj Close"].ewm(span=x, adjust=False).mean()
-
-                # Fetching the latest values of SMA, EMA, and 5 day low
-                sma_values = {f"SMA_{x}": round(df[f"SMA_{x}"][-1], 2) for x in smaUsed}
-                ema_values = {f"EMA_{x}": round(df[f"EMA_{x}"][-1], 2) for x in emaUsed}
-                low5 = round(min(df["Low"].tail(5)), 2)
-
-                # Calculate the performance metrics and checks
-                performance_checks = {}
-                for key, value in {**sma_values, **ema_values, "Low_5": low5}.items():
-                    pf = round(((close / value) - 1) * 100, 2)
-                    check = value > maxStop if position == "buy" else value < maxStop
-                    performance_checks[key] = {"Performance": pf, "Check": check}
-
-                # Displaying the results
-                st.write(f"Current Stock: {stock} | Price: {round(close, 2)}")
-                st.write(" | ".join([f"{key}: {value}" for key, value in {**sma_values, **ema_values, 'Low_5': low5}.items()]))
-                st.write("-------------------------------------------------")
-                st.write(f"Max Stop: {round(maxStop, 2)}")
-                st.write(f"Price Targets: 1R: {targets[0]} | 2R: {targets[1]} | 3R: {targets[2]}")
-                for key, value in performance_checks.items():
-                    st.write(f"From {key} {value['Performance']}% - {'Within' if value['Check'] else 'Outside'} Max Stop")
-
-
-        if pred_option_portfolio_strategies == "RSI Trendline Strategy":
-            st.write("captures all the tickers in S&P500 and generates the RSI Trendline")
-            min_date = datetime(1980, 1, 1)
-            # Date input widget with custom minimum date
-            col1, col2 = st.columns([2, 2])
-            with col1:
-                start_date = st.date_input("Start date:", min_value=min_date)
-            with col2:
-                end_date = st.date_input("End Date:")
-            years = end_date.year - start_date.year
-            st.success(f"years captured : {years}")
-            if st.button("Check"):
-
-                # Override the yfinance module
-
-                # Define the date range for data retrieval
-                num_of_years = years
-                start =  start_date
-                end =  end_date
-
-                # Load stock symbols
-                @st.cache_resource
-                def load_tickers():
-                    stocklist = ti.tickers_sp500()
-                    return [stock.replace(".", "-") for stock in stocklist]  # Adjusting ticker format for Yahoo Finance
-
-                stocklist = load_tickers()
-                st.write(stocklist)
-
-                # Initialize the DataFrame for exporting results
-                exportList = pd.DataFrame(columns=['Stock', "RSI", "200 Day MA"])
-
-                # Process a limited number of stocks for demonstration
-                for stock in stocklist[:5]:
-                    time.sleep(1.5)  # To avoid hitting API rate limits
-                    st.write(f"\npulling {stock}")
-
-                    # Fetch stock data
-                    df = yf.download(stock, start=start, end=end)
-
+                if st.button("Check"):
                     try:
-                        # Calculate indicators: 200-day MA, RSI
-                        df["SMA_200"] = df.iloc[:, 4].rolling(window=200).mean()
-                        df["rsi"] = ta.RSI(df["Close"])
-                        currentClose, moving_average_200, RSI = df["Adj Close"][-1], df["SMA_200"][-1], df["rsi"].tail(14).mean()
-                        two_day_rsi_avg = (df.rsi[-1] + df.rsi[-2]) / 2
+                        # Define the tickers and time parameters
+                        tickers = [ticker]
+                        Time = 1440  # Number of trading minutes in a day
+                        pvalue = portfolio  # Portfolio value in dollars
+                        start_date = dt.datetime.combine(start_date, dt.datetime.min.time())
+                        end_date = dt.datetime.combine(end_date, dt.datetime.min.time())
 
-                        # Define entry criteria
-                        if currentClose > moving_average_200 and two_day_rsi_avg < 33:
-                            exportList = exportList.append({'Stock': stock, "RSI": RSI, "200 Day MA": moving_average_200}, ignore_index=True)
-                            st.write(f"{stock} made the requirements")
+                        # Fetching and preparing stock data
+                        price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
+                        df_stocks = pd.concat(price_data, axis=1)
+                        df_stocks.columns = tickers
 
+                        # Calculating expected returns and covariance matrix
+                        mu = expected_returns.mean_historical_return(df_stocks)
+                        Sigma = risk_models.sample_cov(df_stocks)
+
+                        # Portfolio Optimization using Efficient Frontier
+                        ef = EfficientFrontier(mu, Sigma, weight_bounds=(0, 1))
+                        sharpe_pwt = ef.max_sharpe()
+                        cleaned_weights = ef.clean_weights()
+
+                        # Plotting Cumulative Returns of All Stocks
+                        cum_returns = ((df_stocks.pct_change() + 1).cumprod() - 1)
+                        fig_cum_returns = go.Figure()
+                        for column in cum_returns.columns:
+                            fig_cum_returns.add_trace(go.Scatter(x=cum_returns.index, y=cum_returns[column], mode='lines', name=column))
+                        fig_cum_returns.update_layout(title='Cumulative Returns', xaxis_title='Date', yaxis_title='Cumulative Returns')
+                        st.plotly_chart(fig_cum_returns)
+
+                        # Portfolio VaR Simulation
+                        ticker_returns = cum_returns.pct_change().dropna()
+                        weighted_returns = ticker_returns.dot(np.array(list(cleaned_weights.values())))
+                        portfolio_return = weighted_returns.mean()
+                        portfolio_vol = weighted_returns.std()
+
+                        # Simulating daily returns for VAR calculation
+                        simulated_daily_returns = np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), (10000, Time))
+
+                        # Plotting Range of Returns in a Day
+                        fig_returns_range = go.Figure()
+                        for i in range(10000):
+                            fig_returns_range.add_trace(go.Scatter(y=simulated_daily_returns[i], mode='lines', name=f'Simulation {i+1}'))
+                        fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 5, axis=0), mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                        fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 95, axis=0), mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                        fig_returns_range.add_trace(go.Scatter(y=np.mean(simulated_daily_returns, axis=0), mode='lines', name='Mean', line=dict(color='blue')))
+                        fig_returns_range.update_layout(title=f'Range of Returns in a Day of {Time} Minutes', xaxis_title='Minute', yaxis_title='Returns')
+                        st.plotly_chart(fig_returns_range)
+
+                        # Histogram of Daily Returns
+                        fig_hist_returns = go.Figure()
+                        fig_hist_returns.add_trace(go.Histogram(x=simulated_daily_returns.flatten(), nbinsx=50))
+                        fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 5)], y=[0, 1500], mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                        fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 95)], y=[0, 1500], mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                        fig_hist_returns.update_layout(title='Histogram of Daily Returns', xaxis_title='Returns', yaxis_title='Frequency')
+                        st.plotly_chart(fig_hist_returns)
+
+                        # Printing VaR results
+                        st.write(f"5th Percentile: {np.percentile(simulated_daily_returns, 5):.4f}")
+                        st.write(f"95th Percentile: {np.percentile(simulated_daily_returns, 95):.4f}")
+                        st.write(f"Amount required to cover minimum losses for one day: ${pvalue * -np.percentile(simulated_daily_returns, 5):.2f}")
                     except Exception as e:
-                        st.write(e)  # Handling exceptions
+                        st.error(f"An error occurred: {e}")
 
-                # Displaying the exported list
-                st.write(exportList)
+                
+                if pred_option_portfolio_strategies == "RSI Trendline Strategy":
+                    st.write("captures all the tickers in S&P500 and generates the RSI Trendline")
+                    min_date = datetime(1980, 1, 1)
+                    # Date input widget with custom minimum date
+                    col1, col2 = st.columns([2, 2])
+                    with col1:
+                        start_date = st.date_input("Start date:", min_value=min_date)
+                    with col2:
+                        end_date = st.date_input("End Date:")
+                    years = end_date.year - start_date.year
+                    st.success(f"years captured : {years}")
+                    if st.button("Check"):
+
+                        # Override the yfinance module
+
+                        # Define the date range for data retrieval
+                        num_of_years = years
+                        start =  start_date
+                        end =  end_date
+
+                        # Load stock symbols
+                        @st.cache_resource
+                        def load_tickers():
+                            stocklist = ti.tickers_sp500()
+                            return [stock.replace(".", "-") for stock in stocklist]  # Adjusting ticker format for Yahoo Finance
+
+                        stocklist = load_tickers()
+                        st.write(stocklist)
+
+                        # Initialize the DataFrame for exporting results
+                        exportList = pd.DataFrame(columns=['Stock', "RSI", "200 Day MA"])
+
+                        # Process a limited number of stocks for demonstration
+                        for stock in stocklist[:5]:
+                            time.sleep(1.5)  # To avoid hitting API rate limits
+                            st.write(f"\npulling {stock}")
+
+                            # Fetch stock data
+                            df = yf.download(stock, start=start, end=end)
+
+                            try:
+                                # Calculate indicators: 200-day MA, RSI
+                                df["SMA_200"] = df.iloc[:, 4].rolling(window=200).mean()
+                                df["rsi"] = ta.RSI(df["Close"])
+                                currentClose, moving_average_200, RSI = df["Adj Close"][-1], df["SMA_200"][-1], df["rsi"].tail(14).mean()
+                                two_day_rsi_avg = (df.rsi[-1] + df.rsi[-2]) / 2
+
+                                # Define entry criteria
+                                if currentClose > moving_average_200 and two_day_rsi_avg < 33:
+                                    exportList = exportList.append({'Stock': stock, "RSI": RSI, "200 Day MA": moving_average_200}, ignore_index=True)
+                                    st.write(f"{stock} made the requirements")
+
+                            except Exception as e:
+                                st.write(e)  # Handling exceptions
+
+                        # Displaying the exported list
+                        st.write(exportList)
 
 
         if pred_option_portfolio_strategies == "RWB Strategy":
