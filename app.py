@@ -10946,8 +10946,6 @@ def main():
             st.success(f"years captured : {years}")
             if st.button("Check"):
 
-
-
                 # Registering converters for using matplotlib's plot_date() function.
                 register_matplotlib_converters()
 
@@ -11104,7 +11102,8 @@ def main():
                         end_date = dt.datetime.combine(end_date, dt.datetime.min.time())
 
                         # Fetching and preparing stock data
-                        price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
+                        #price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
+                        price_data = [yf.download(ticker, start=start_date, end=end_date)['Adj Close'] for ticker in tickers]
                         df_stocks = pd.concat(price_data, axis=1)
                         df_stocks.columns = tickers
 
