@@ -11082,6 +11082,7 @@ def main():
             simulations = st.number_input("Enter the simulations rate for VAR calculations ; ideally less than 10,000 if using normal PC")
             if simulations:
                 st.write(f"Captured the number of simulations as : {simulations}")
+                simulations = int(simulations)
 
             min_date = dt.datetime(1980, 1, 1)
             col1, col2 = st.columns([2, 2])
@@ -11098,22 +11099,26 @@ def main():
 
                 if st.button("Check"):
                     try:
-                        # Define the tickers and time parameters
+                        #Define the tickers and time parameters
                         tickers = [ticker]
                         Time = 1440  # Number of trading minutes in a day
                         pvalue = portfolio  # Portfolio value in dollars
                         start_date = dt.datetime.combine(start_date, dt.datetime.min.time())
                         end_date = dt.datetime.combine(end_date, dt.datetime.min.time())
 
-                        # Fetching and preparing stock data
+                        #Fetching and preparing stock data
                         #price_data = [web.DataReader(ticker, start=start_date, end=end_date, data_source='yahoo')['Adj Close'] for ticker in tickers]
                         price_data = [yf.download(ticker, start=start_date, end=end_date)['Adj Close'] for ticker in tickers]
                         df_stocks = pd.concat(price_data, axis=1)
                         df_stocks.columns = tickers
 
+                        # Resample to daily frequency to reduce data size
+                        df_stocks_resampled = df_stocks.resample('D').last()
+                        cum_returns = ((df_stocks_resampled.pct_change() + 1).cumprod() - 1)
+                        
                         # Calculating expected returns and covariance matrix
-                        mu = expected_returns.mean_historical_return(df_stocks)
-                        Sigma = risk_models.sample_cov(df_stocks)
+                        mu = expected_returns.mean_historical_return(df_stocks_resampled)
+                        Sigma = risk_models.sample_cov(df_stocks_resampled)
 
                         # Portfolio Optimization using Efficient Frontier
                         ef = EfficientFrontier(mu, Sigma, weight_bounds=(0, 1))
@@ -11121,7 +11126,6 @@ def main():
                         cleaned_weights = ef.clean_weights()
 
                         # Plotting Cumulative Returns of All Stocks
-                        cum_returns = ((df_stocks.pct_change() + 1).cumprod() - 1)
                         fig_cum_returns = go.Figure()
                         for column in cum_returns.columns:
                             fig_cum_returns.add_trace(go.Scatter(x=cum_returns.index, y=cum_returns[column], mode='lines', name=column))
@@ -11134,12 +11138,15 @@ def main():
                         portfolio_return = weighted_returns.mean()
                         portfolio_vol = weighted_returns.std()
 
-                        # Simulating daily returns for VAR calculation - Modify the simulations
-                        simulated_daily_returns = np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), (int(simulations), Time))
+                        # Number of simulations
+                        simulations = 100
+
+                        # Simulating daily returns for VAR calculation
+                        simulated_daily_returns = np.random.normal(portfolio_return / Time, portfolio_vol / np.sqrt(Time), (simulations, Time))
 
                         # Plotting Range of Returns in a Day
                         fig_returns_range = go.Figure()
-                        for i in range(10000):
+                        for i in range(simulations):
                             fig_returns_range.add_trace(go.Scatter(y=simulated_daily_returns[i], mode='lines', name=f'Simulation {i+1}'))
                         fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 5, axis=0), mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
                         fig_returns_range.add_trace(go.Scatter(y=np.percentile(simulated_daily_returns, 95, axis=0), mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
@@ -11148,17 +11155,18 @@ def main():
                         st.plotly_chart(fig_returns_range)
 
                         # Histogram of Daily Returns
+                        flattened_returns = simulated_daily_returns.flatten()
                         fig_hist_returns = go.Figure()
-                        fig_hist_returns.add_trace(go.Histogram(x=simulated_daily_returns.flatten(), nbinsx=50))
-                        fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 5)], y=[0, 1500], mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
-                        fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(simulated_daily_returns, 95)], y=[0, 1500], mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
+                        fig_hist_returns.add_trace(go.Histogram(x=flattened_returns, nbinsx=50))
+                        fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(flattened_returns, 5)], y=[0, 1500], mode='lines', name='5th Percentile', line=dict(color='red', dash='dash')))
+                        fig_hist_returns.add_trace(go.Scatter(x=[np.percentile(flattened_returns, 95)], y=[0, 1500], mode='lines', name='95th Percentile', line=dict(color='green', dash='dash')))
                         fig_hist_returns.update_layout(title='Histogram of Daily Returns', xaxis_title='Returns', yaxis_title='Frequency')
                         st.plotly_chart(fig_hist_returns)
 
                         # Printing VaR results
-                        st.write(f"5th Percentile: {np.percentile(simulated_daily_returns, 5):.4f}")
-                        st.write(f"95th Percentile: {np.percentile(simulated_daily_returns, 95):.4f}")
-                        st.write(f"Amount required to cover minimum losses for one day: ${pvalue * -np.percentile(simulated_daily_returns, 5):.2f}")
+                        st.write(f"5th Percentile: {np.percentile(flattened_returns, 5):.4f}")
+                        st.write(f"95th Percentile: {np.percentile(flattened_returns, 95):.4f}")
+                        st.write(f"Amount required to cover minimum losses for one day: ${pvalue * -np.percentile(flattened_returns, 5):.2f}")
                     except Exception as e:
                         st.error(f"An error occurred: {e}")
 
