@@ -9507,8 +9507,7 @@ def main():
                                                                   'Portfolio Analysis',
                                                                   'Portfolio Optimization',
                                                                   'Portfolio VAR Simulation',
-                                                                  'Risk Management',
-                                                                  'Robinhood Bot',
+                                                                  'Risk Management'
                                                                   'RSI Trendline Strategy',
                                                                   'RWB Strategy',
                                                                   'SMA Trading Strategy',
@@ -10364,53 +10363,61 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-                # Constants for analysis         
-                # Function to download stock data
-                def download_stock_data(symbol, start, end):
-                    return yf.download(symbol, start, end)['Adj Close']
+                def fetch_stock_data(symbol, start, end):
+                    return yf.download(symbol, start, end)
 
-                # Function to calculate investment statistics
-                def calculate_investment_stats(df, investment_amount, symbol):
-                    # Calculate number of shares bought and investment values
-                    shares = int(investment_amount / df.iloc[0])
-                    begin_value = round(shares * df.iloc[0], 2)
-                    current_value = round(shares * df.iloc[-1], 2)
+                # Lump Sum Investment Function
+                def lump_sum_investment(df, invest_date, principal):
+                    invest_price = df.loc[invest_date]['Adj Close']
+                    current_price = df['Adj Close'][-1]
+                    return principal * ((current_price / invest_price) - 1)
 
-                    # Calculate daily returns and various statistics
-                    returns = df.pct_change().dropna()
-                    stats = {
-                        'mean': round(returns.mean() * 100, 2),
-                        'std_dev': round(returns.std() * 100, 2),
-                        'skew': round(returns.skew(), 2),
-                        'kurt': round(returns.kurtosis(), 2),
-                        'total_return': round((1 + returns).cumprod().iloc[-1], 4) * 100
-                    }
-                    return shares, begin_value, current_value, stats
+                # Dollar-Cost Averaging Function
+                def dca_investment(df, invest_date, periods, freq, principal):
+                    dca_dates = pd.date_range(invest_date, periods=periods, freq=freq)
+                    dca_dates = dca_dates[dca_dates < df.index[-1]]
+                    cut_off_count = 12 - len(dca_dates)
+                    cut_off_value = cut_off_count * (principal / periods)
+                    dca_value = cut_off_value
+                    for date in dca_dates:
+                        trading_date = df.index[df.index.searchsorted(date)]
+                        dca_value += lump_sum_investment(df, trading_date, principal / periods)
+                    return dca_value
 
-                # User inputs
+                # User Input
                 symbol = ticker
-                num_of_years = years
-                investment_amount = portfolio
+                years = years
+                principal = portfolio
 
-                # Calculate date range
-                start = dt.datetime.now() - dt.timedelta(days=int(365.25 * num_of_years))
-                end = dt.datetime.now()
+                # Set dates for data retrieval
+                start_date = start_date
+                end_date = end_date
 
-                # Download and process stock data
-                df = download_stock_data(ticker, start_date, end_date)
-                shares, begin_value, current_value, stats = calculate_investment_stats(df, investment_amount, symbol)
+                # Fetch Data
+                stock_data = fetch_stock_data(symbol, start_date, end_date)
 
-                # Print statistics
-                st.write(f'\nNumber of Shares for {symbol}: {shares}')
-                st.write(f'Beginning Value: ${begin_value}')
-                st.write(f'Current Value: ${current_value}')
-                st.write(f"\nStatistics:\nMean: {stats['mean']}%\nStd. Dev: {stats['std_dev']}%\nSkew: {stats['skew']}\nKurt: {stats['kurt']}\nTotal Return: {stats['total_return']}%")
+                # Analysis for Lump Sum and DCA
+                lump_sum_values = [lump_sum_investment(stock_data, date, principal) for date in stock_data.index]
+                dca_values = [dca_investment(stock_data, date, 12, '30D', principal) for date in stock_data.index]
+               
+                fig1 = go.Figure()
+                fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Adj Close'], mode='lines', name=f'{symbol} Price'))
+                fig1.update_layout(title=f'{symbol} Stock Price', yaxis_title='Price', yaxis_tickprefix='$', yaxis_tickformat=',.0f')
 
-                # Plotting returns and other statistics
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=df.index, y=df.pct_change(), mode='lines', name='Daily Returns'))
-                fig.update_layout(title=f'{symbol} Daily Returns', xaxis_title='Date', yaxis_title='Returns')
-                st.plotly_chart(fig)
+                fig2 = go.Figure()
+                fig2.add_trace(go.Scatter(x=stock_data.index, y=lump_sum_values, mode='lines', name='Lump Sum Investment'))
+                fig2.add_trace(go.Scatter(x=stock_data.index, y=dca_values, mode='lines', name='DCA Investment'))
+                fig2.update_layout(title='Lump Sum vs. DCA Investment Value', yaxis_title='Investment Value', yaxis_tickprefix='$', yaxis_tickformat=',.0f')
+
+                fig3 = go.Figure()
+                fig3.add_trace(go.Scatter(x=stock_data.index, y=np.array(lump_sum_values) - np.array(dca_values), mode='lines', name='Difference in Investment Values'))
+                fig3.update_layout(title='Difference Between Lump Sum and DCA', yaxis_title='Difference', yaxis_tickprefix='$', yaxis_tickformat=',.0f')
+
+                # Display plots in Streamlit
+                st.plotly_chart(fig1)
+                st.plotly_chart(fig2)
+                st.plotly_chart(fig3)
+
 
         if pred_option_portfolio_strategies == "Monte Carlo":
             ticker = st.text_input("Please enter the ticker needed for investigation")
