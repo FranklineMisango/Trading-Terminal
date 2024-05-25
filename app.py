@@ -1425,17 +1425,29 @@ def main():
                 predictions = scaler.inverse_transform(predictions)
                 rmse = np.sqrt(mean_squared_error(data[train_data_len:].values, predictions))
 
-                # Plot the data
-                train = data[:train_data_len]
-                valid = data[train_data_len:].assign(Predictions=predictions)
-                plt.figure(figsize=(16,8))
-                plt.title(f"{stock.upper()} Close Price")
-                plt.xlabel('Date', fontsize=16)
-                plt.ylabel('Close Price (USD)', fontsize=16)
-                plt.plot(train['Close'])
-                plt.plot(valid[['Close', 'Predictions']])
-                plt.legend(['Train', 'Valid', 'Prediction'], loc='lower right')
-                plt.show()
+                #The interactive graph
+                fig = make_subplots()
+
+                # Add traces for the training data
+                fig.add_trace(go.Scatter(x=train.index, y=train['Close'], mode='lines', name='Train'))
+
+                # Add traces for the validation data
+                fig.add_trace(go.Scatter(x=valid.index, y=valid['Close'], mode='lines', name='Valid'))
+
+                # Add traces for the predictions
+                fig.add_trace(go.Scatter(x=valid.index, y=valid['Predictions'], mode='lines', name='Prediction'))
+
+                # Update the layout
+                fig.update_layout(
+                    title=f"{stock.upper()} Close Price",
+                    xaxis_title='Date',
+                    yaxis_title='Close Price (USD)',
+                    legend=dict(x=0, y=1, traceorder='normal'),
+                    hovermode='x'
+                )
+
+                # Show the figure
+                st.plotly_chart(fig)
 
                 # Predict next day price
                 last_60_days = data[-60:].values
