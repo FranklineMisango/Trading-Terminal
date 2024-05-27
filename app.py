@@ -48,13 +48,6 @@ from IPython.display import clear_output
 import requests
 from pandas_datareader import data as pdr
 import sys
-import json
-import random
-import re
-import csv
-import zipfile
-import urllib.request
-import shutil
 from websocket import create_connection
 import os
 parent_dir = os.path.dirname(os.getcwd())
@@ -62,8 +55,6 @@ sys.path.append(parent_dir)
 import ta_functions as ta
 import ta as taf
 import tickers as ti
-import time
-import smtplib
 from email.message import EmailMessage
 import datetime as dt
 import time
@@ -80,9 +71,6 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.arima.model import ARIMA
 from pmdarima.arima import auto_arima
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import datetime
-import dateutil.parser
-import math
 from scipy.stats import norm
 import warnings
 import plotly.graph_objects as go
@@ -127,8 +115,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
-import schedule
 import mplfinance as mpl
+
+
 #Page config
 st.set_page_config(layout="wide")
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
