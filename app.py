@@ -121,7 +121,9 @@ import mplfinance as mpl
 secret management
 from config import API_KEY_ALPACA, SECRET_KEY_ALPACA
 '''
-
+EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
+EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
+BASE_URL = st.secrets["BASE_URL"]
 API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
 SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
 
