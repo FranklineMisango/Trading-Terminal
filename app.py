@@ -16,7 +16,6 @@ from scipy.stats import norm
 from ta import add_all_ta_features
 from alpaca_trade_api.rest import REST, TimeFrame
 import backtrader as bt
-from config import API_KEY_ALPACA, SECRET_KEY_ALPACA
 from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from yahoo_earnings_calendar import YahooEarningsCalendar
@@ -116,6 +115,15 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import mplfinance as mpl
+
+
+'''
+secret management
+from config import API_KEY_ALPACA, SECRET_KEY_ALPACA
+'''
+
+API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
+SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
 
 
 #Page config
