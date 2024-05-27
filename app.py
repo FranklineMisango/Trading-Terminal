@@ -121,7 +121,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import math
 import mplfinance as mpl
-
+import date
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
