@@ -1,5 +1,11 @@
 #Library imports
 import streamlit as st
+
+#Page configs 
+
+#Page config
+st.set_page_config(layout="wide")
+
 import scipy.optimize as sco
 import matplotlib.dates as mpl_dates
 from scipy.stats import zscore
@@ -120,6 +126,7 @@ import mplfinance as mpl
 secret management
 from config import API_KEY_ALPACA, SECRET_KEY_ALPACA
 '''
+
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 BASE_URL = st.secrets["BASE_URL"]
@@ -127,8 +134,7 @@ API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
 SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
 
 
-#Page config
-st.set_page_config(layout="wide")
+
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
 st.success('Identify, Visualize, Predict and Trade')
 st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
