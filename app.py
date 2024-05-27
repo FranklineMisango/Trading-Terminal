@@ -104,7 +104,6 @@ from keras.src.metrics.metrics_utils import confusion_matrix
 from keras.src.utils import to_categorical
 import networkx as nx
 from sklearn.covariance import GraphicalLassoCV
-from config import EMAIL_ADDRESS, EMAIL_PASSWORD , API_FMPCLOUD
 warnings.filterwarnings("ignore")
 from autoscraper import AutoScraper
 from lxml import html
