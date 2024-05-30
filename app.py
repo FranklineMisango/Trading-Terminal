@@ -9718,7 +9718,7 @@ def main():
                 SECRET_KEY = SECRET_KEY_ALPACA
 
                 # Initialize REST API
-                rest_api = REST(API_KEY, SECRET_KEY, 'https://paper-api.alpaca.markets')
+                rest_api = REST(API_KEY, SECRET_KEY, 'https://paper-api.alpaca.markets/v2')
 
                 def run_backtest(strategy, symbol, start, end, timeframe=TimeFrame.Day, cash=10000):
                     cerebro = bt.Cerebro(stdstats=True)
