@@ -121,13 +121,20 @@ from email.mime.base import MIMEBase
 from email import encoders
 import math
 import mplfinance as mpl
+
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 BASE_URL = st.secrets["BASE_URL"]
 API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
 SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
+ALPACA_CONFIG = st.secrets["ALPACA_CONFIG"]  #TODO 
 
+#AI Trading recs
+from lumibot.brokers import Alpaca
+from lumibot.strategies import Strategy
+from lumibot.traders import Trader
+from lumibot.backtesting import YahooDataBacktesting #TODO - Move to strategies
 
 
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
@@ -9500,6 +9507,7 @@ def main():
     elif option =='Portfolio Strategies':
         pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                   'Astral Timing signals',
+                                                                  'Lumibot Backtesting strategy'
                                                                   'Backtest Strategies',
                                                                   'Backtrader Backtest',
                                                                   'Best Moving Averages Analysis',
@@ -9690,7 +9698,32 @@ def main():
                 df["SMA_50"] = df["Adj Close"].rolling(window=50).mean()
                 sma_stats = calculate_trading_statistics(df, sma_strategy_logic)
                 st.write("Simple Moving Average Strategy Stats:", sma_stats)
-
+        if pred_option_portfolio_strategies == "Lumibot Backtesting strategy":
+            st.success("This portion allows you backtest a ticker for a period using Lumibot YahooBacktesting strategy ")
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                start = start_date
+                end = end_date
+                BuyHold.backtest(
+                    YahooDataBacktesting,
+                    start,
+                    end
+                )
         if pred_option_portfolio_strategies == "Backtrader Backtest":
             ticker = st.text_input("Enter the ticker for investigation")
             if ticker:
@@ -11635,9 +11668,51 @@ def main():
                 plot_support_resistance(df, levels)
 
     elif option == "AI Trading":
-        #TODO - add the Robinhood and alpaca bots
-        st.write("This bot allows you to initate a trade")
-        pass
+        AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Buy & Hold Strategy"])
+        if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                    
+                def initialize(self):
+                    self.sleeptime = "1D"
+
+                def on_trading_iteration(self):
+                    if self.first_iteration:
+                        stocks_and_quantities = [
+                            {"symbol": ticker_input, "quantity": quantities_input},
+                        ]
+                        for stock_info in stocks_and_quantities:
+                            symbol = stock_info["symbol"]
+                            quantity = stock_info["quantity"]
+                            price = self.get_last_price(symbol)
+                            cost = price * quantity
+                            self.cash = portfolio_size
+                            if self.cash >= cost:
+                                order = self.create_order(symbol, quantity, "buy")
+                                self.submit_order(order)
+               
+                broker = Alpaca(ALPACA_CONFIG)
+                strategy = BuyHold(broker=broker)
+                trader = Trader()
+                trader.add_strategy(strategy)
+                trader.run_all()
+               
 
 if __name__ == "__main__":
     main()
