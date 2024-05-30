@@ -132,6 +132,7 @@ ALPACA_CONFIG = st.secrets["ALPACA_CONFIG"]  #TODO
 
 #AI Trading recs
 from lumibot.brokers import Alpaca
+from lumibot.entities import Asset
 from lumibot.strategies import Strategy
 from lumibot.traders import Trader
 from lumibot.backtesting import YahooDataBacktesting #TODO - Move to strategies
@@ -9507,7 +9508,7 @@ def main():
     elif option =='Portfolio Strategies':
         pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                   'Astral Timing signals',
-                                                                  'Lumibot Backtesting strategy'
+                                                                  'Lumibot Backtesting strategy',
                                                                   'Backtest Strategies',
                                                                   'Backtrader Backtest',
                                                                   'Best Moving Averages Analysis',
@@ -9698,6 +9699,7 @@ def main():
                 df["SMA_50"] = df["Adj Close"].rolling(window=50).mean()
                 sma_stats = calculate_trading_statistics(df, sma_strategy_logic)
                 st.write("Simple Moving Average Strategy Stats:", sma_stats)
+
         if pred_option_portfolio_strategies == "Lumibot Backtesting strategy":
             st.success("This portion allows you backtest a ticker for a period using Lumibot YahooBacktesting strategy ")
             ticker = st.text_input("Enter the ticker for investigation")
@@ -9707,6 +9709,9 @@ def main():
             portfolio = st.number_input("Enter the portfolio size in USD")
             if portfolio:
                 st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            quantities = st.number_input("Enter the quantities of the ticker to buy")
+            if quantities:
+                st.write(f"The noted quantities are : {quantities}")
             min_date = datetime(1980, 1, 1)
             # Date input widget with custom minimum date
             col1, col2 = st.columns([2, 2])
@@ -9719,11 +9724,28 @@ def main():
             if st.button("Check"):
                 start = start_date
                 end = end_date
-                BuyHold.backtest(
-                    YahooDataBacktesting,
-                    start,
-                    end
+                class MyStrategy(Strategy):
+                    def on_trading_iteration(self):
+                        if self.first_iteration:
+                            order = self.create_order(ticker, quantity=quantities, side="buy")
+                            self.submit_order(order)
+
+                # Create a backtest
+                backtesting_start = start
+                backtesting_end = end
+
+                # The benchmark asset to use for the backtest to compare to
+                benchmark_asset = Asset(symbol="QQQ", asset_type="stock")
+
+                backtest = MyStrategy.backtest(
+                    datasource_class=YahooDataBacktesting,
+                    backtesting_start=backtesting_start,
+                    backtesting_end=backtesting_end,
+                    benchmark_asset=benchmark_asset,
                 )
+
+
+            
         if pred_option_portfolio_strategies == "Backtrader Backtest":
             ticker = st.text_input("Enter the ticker for investigation")
             if ticker:
