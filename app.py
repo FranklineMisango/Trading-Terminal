@@ -11619,8 +11619,6 @@ def main():
                 else:
                     st.error("Please enter at least two tickers for the analysis.")
 
-
-
         if pred_option_portfolio_strategies == "Support Resistance Finder":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -11786,7 +11784,7 @@ def main():
                 st.write(data)
                 st.write(sig)
                 '''
-        if AI_option_trading == 'Lumibots : Swing High':
+        if AI_option_trading == 'Lumibots : Swing High Strategy':
             st.write("Lumibots buy hold strategy for Long term investors")
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -11847,8 +11845,7 @@ def main():
                         for symbol in self.symbols:
                             self.sell_all(symbol)
 
-        if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
-            st.write("Lumibots buy hold strategy for Long term investors")
+        if AI_option_trading == 'Lumibots : Trend Strategy':
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
                 message = (f"Ticker captured : {ticker}")
