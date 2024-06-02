@@ -11690,7 +11690,7 @@ def main():
                 plot_support_resistance(df, levels)
 
     elif option == "AI Trading":
-        AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Buy & Hold Strategy"])
+        AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Buy & Hold Strategy", "Lumibots : GLD signal"])
         if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
             st.write("Lumibots buy hold strategy for Long term investors")
             ticker = st.text_input("Please enter the ticker needed for investigation")
@@ -11709,7 +11709,7 @@ def main():
                 end_date = st.date_input("End Date:")
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
-            if st.button("Check"):
+            if st.button("Trade"):
                     
                 def initialize(self):
                     self.sleeptime = "1D"
@@ -11734,7 +11734,198 @@ def main():
                 trader = Trader()
                 trader.add_strategy(strategy)
                 trader.run_all()
-               
 
+        if AI_option_trading == 'Lumibots : GLD Signal Strategy':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                gld = pd.DataFrame(yf.download(ticker_input, start_date)['Close'])
+                gld['9-day'] = gld['Close'].rolling(9).mean()
+                gld['21-day'] = gld['Close'].rolling(21).mean()
+                gld['Signal'] = np.where(np.logical_and(gld['9-day'] > gld['21-day'],
+                                        gld['9-day'].shift(1) < gld['21-day'].shift(1)),
+                                        "BUY", None)
+                gld['Signal'] = np.where(np.logical_and(gld['9-day'] < gld['21-day'],
+                                        gld['9-day'].shift(1) > gld['21-day'].shift(1)),
+                                        "SELL", gld['Signal'])
+
+                def signal(df, start=start_date, end=end_date):
+                    df = pd.DataFrame(yf.download(ticker_input, start, end)['Close'])
+                    df['9-day'] = df['Close'].rolling(9).mean()
+                    df['21-day'] = df['Close'].rolling(21).mean()
+                    df['Signal'] = np.where(np.logical_and(df['9-day'] > df['21-day'],
+                                            df['9-day'].shift(1) < df['21-day'].shift(1)),
+                                            "BUY", None)
+                    df['Signal'] = np.where(np.logical_and(df['9-day'] < df['21-day'],
+                                            df['9-day'].shift(1) > df['21-day'].shift(1)),
+                                            "SELL", df['Signal'])
+                    return df, df.iloc[-1].Signal
+
+                '''
+                st.write(gld)
+                st.write("-" * 10)
+                st.write(gld.iloc[-1].Signal)
+                st.success("Saving the GLD csv")
+                gld.to_csv('gld_signal.csv')
+                data, sig = signal(gld)
+                st.write(data)
+                st.write(sig)
+                '''
+        if AI_option_trading == 'Lumibots : Swing High':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                class SwingHigh(Strategy):
+                    data = {}  # Dictionary to store last price data for each symbol
+                    order_numbers = {}  # Dictionary to store order numbers for each symbol
+                    shares_per_ticker = {}  # Dictionary to specify the number of shares per ticker
+
+                    def initialize(self, ticker_input, quantities_input):
+                        self.symbols = ticker_input# Add other symbols as needed
+                        self.shares_per_ticker = {ticker_input: quantities_input}   # Specify the number of shares for each symbol
+                        self.sleeptime = "10S"
+                    
+                    def on_trading_iteration(self):
+                        for symbol in self.symbols:
+                            if symbol not in self.data:
+                                self.data[symbol] = []
+
+                            entry_price = self.get_last_price(symbol)
+                            self.log_message(f"Position for {symbol}: {self.get_position(symbol)}")
+                            self.data[symbol].append(entry_price)
+
+                            if len(self.data[symbol]) > 3:
+                                temp = self.data[symbol][-3:]
+                                if temp[-1] > temp[1] > temp[0]:
+                                    self.log_message(f"Last 3 prints for {symbol}: {temp}")
+                                    order = self.create_order(symbol, quantity=self.shares_per_ticker[symbol], side="buy")
+                                    self.submit_order(order)
+                                    if symbol not in self.order_numbers:
+                                        self.order_numbers[symbol] = 0
+                                    self.order_numbers[symbol] += 1
+                                    if self.order_numbers[symbol] == 1:
+                                        self.log_message(f"Entry price for {symbol}: {temp[-1]}")
+                                        entry_price = temp[-1]  # filled price
+                                if self.get_position(symbol) and self.data[symbol][-1] < entry_price * 0.995:
+                                    self.sell_all(symbol)
+                                    self.order_numbers[symbol] = 0
+                                elif self.get_position(symbol) and self.data[symbol][-1] >= entry_price * 1.015:
+                                    self.sell_all(symbol)
+                                    self.order_numbers[symbol] = 0
+
+                    def before_market_closes(self):
+                        for symbol in self.symbols:
+                            self.sell_all(symbol)
+
+        if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                class Trend(Strategy):
+
+                    def initialize(self):
+                        signal = None
+                        start = start_date
+
+                        self.signal = signal
+                        self.start = start
+                        self.sleeptime = "1D"
+                    # minute bars, make functions    
+
+                    def on_trading_iteration(self):
+                        bars = self.get_historical_prices("GLD", 22, "day")
+                        gld = bars.df
+                        #gld = pd.DataFrame(yf.download("GLD", self.start)['Close'])
+                        gld['9-day'] = gld['close'].rolling(9).mean()
+                        gld['21-day'] = gld['close'].rolling(21).mean()
+                        gld['Signal'] = np.where(np.logical_and(gld['9-day'] > gld['21-day'],
+                                                                gld['9-day'].shift(1) < gld['21-day'].shift(1)),
+                                                "BUY", None)
+                        gld['Signal'] = np.where(np.logical_and(gld['9-day'] < gld['21-day'],
+                                                                gld['9-day'].shift(1) > gld['21-day'].shift(1)),
+                                                "SELL", gld['Signal'])
+                        self.signal = gld.iloc[-1].Signal
+                        
+                        symbol = "GLD"
+                        quantity = 200
+                        if self.signal == 'BUY':
+                            pos = self.get_position(symbol)
+                            if pos is not None:
+                                self.sell_all()
+                                
+                            order = self.create_order(symbol, quantity, "buy")
+                            self.submit_order(order)
+
+                        elif self.signal == 'SELL':
+                            pos = self.get_position(symbol)
+                            if pos is not None:
+                                self.sell_all()
+                                
+                            order = self.create_order(symbol, quantity, "sell")
+                            self.submit_order(order)
+
+                    
+                if __name__ == "__main__":
+                    trade = False
+                    #Reactivate after code rebase
+                    if trade:
+                        broker = Alpaca(ALPACA_CONFIG)
+                        strategy = Trend(broker=broker)
+                        bot = Trader()
+                        bot.add_strategy(strategy)
+                        bot.run_all()
+                    else:
+                        start = start_date
+                        end = end_date
+                        Trend.backtest(
+                            YahooDataBacktesting,
+                            start,
+                            end
+                        )
 if __name__ == "__main__":
     main()
