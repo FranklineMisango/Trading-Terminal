@@ -129,6 +129,9 @@ BASE_URL = st.secrets["BASE_URL"]
 API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
 SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
 ALPACA_CONFIG = st.secrets["ALPACA_CONFIG"]  #TODO 
+KRAKEN_CONFIG =     st.secrets["KRAKEN_CONFIG"]
+
+
 
 #AI Trading recs
 from lumibot.brokers import Alpaca
@@ -12178,20 +12181,7 @@ def main():
                 if __name__ == "__main__":
                     trader = Trader()
 
-                    KRAKEN_CONFIG = {
-                        "exchange_id": "kraken",
-                        "apiKey": "YOUR_API_KEY",
-                        "secret": "YOUR_SECRET_KEY",
-                        "margin": True,
-                        "sandbox": False,
-                    }
-
-                    # Check that the user has filled in the API keys
-                    if KRAKEN_CONFIG["apiKey"] == "YOUR_API_KEY":
-                        raise Exception("Please fill in your API key")
-                    if KRAKEN_CONFIG["secret"] == "YOUR_SECRET_KEY":
-                        raise Exception("Please fill in your secret key")
-
+                
                     broker = Ccxt(KRAKEN_CONFIG)
 
                     strategy = ImportantFunctions(
