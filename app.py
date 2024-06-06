@@ -150,33 +150,7 @@ from streamlit_ttyd import terminal
 import time 
 
 
-#The terminal logic : 
-def capture_terminal_output():
-    ttyd_cmd = "ttyd -p 7682 streamlit run --server.port 8501 app.py"
-    try:
-        ttydprocess = subprocess.Popen(ttyd_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        st.write("Starting Terminal server...")
-    except Exception as e:
-        st.error(f"Error starting ttyd server: {e}")
-        st.stop()
-
-    # Give some time for the ttyd server to start
-    time.sleep(5)  # Increase the sleep time
-
-    # Check if the ttyd server is running
-    if ttydprocess.poll() is None:  # If ttydprocess is still running
-        st.success("ttyd server is running.")
-        port = 7683
-    else:
-        # Capture and display the error from ttyd
-        stdout, stderr = ttydprocess.communicate()
-        st.error(f"Failed to start ttyd server.\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
-        st.stop()
-
-    return port, ttydprocess
-
-
-def app_a(): 
+def main():
     #Main app
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     @st.cache_resource
@@ -13017,38 +12991,7 @@ def app_a():
                             benchmark_asset="SPY",
                         )
 
-def app_b(port, ttydprocess):
-    st.header("App B")
-    st.write("This is the content of App B.")
-    st.write("Below are the terminal outputs from App A:")
-    
-    # Embed the terminal in the Streamlit app
-    terminal_url = f"http://localhost:{port}"
-    st.write(terminal_url)
-    st.markdown(f"""
-        <iframe src="{terminal_url}" width="100%" height="500px"></iframe>
-    """, unsafe_allow_html=True)
 
-    # Option to stop the ttyd server manually (optional)
-    if st.button("Stop Terminal"):
-        ttydprocess.terminate()
-        st.text("ttyd server has been stopped.")
-
-def main():
-    st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
-    st.success("Our intelligent Terminal running your instructions on the right")
-
-    port, ttydprocess = capture_terminal_output()
-    
-
-    col1, col2 = st.columns([2, 1])  # Adjust the width ratio as needed
-    
-    with col1:
-        app_a()
-    
-    with col2:
-        port = 8502  # Adjust the port number as needed
-        app_b(port, ttydprocess)
 
 if __name__ == "__main__":
     main()
