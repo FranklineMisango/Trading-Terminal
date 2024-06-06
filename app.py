@@ -119,6 +119,9 @@ from email.mime.base import MIMEBase
 from email import encoders
 import math
 import mplfinance as mpl
+import subprocess
+
+
 
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
@@ -146,78 +149,64 @@ from lumibot.entities import TradingFee
 from streamlit_ttyd import terminal
 import time 
 
-st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
-st.success("Our intelligent Terminal running your instructions below")
 
-##The terminal setup 
+#The terminal logic : 
+def capture_terminal_output():
+    ttyd_cmd = "ttyd -p 7682 streamlit run --server.port 8501 app.py"
+    try:
+        ttydprocess = subprocess.Popen(ttyd_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        st.write("Starting Terminal server...")
+    except Exception as e:
+        st.error(f"Error starting ttyd server: {e}")
+        st.stop()
 
-st.title("Real-Time Terminal Output and Chart Display")
+    # Give some time for the ttyd server to start
+    time.sleep(5)  # Increase the sleep time
 
-# Start the ttyd server to show terminal output
-ttyd_cmd = "ttyd -p 7681 python script.py"
-try:
-    ttydprocess = subprocess.Popen(ttyd_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    st.text("Starting ttyd server...")
-except Exception as e:
-    st.text(f"Error starting ttyd server: {e}")
-    st.stop()
+    # Check if the ttyd server is running
+    if ttydprocess.poll() is None:  # If ttydprocess is still running
+        st.success("ttyd server is running.")
+        port = 7683
+    else:
+        # Capture and display the error from ttyd
+        stdout, stderr = ttydprocess.communicate()
+        st.error(f"Failed to start ttyd server.\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
+        st.stop()
 
-# Give some time for the ttyd server to start
-time.sleep(5)  # Increase the sleep time
+    return port, ttydprocess
 
-# Check if the ttyd server is running
-if ttydprocess.poll() is None:  # If ttydprocess is still running
-    st.text("ttyd server is running.")
-    port = 7681
-else:
-    # Capture and display the error from ttyd
-    stdout, stderr = ttydprocess.communicate()
-    st.text(f"Failed to start ttyd server.\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
-    st.stop()
 
-# Embed the terminal in the Streamlit app
-terminal_url = f"http://localhost:{port}"
-st.markdown(f"""
-    <iframe src="{terminal_url}" width="100%" height="500px"></iframe>
-""", unsafe_allow_html=True)
+def app_a(): 
+    #Main app
+    st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
+    @st.cache_resource
+    def correlated_stocks(start_date, end_date, tickers):
+        print("Inside correlated_stocks function")
+        data = yf.download(tickers, start=start_date, end=end_date)["Adj Close"]
+        returns = np.log(data / data.shift(1))
+        correlation = returns.corr()
+        return correlation
 
-# Option to stop the ttyd server manually (optional)
-if st.button("Stop Terminal"):
-    ttydprocess.terminate()
-    st.text("ttyd server has been stopped.")
+    # Function to visualize correlations as a heatmap using Plotly
+    def visualize_correlation_heatmap(correlation):
+        print("Inside visualize_correlation_heatmap function")
+        fig = ff.create_annotated_heatmap(
+            z=correlation.values,
+            x=correlation.columns.tolist(),
+            y=correlation.index.tolist(),
+            colorscale='Viridis',
+            annotation_text=correlation.values.round(2),
+            showscale=True
+        )
+        fig.update_layout(
+            title='Correlation Matrix',
+            xaxis=dict(title='Tickers', tickangle=90),
+            yaxis=dict(title='Tickers'),
+            width=1000,
+            height=1000
+        )
+        st.plotly_chart(fig)
 
-#Main app
-
-st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
-@st.cache_resource
-def correlated_stocks(start_date, end_date, tickers):
-    print("Inside correlated_stocks function")
-    data = yf.download(tickers, start=start_date, end=end_date)["Adj Close"]
-    returns = np.log(data / data.shift(1))
-    correlation = returns.corr()
-    return correlation
-
-# Function to visualize correlations as a heatmap using Plotly
-def visualize_correlation_heatmap(correlation):
-    print("Inside visualize_correlation_heatmap function")
-    fig = ff.create_annotated_heatmap(
-        z=correlation.values,
-        x=correlation.columns.tolist(),
-        y=correlation.index.tolist(),
-        colorscale='Viridis',
-        annotation_text=correlation.values.round(2),
-        showscale=True
-    )
-    fig.update_layout(
-        title='Correlation Matrix',
-        xaxis=dict(title='Tickers', tickangle=90),
-        yaxis=dict(title='Tickers'),
-        width=1000,
-        height=1000
-    )
-    st.plotly_chart(fig)
-
-def main():
     option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
     if option == 'Find stocks':
         options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
@@ -835,8 +824,8 @@ def main():
     elif option == 'Stock Predictions':
 
         pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis',
-                                                     'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
-                                                     'ETF Graphical Lasso', 'Kmeans Clustering'])
+                                                    'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
+                                                    'ETF Graphical Lasso', 'Kmeans Clustering'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1085,7 +1074,7 @@ def main():
                 lr_printing_score = f"Linear Regression Score: {lr_score}"
                 st.write(lr_printing_score)
 
-               # Create a Plotly figure
+            # Create a Plotly figure
                 fig = go.Figure()
 
                 # Add traces for actual and predicted values
@@ -1394,7 +1383,7 @@ def main():
 
                 # Display the Plotly chart inline
                 st.plotly_chart(fig)
-               
+            
                 # Analyze and interpret the clusters
                 # This step involves understanding the characteristics of each cluster
                 # and how they differ from each other based on the stock movement patterns they represent
@@ -1520,7 +1509,7 @@ def main():
             col1, col2 = st.columns([2, 2])
             with col1:
                 end_date = st.date_input("End date:")
-         
+        
             if st.button("Check"):
                 num_years = int(number_of_years)
                 start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
@@ -1577,7 +1566,7 @@ def main():
                 links.columns = ['ETF1', 'ETF2', 'Value']
                 links_filtered = links[(abs(links['Value']) > 0.17) & (links['ETF1'] != links['ETF2'])]
 
-                 # Build and display the network graph
+                # Build and display the network graph
                 st.set_option('deprecation.showPyplotGlobalUse', False)
                 G = nx.from_pandas_edgelist(links_filtered, 'ETF1', 'ETF2')
                 pos = nx.spring_layout(G, k=0.2 * 1 / np.sqrt(len(G.nodes())), iterations=20)
@@ -1601,7 +1590,7 @@ def main():
             if st.button("Check"):
                 # Load stock data from Dow Jones Index
                 stocks = ti.tickers_dow()
-  
+
 
                 # Retrieve adjusted closing prices
                 data = yf.download(stocks, start=start_date, end=end_date)['Close']
@@ -1644,10 +1633,10 @@ def main():
 
     elif option =='Stock Data':
         pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "High Dividend yield","Dividend History", "Fibonacci Retracement", 
-                                                                          "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", 
-                                                                          "Get Dividend calendar", "Green Line Test", "Main Indicators", "Pivots Calculator", 
-                                                                          "Email Top Movers", "Stock VWAP", "Data SMS stock", "Stock Earnings", "Trading view Intraday", 
-                                                                          "Trading view Recommendations", "Yahoo Finance Intraday Data"])
+                                                                        "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", 
+                                                                        "Get Dividend calendar", "Green Line Test", "Main Indicators", "Pivots Calculator", 
+                                                                        "Email Top Movers", "Stock VWAP", "Data SMS stock", "Stock Earnings", "Trading view Intraday", 
+                                                                        "Trading view Recommendations", "Yahoo Finance Intraday Data"])
         if pred_option_data == "Finviz Autoscraper":
 
             # Fetches financial data for a list of tickers from Finviz using AutoScraper.
@@ -1810,7 +1799,7 @@ def main():
         if pred_option_data == "Finviz Home scraper":
             st.success("This segment allows you to find gainers/losers today and relevant news from Finviz")
             if st.button("Confirm"):
-   
+
                 # Set display options for pandas
                 pd.set_option('display.max_colwidth', 60)
                 pd.set_option('display.max_columns', None)
@@ -2325,7 +2314,7 @@ def main():
 
                 # Display Plotly figure
                 st.plotly_chart(fig)
-                              
+                            
         if pred_option_data == "Email Top Movers":
 
             st.success("This segment allows you to get updates on Top stock movers")
@@ -2421,7 +2410,7 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-                 # Override yfinance with pandas datareader
+                # Override yfinance with pandas datareader
                 yf.pdr_override()
                 # Define the stock symbol to analyze
                 stock = ticker
@@ -2785,7 +2774,7 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-           
+        
                 interval = '1D'
 
                 # Getting lists of tickers from NASDAQ, NYSE, and AMEX
@@ -2890,23 +2879,23 @@ def main():
                 driver.close()
     elif option =='Stock Analysis':
         pred_option_analysis = st.selectbox('Make a choice', ['Backtest All Indicators',
-                                                      'CAPM Analysis',
-                                                      'Earnings Sentiment Analysis',
-                                                      'Intrinsic Value analysis',
-                                                      'Kelly Criterion',
-                                                      'MA Backtesting',
-                                                      'Ols Regression',
-                                                      'Perfomance Risk Analysis',
-                                                      'Risk/Returns Analysis',
-                                                      'Seasonal Stock Analysis',
-                                                      'SMA Histogram',
-                                                      'SP500 COT Sentiment Analysis',
-                                                      'SP500 Valuation',
-                                                      'Stock Pivot Resistance',
-                                                      'Stock Profit/Loss Analysis',
-                                                      'Stock Return Statistical Analysis',
-                                                      'VAR Analysis',
-                                                      'Stock Returns'])
+                                                    'CAPM Analysis',
+                                                    'Earnings Sentiment Analysis',
+                                                    'Intrinsic Value analysis',
+                                                    'Kelly Criterion',
+                                                    'MA Backtesting',
+                                                    'Ols Regression',
+                                                    'Perfomance Risk Analysis',
+                                                    'Risk/Returns Analysis',
+                                                    'Seasonal Stock Analysis',
+                                                    'SMA Histogram',
+                                                    'SP500 COT Sentiment Analysis',
+                                                    'SP500 Valuation',
+                                                    'Stock Pivot Resistance',
+                                                    'Stock Profit/Loss Analysis',
+                                                    'Stock Return Statistical Analysis',
+                                                    'VAR Analysis',
+                                                    'Stock Returns'])
 
         if pred_option_analysis == "Backtest All Indicators":
             st.success("This segment allows us to Backtest Most Technical Indicators of a ticker")
@@ -4391,7 +4380,7 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-             # Configure the stock symbol, moving average windows, initial capital, and date range
+            # Configure the stock symbol, moving average windows, initial capital, and date range
                 symbol = ticker
                 short_window = 20
                 long_window = 50
@@ -5573,87 +5562,87 @@ def main():
 
     elif option =='Technical Indicators':
         pred_option_Technical_Indicators = st.selectbox('Make a choice', [
-                                                                  'Exponential Moving Average (EMA)',
-                                                                  'EMA Volume',
-                                                                  'Positive Volume Trend (PVT)',
-                                                                  'Exponential Weighted Moving Average (EWMA)',
-                                                                  'Weighted Smoothing Moving Average (WSMA)',
-                                                                  'Z Score Indicator (Z Score)',
-                                                                  'Absolute Price Oscillator (APO)',
-                                                                  'Acceleration Bands',
-                                                                  'Accumulation Distribution Line',
-                                                                  'Aroon',
-                                                                  'Aroon Oscillator',
-                                                                  'Average Directional Index (ADX)',
-                                                                  'Average True Range (ATR)',
-                                                                  'Balance of Power',
-                                                                  'Beta Indicator',
-                                                                  'Bollinger Bands',
-                                                                  'Bollinger Bandwidth',
-                                                                  'Breadth Indicator',
-                                                                  'Candle Absolute Returns',
-                                                                  'GANN lines angles',
-                                                                  'GMMA',
-                                                                  'Moving Average Convergence Divergence (MACD)',
-                                                                  'MA high low',
-                                                                  'Price Volume Trend Indicator (PVI)',
-                                                                  'Price Volume Trend (PVT)',
-                                                                  'Rate of Change (ROC)',
-                                                                  'Return on Investment (ROI)',
-                                                                  'Relative Strength Index (RSI)',
-                                                                  'RSI BollingerBands',
-                                                                  'Simple Moving Average (SMA)',
-                                                                  'Weighted Moving Average (WMA)',
-                                                                  'Triangular Moving Average (TRIMA)',
-                                                                  'Time-Weighted Average Price (TWAP)',
-                                                                  'Volume Weighted Average Price (VWAP)',
-                                                                  'Central Pivot Range (CPR)',
-                                                                  'Chaikin Money Flow',
-                                                                  'Chaikin Oscillator',
-                                                                  'Commodity Channel Index (CCI)',
-                                                                  'Correlation Coefficient',
-                                                                  'Covariance',
-                                                                  'Detrended Price Oscillator (DPO)',
-                                                                  'Donchain Channel',
-                                                                  'Double Exponential Moving Average (DEMA)',
-                                                                  'Dynamic Momentum Index',
-                                                                  'Ease of Movement',
-                                                                  'Force Index',
-                                                                  'Geometric Return Indicator',
-                                                                  'Golden/Death Cross',
-                                                                  'High Minus Low',
-                                                                  'Hull Moving Average',
-                                                                  'Keltner Channels',
-                                                                  'Linear Regression',
-                                                                  'Linear Regression Slope',
-                                                                  'Linear Weighted Moving Average (LWMA)',
-                                                                  'McClellan Oscillator',
-                                                                  'Momentum',
-                                                                  'Moving Average Envelopes',
-                                                                  'Moving Average High/Low',
-                                                                  'Moving Average Ribbon',
-                                                                  'Moving Average Envelopes (MMA)',
-                                                                  'Moving Linear Regression',
-                                                                  'New Highs/New Lows',
-                                                                  'Pivot Point',
-                                                                  'Money Flow Index (MFI)',
-                                                                  'Price Channels',
-                                                                  'Price Relative',
-                                                                  'Realized Volatility',
-                                                                  'Relative Volatility Index',
-                                                                  'Smoothed Moving Average',
-                                                                  'Speed Resistance Lines',
-                                                                  'Standard Deviation Volatility',
-                                                                  'Stochastic RSI',
-                                                                  'Stochastic Fast',
-                                                                  'Stochastic Full',
-                                                                  'Stochastic Slow',
-                                                                  'Super Trend',
-                                                                  'True Strength Index',
-                                                                  'Ultimate Oscillator',
-                                                                  'Variance Indicator',
-                                                                  'Volume Price Confirmation Indicator',
-                                                                  'Volume Weighted Moving Average (VWMA)'])
+                                                                'Exponential Moving Average (EMA)',
+                                                                'EMA Volume',
+                                                                'Positive Volume Trend (PVT)',
+                                                                'Exponential Weighted Moving Average (EWMA)',
+                                                                'Weighted Smoothing Moving Average (WSMA)',
+                                                                'Z Score Indicator (Z Score)',
+                                                                'Absolute Price Oscillator (APO)',
+                                                                'Acceleration Bands',
+                                                                'Accumulation Distribution Line',
+                                                                'Aroon',
+                                                                'Aroon Oscillator',
+                                                                'Average Directional Index (ADX)',
+                                                                'Average True Range (ATR)',
+                                                                'Balance of Power',
+                                                                'Beta Indicator',
+                                                                'Bollinger Bands',
+                                                                'Bollinger Bandwidth',
+                                                                'Breadth Indicator',
+                                                                'Candle Absolute Returns',
+                                                                'GANN lines angles',
+                                                                'GMMA',
+                                                                'Moving Average Convergence Divergence (MACD)',
+                                                                'MA high low',
+                                                                'Price Volume Trend Indicator (PVI)',
+                                                                'Price Volume Trend (PVT)',
+                                                                'Rate of Change (ROC)',
+                                                                'Return on Investment (ROI)',
+                                                                'Relative Strength Index (RSI)',
+                                                                'RSI BollingerBands',
+                                                                'Simple Moving Average (SMA)',
+                                                                'Weighted Moving Average (WMA)',
+                                                                'Triangular Moving Average (TRIMA)',
+                                                                'Time-Weighted Average Price (TWAP)',
+                                                                'Volume Weighted Average Price (VWAP)',
+                                                                'Central Pivot Range (CPR)',
+                                                                'Chaikin Money Flow',
+                                                                'Chaikin Oscillator',
+                                                                'Commodity Channel Index (CCI)',
+                                                                'Correlation Coefficient',
+                                                                'Covariance',
+                                                                'Detrended Price Oscillator (DPO)',
+                                                                'Donchain Channel',
+                                                                'Double Exponential Moving Average (DEMA)',
+                                                                'Dynamic Momentum Index',
+                                                                'Ease of Movement',
+                                                                'Force Index',
+                                                                'Geometric Return Indicator',
+                                                                'Golden/Death Cross',
+                                                                'High Minus Low',
+                                                                'Hull Moving Average',
+                                                                'Keltner Channels',
+                                                                'Linear Regression',
+                                                                'Linear Regression Slope',
+                                                                'Linear Weighted Moving Average (LWMA)',
+                                                                'McClellan Oscillator',
+                                                                'Momentum',
+                                                                'Moving Average Envelopes',
+                                                                'Moving Average High/Low',
+                                                                'Moving Average Ribbon',
+                                                                'Moving Average Envelopes (MMA)',
+                                                                'Moving Linear Regression',
+                                                                'New Highs/New Lows',
+                                                                'Pivot Point',
+                                                                'Money Flow Index (MFI)',
+                                                                'Price Channels',
+                                                                'Price Relative',
+                                                                'Realized Volatility',
+                                                                'Relative Volatility Index',
+                                                                'Smoothed Moving Average',
+                                                                'Speed Resistance Lines',
+                                                                'Standard Deviation Volatility',
+                                                                'Stochastic RSI',
+                                                                'Stochastic Fast',
+                                                                'Stochastic Full',
+                                                                'Stochastic Slow',
+                                                                'Super Trend',
+                                                                'True Strength Index',
+                                                                'Ultimate Oscillator',
+                                                                'Variance Indicator',
+                                                                'Volume Price Confirmation Indicator',
+                                                                'Volume Weighted Moving Average (VWMA)'])
 
         if pred_option_Technical_Indicators == "Exponential Moving Average (EMA)":
             st.success("This program allows you to view the Exponential Moving Average of a stock ")
@@ -5898,7 +5887,7 @@ def main():
                 fig_candlestick.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=np.where(df['Open'] < df['Close'], 'green', 'red')))
 
                 fig_candlestick.update_layout(title="Stock Closing Price", xaxis_title="Date", yaxis_title="Price", 
-                                               yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))
+                                            yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))
                 st.plotly_chart(fig_candlestick)
 
         if pred_option_Technical_Indicators == "GMMA":
@@ -6578,7 +6567,7 @@ def main():
 
                 fig4.update_layout(title=f"Bollinger Bands & RSI for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price/RSI")
                 st.plotly_chart(fig4)
-               
+            
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
             st.success("This program allows you to view the VWAP over time of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -6594,7 +6583,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
 
@@ -6608,7 +6597,7 @@ def main():
                         for i in range(len(df) - n)
                     ]
                 )
-               
+            
                 vwap_series = pd.concat([(pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]])) for i in range(len(df) - n)])
                 vwap_series = vwap_series.dropna()
 
@@ -6622,7 +6611,7 @@ def main():
 
                 # Candlestick with VWAP
                 df.loc[:, "VolumePositive"] = df["Open"] < df["Adj Close"]
-              
+            
                 df = df.dropna()
                 df = df.reset_index()
                 df["Date"] = pd.to_datetime(df["Date"])
@@ -6656,7 +6645,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
 
@@ -6707,7 +6696,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
                 
@@ -6761,7 +6750,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
             
@@ -6880,7 +6869,7 @@ def main():
                 end = end_date
                 # Read data
                 df = yf.download(symbol, start, end)
-               
+            
 
                 n = 7
                 UBB = df["High"] * (1 + 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
@@ -6983,7 +6972,7 @@ def main():
                 fig.update_layout(yaxis3=dict(title="Volume"))
 
                 st.plotly_chart(fig)
-               
+            
         if pred_option_Technical_Indicators == "Aroon":
             st.success("This program allows you to view the Aroon of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -7517,7 +7506,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-           
+        
                 # Read data
                 df = yf.download(symbol, start, end)
 
@@ -7599,7 +7588,7 @@ def main():
 
                 # Calculate Chaikin Oscillator
                 Chaikin(df)
-              
+            
 
                 # Chaikin Oscillator Plot
                 fig = go.Figure()
@@ -7639,7 +7628,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-           
+        
                 # Read data
                 df = yf.download(symbol, start, end)
                 df["Absolute_Return"] = (
@@ -8828,7 +8817,7 @@ def main():
                                 yaxis_title='Price')
                 
                 st.plotly_chart(fig)
-       
+    
         if pred_option_Technical_Indicators == "Price Channels":
             st.success("This program allows you to visualize Price Channels for a selected ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -9361,7 +9350,7 @@ def main():
                                 yaxis_title="Price",
                                 legend=dict(x=0, y=1, traceorder="normal"))
                 st.plotly_chart(fig_candle)
-       
+    
         if pred_option_Technical_Indicators == "Ultimate Oscillator":
             st.success("This program allows you to view the Ultimate Oscillator of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -9555,32 +9544,32 @@ def main():
                 st.plotly_chart(fig_candle)
     elif option =='Portfolio Strategies':
         pred_option_portfolio_strategies = st.selectbox('Make a choice', [
-                                                                  'Astral Timing signals',
-                                                                  'Lumibot Backtesting strategy',
-                                                                  'Backtest Strategies',
-                                                                  'Backtrader Backtest',
-                                                                  'Best Moving Averages Analysis',
-                                                                  'EMA Crossover Strategy',
-                                                                  'Factor Analysis',
-                                                                  'Financial Signal Analysis',
-                                                                  'Geometric Brownian Motion',
-                                                                  'Long Hold Stats Analysis',
-                                                                  'LS DCA Analysis',
-                                                                  'Monte Carlo',
-                                                                  'Moving Average Crossover Signals',
-                                                                  'Moving Average Strategy',
-                                                                  'Optimal Portfolio',
-                                                                  'Optimized Bollinger Bands',
-                                                                  'Pairs Trading',
-                                                                  'Portfolio Analysis',
-                                                                  'Portfolio Optimization',
-                                                                  'Portfolio VAR Simulation',
-                                                                  'Risk Management'
-                                                                  'RSI Trendline Strategy',
-                                                                  'RWB Strategy',
-                                                                  'SMA Trading Strategy',
-                                                                  'Stock Spread Plotter',
-                                                                  'Support Resistance Finder'])
+                                                                'Astral Timing signals',
+                                                                'Lumibot Backtesting strategy',
+                                                                'Backtest Strategies',
+                                                                'Backtrader Backtest',
+                                                                'Best Moving Averages Analysis',
+                                                                'EMA Crossover Strategy',
+                                                                'Factor Analysis',
+                                                                'Financial Signal Analysis',
+                                                                'Geometric Brownian Motion',
+                                                                'Long Hold Stats Analysis',
+                                                                'LS DCA Analysis',
+                                                                'Monte Carlo',
+                                                                'Moving Average Crossover Signals',
+                                                                'Moving Average Strategy',
+                                                                'Optimal Portfolio',
+                                                                'Optimized Bollinger Bands',
+                                                                'Pairs Trading',
+                                                                'Portfolio Analysis',
+                                                                'Portfolio Optimization',
+                                                                'Portfolio VAR Simulation',
+                                                                'Risk Management'
+                                                                'RSI Trendline Strategy',
+                                                                'RWB Strategy',
+                                                                'SMA Trading Strategy',
+                                                                'Stock Spread Plotter',
+                                                                'Support Resistance Finder'])
 
         if pred_option_portfolio_strategies == "Astral Timing signals":
             st.success("This program allows you to start backtesting using Astral Timing signals")
@@ -9619,7 +9608,7 @@ def main():
                     return data
 
                 # Define stock ticker and date range
-               
+            
                 start = start_date
                 end = end_date
 
@@ -9852,7 +9841,7 @@ def main():
 
                     # Plotting the results
                     cerebro.plot(iplot=False)
-                  
+                
                 def strategy_statistics(results, initial_value, data):
                     # Analyzing the results
                     strat = results[0]
@@ -9954,7 +9943,7 @@ def main():
 
                     # Run backtest
                 run_backtest(SmaCross, ticker, start_date, end_date, TimeFrame.Day, portfolio)
-           
+        
         if pred_option_portfolio_strategies == "Best Moving Averages Analysis":
             st.success("This portion allows you backtest a ticker for a period using the best moving averages Logic ")
             ticker = st.text_input("Enter the ticker for investigation")
@@ -10391,7 +10380,7 @@ def main():
                                 yaxis_title='Price')
                 st.plotly_chart(fig)
 
-          
+        
         if pred_option_portfolio_strategies == "Long Hold Stats Analysis":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -10512,7 +10501,7 @@ def main():
                 # Analysis for Lump Sum and DCA
                 lump_sum_values = [lump_sum_investment(stock_data, date, principal) for date in stock_data.index]
                 dca_values = [dca_investment(stock_data, date, 12, '30D', principal) for date in stock_data.index]
-               
+            
                 fig1 = go.Figure()
                 fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Adj Close'], mode='lines', name=f'{symbol} Price'))
                 fig1.update_layout(title=f'{symbol} Stock Price', yaxis_title='Price', yaxis_tickprefix='$', yaxis_tickformat=',.0f')
@@ -10687,7 +10676,7 @@ def main():
                                     yaxis_title='Close Price')
 
                     st.plotly_chart(fig)
-         
+        
         if pred_option_portfolio_strategies == "Moving Average Strategy":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -10706,7 +10695,7 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-               
+            
                 # Function to download stock data
                 def download_stock_data(ticker, start_date, end_date):
                     return yf.download(ticker, start_date, end_date)
@@ -10821,7 +10810,7 @@ def main():
                     st.write(f"Optimal Portfolio Weights: {optimal_weights}")
                     st.write(f"Optimal Portfolio Sharpe Ratio: {optimal_sharpe}")
 
-      
+    
         if pred_option_portfolio_strategies == "Optimized Bollinger Bands":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -10957,7 +10946,7 @@ def main():
 
                         # Display the found pairs
                         st.write("Cointegrated Pairs:", pairs)
-                  
+                
         if pred_option_portfolio_strategies == "Portfolio Analysis":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -11291,7 +11280,7 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-                               
+                            
                 # Define the start and end dates for data retrieval
                 start = dt.datetime(2019, 1, 1)
                 now = dt.datetime.now()
@@ -11581,9 +11570,9 @@ def main():
                 st.write(f"Number of Trades: {numGains + numLosses}")
                 st.write(f"Total return: {totReturn}%")
 
- 
+
         
-     
+    
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
             portfolio = st.number_input("Enter the portfolio size in USD")
             if portfolio:
@@ -11774,7 +11763,7 @@ def main():
                             if self.cash >= cost:
                                 order = self.create_order(symbol, quantity, "buy")
                                 self.submit_order(order)
-               
+            
                 broker = Alpaca(ALPACA_CONFIG)
                 strategy = BuyHold(broker=broker)
                 trader = Trader()
@@ -13028,8 +13017,38 @@ def main():
                             benchmark_asset="SPY",
                         )
 
+def app_b(port, ttydprocess):
+    st.header("App B")
+    st.write("This is the content of App B.")
+    st.write("Below are the terminal outputs from App A:")
+    
+    # Embed the terminal in the Streamlit app
+    terminal_url = f"http://localhost:{port}"
+    st.write(terminal_url)
+    st.markdown(f"""
+        <iframe src="{terminal_url}" width="100%" height="500px"></iframe>
+    """, unsafe_allow_html=True)
 
+    # Option to stop the ttyd server manually (optional)
+    if st.button("Stop Terminal"):
+        ttydprocess.terminate()
+        st.text("ttyd server has been stopped.")
 
-   
+def main():
+    st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
+    st.success("Our intelligent Terminal running your instructions on the right")
+
+    port, ttydprocess = capture_terminal_output()
+    
+
+    col1, col2 = st.columns([2, 1])  # Adjust the width ratio as needed
+    
+    with col1:
+        app_a()
+    
+    with col2:
+        port = 8502  # Adjust the port number as needed
+        app_b(port, ttydprocess)
+
 if __name__ == "__main__":
     main()
