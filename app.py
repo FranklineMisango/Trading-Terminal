@@ -148,13 +148,46 @@ import time
 
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
 st.success("Our intelligent Terminal running your instructions below")
-# start the ttyd server and display the terminal on streamlit
-ttydprocess, port = terminal(cmd="top")
-# info on ttyd port
-st.warning(f"Terminal is running on port : {port}")
-# kill the ttyd server after a minute
-time.sleep(60)
-ttydprocess.kill()
+
+##The terminal setup 
+
+st.title("Real-Time Terminal Output and Chart Display")
+
+# Start the ttyd server to show terminal output
+ttyd_cmd = "ttyd -p 7681 python script.py"
+try:
+    ttydprocess = subprocess.Popen(ttyd_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    st.text("Starting ttyd server...")
+except Exception as e:
+    st.text(f"Error starting ttyd server: {e}")
+    st.stop()
+
+# Give some time for the ttyd server to start
+time.sleep(5)  # Increase the sleep time
+
+# Check if the ttyd server is running
+if ttydprocess.poll() is None:  # If ttydprocess is still running
+    st.text("ttyd server is running.")
+    port = 7681
+else:
+    # Capture and display the error from ttyd
+    stdout, stderr = ttydprocess.communicate()
+    st.text(f"Failed to start ttyd server.\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
+    st.stop()
+
+# Embed the terminal in the Streamlit app
+terminal_url = f"http://localhost:{port}"
+st.markdown(f"""
+    <iframe src="{terminal_url}" width="100%" height="500px"></iframe>
+""", unsafe_allow_html=True)
+
+# Option to stop the ttyd server manually (optional)
+if st.button("Stop Terminal"):
+    ttydprocess.terminate()
+    st.text("ttyd server has been stopped.")
+
+#Main app
+
 st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
 @st.cache_resource
 def correlated_stocks(start_date, end_date, tickers):
