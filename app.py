@@ -1,8 +1,6 @@
 #Library imports
 import streamlit as st
 
-#Page configs 
-
 #Page config
 st.set_page_config(layout="wide")
 
@@ -12986,7 +12984,6 @@ def main():
                             backtesting_end,
                             benchmark_asset="SPY",
                         )
-
 
 
 if __name__ == "__main__":
