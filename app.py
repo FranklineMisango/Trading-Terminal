@@ -131,7 +131,7 @@ KRAKEN_CONFIG =     st.secrets["KRAKEN_CONFIG"]
 
 
 
-#AI Trading recs
+#Al Trading recs
 from lumibot.brokers import Alpaca
 from lumibot.entities import Asset, Order
 from lumibot.strategies import Strategy
@@ -141,10 +141,20 @@ from lumibot.backtesting import CcxtBacktesting
 from lumibot.example_strategies.crypto_important_functions import ImportantFunctions
 from lumibot.entities import TradingFee
 
+##Terminal config
 
+from streamlit_ttyd import terminal
+import time 
 
 st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
-st.success('Identify, Visualize, Predict and Trade')
+st.success("Our intelligent Terminal running your instructions below")
+# start the ttyd server and display the terminal on streamlit
+ttydprocess, port = terminal(cmd="top")
+# info on ttyd port
+st.warning(f"Terminal is running on port : {port}")
+# kill the ttyd server after a minute
+time.sleep(60)
+ttydprocess.kill()
 st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
 @st.cache_resource
 def correlated_stocks(start_date, end_date, tickers):
@@ -175,7 +185,7 @@ def visualize_correlation_heatmap(correlation):
     st.plotly_chart(fig)
 
 def main():
-    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "AI Trading"])
+    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
     if option == 'Find stocks':
         options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
         if options == "IDB_RS_Rating":
@@ -11692,8 +11702,8 @@ def main():
                 levels = identify_levels(df)
                 plot_support_resistance(df, levels)
 
-    elif option == "AI Trading":
-        AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Buy & Hold Strategy", "Lumibots : GLD signal", "'Lumibots : Trend Strategy", "Lumibots : Swing High Strategy"])
+    elif option == "Algorithmic Trading":
+        AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Diversified Leverage", "Lumibots : Stock Bracket Strategy","Lumibots : Hold to Expiry","Lumibots : Important functions (Crypto)", "Lumibots : Stock Limit & Trailing Stops","Lumibots : Momentum Strategy","Lumibots : Stock OCO Strategy","Lumibots : CCXT Backtesting Strategy","Lumibots : Buy & Hold Strategy", "Lumibots : GLD signal", "Lumibots : Trend Strategy", "Lumibots : Swing High Strategy"])
         if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
             st.write("Lumibots buy hold strategy for Long term investors")
             ticker = st.text_input("Please enter the ticker needed for investigation")
@@ -12986,5 +12996,7 @@ def main():
                         )
 
 
+
+   
 if __name__ == "__main__":
     main()
