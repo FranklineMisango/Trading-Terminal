@@ -1,8 +1,6 @@
 #Library imports
 import streamlit as st
 
-#Page configs 
-
 #Page config
 st.set_page_config(layout="wide")
 
@@ -121,48 +119,69 @@ from email.mime.base import MIMEBase
 from email import encoders
 import math
 import mplfinance as mpl
+import subprocess
+
+
+
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 BASE_URL = st.secrets["BASE_URL"]
 API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
 SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
+ALPACA_CONFIG = st.secrets["ALPACA_CONFIG"]  #TODO 
+KRAKEN_CONFIG =     st.secrets["KRAKEN_CONFIG"]
 
 
 
-st.title('Frankline & Associates LLP. Comprehensive Lite Algorithmic Trading Terminal')
-st.success('Identify, Visualize, Predict and Trade')
-st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
-@st.cache_resource
-def correlated_stocks(start_date, end_date, tickers):
-    print("Inside correlated_stocks function")
-    data = yf.download(tickers, start=start_date, end=end_date)["Adj Close"]
-    returns = np.log(data / data.shift(1))
-    correlation = returns.corr()
-    return correlation
+#Al Trading recs
+from lumibot.brokers import Alpaca
+from lumibot.entities import Asset, Order
+from lumibot.strategies import Strategy
+from lumibot.traders import Trader
+from lumibot.backtesting import YahooDataBacktesting #TODO - Move to strategies
+from lumibot.backtesting import CcxtBacktesting
+from lumibot.example_strategies.crypto_important_functions import ImportantFunctions
+from lumibot.entities import TradingFee
 
-# Function to visualize correlations as a heatmap using Plotly
-def visualize_correlation_heatmap(correlation):
-    print("Inside visualize_correlation_heatmap function")
-    fig = ff.create_annotated_heatmap(
-        z=correlation.values,
-        x=correlation.columns.tolist(),
-        y=correlation.index.tolist(),
-        colorscale='Viridis',
-        annotation_text=correlation.values.round(2),
-        showscale=True
-    )
-    fig.update_layout(
-        title='Correlation Matrix',
-        xaxis=dict(title='Tickers', tickangle=90),
-        yaxis=dict(title='Tickers'),
-        width=1000,
-        height=1000
-    )
-    st.plotly_chart(fig)
+##Terminal config
+
+from streamlit_ttyd import terminal
+import time 
+
 
 def main():
-    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "AI Trading"])
+    #Main app
+    st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
+    @st.cache_resource
+    def correlated_stocks(start_date, end_date, tickers):
+        print("Inside correlated_stocks function")
+        data = yf.download(tickers, start=start_date, end=end_date)["Adj Close"]
+        returns = np.log(data / data.shift(1))
+        correlation = returns.corr()
+        return correlation
+
+    # Function to visualize correlations as a heatmap using Plotly
+    def visualize_correlation_heatmap(correlation):
+        print("Inside visualize_correlation_heatmap function")
+        fig = ff.create_annotated_heatmap(
+            z=correlation.values,
+            x=correlation.columns.tolist(),
+            y=correlation.index.tolist(),
+            colorscale='Viridis',
+            annotation_text=correlation.values.round(2),
+            showscale=True
+        )
+        fig.update_layout(
+            title='Correlation Matrix',
+            xaxis=dict(title='Tickers', tickangle=90),
+            yaxis=dict(title='Tickers'),
+            width=1000,
+            height=1000
+        )
+        st.plotly_chart(fig)
+
+    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
     if option == 'Find stocks':
         options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
         if options == "IDB_RS_Rating":
@@ -780,8 +799,8 @@ def main():
     elif option == 'Stock Predictions':
 
         pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis',
-                                                     'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
-                                                     'ETF Graphical Lasso', 'Kmeans Clustering'])
+                                                    'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
+                                                    'ETF Graphical Lasso', 'Kmeans Clustering'])
         if pred_option == "Arima_Time_Series":
             st.success("This segment allows you to Backtest using Arima")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1030,7 +1049,7 @@ def main():
                 lr_printing_score = f"Linear Regression Score: {lr_score}"
                 st.write(lr_printing_score)
 
-               # Create a Plotly figure
+            # Create a Plotly figure
                 fig = go.Figure()
 
                 # Add traces for actual and predicted values
@@ -1339,7 +1358,7 @@ def main():
 
                 # Display the Plotly chart inline
                 st.plotly_chart(fig)
-               
+            
                 # Analyze and interpret the clusters
                 # This step involves understanding the characteristics of each cluster
                 # and how they differ from each other based on the stock movement patterns they represent
@@ -1465,7 +1484,7 @@ def main():
             col1, col2 = st.columns([2, 2])
             with col1:
                 end_date = st.date_input("End date:")
-         
+        
             if st.button("Check"):
                 num_years = int(number_of_years)
                 start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
@@ -1522,7 +1541,7 @@ def main():
                 links.columns = ['ETF1', 'ETF2', 'Value']
                 links_filtered = links[(abs(links['Value']) > 0.17) & (links['ETF1'] != links['ETF2'])]
 
-                 # Build and display the network graph
+                # Build and display the network graph
                 st.set_option('deprecation.showPyplotGlobalUse', False)
                 G = nx.from_pandas_edgelist(links_filtered, 'ETF1', 'ETF2')
                 pos = nx.spring_layout(G, k=0.2 * 1 / np.sqrt(len(G.nodes())), iterations=20)
@@ -1546,7 +1565,7 @@ def main():
             if st.button("Check"):
                 # Load stock data from Dow Jones Index
                 stocks = ti.tickers_dow()
-  
+
 
                 # Retrieve adjusted closing prices
                 data = yf.download(stocks, start=start_date, end=end_date)['Close']
@@ -1589,10 +1608,10 @@ def main():
 
     elif option =='Stock Data':
         pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "High Dividend yield","Dividend History", "Fibonacci Retracement", 
-                                                                          "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", 
-                                                                          "Get Dividend calendar", "Green Line Test", "Main Indicators", "Pivots Calculator", 
-                                                                          "Email Top Movers", "Stock VWAP", "Data SMS stock", "Stock Earnings", "Trading view Intraday", 
-                                                                          "Trading view Recommendations", "Yahoo Finance Intraday Data"])
+                                                                        "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", 
+                                                                        "Get Dividend calendar", "Green Line Test", "Main Indicators", "Pivots Calculator", 
+                                                                        "Email Top Movers", "Stock VWAP", "Data SMS stock", "Stock Earnings", "Trading view Intraday", 
+                                                                        "Trading view Recommendations", "Yahoo Finance Intraday Data"])
         if pred_option_data == "Finviz Autoscraper":
 
             # Fetches financial data for a list of tickers from Finviz using AutoScraper.
@@ -1755,7 +1774,7 @@ def main():
         if pred_option_data == "Finviz Home scraper":
             st.success("This segment allows you to find gainers/losers today and relevant news from Finviz")
             if st.button("Confirm"):
-   
+
                 # Set display options for pandas
                 pd.set_option('display.max_colwidth', 60)
                 pd.set_option('display.max_columns', None)
@@ -2270,7 +2289,7 @@ def main():
 
                 # Display Plotly figure
                 st.plotly_chart(fig)
-                              
+                            
         if pred_option_data == "Email Top Movers":
 
             st.success("This segment allows you to get updates on Top stock movers")
@@ -2366,7 +2385,7 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-                 # Override yfinance with pandas datareader
+                # Override yfinance with pandas datareader
                 yf.pdr_override()
                 # Define the stock symbol to analyze
                 stock = ticker
@@ -2730,7 +2749,7 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-           
+        
                 interval = '1D'
 
                 # Getting lists of tickers from NASDAQ, NYSE, and AMEX
@@ -2835,23 +2854,23 @@ def main():
                 driver.close()
     elif option =='Stock Analysis':
         pred_option_analysis = st.selectbox('Make a choice', ['Backtest All Indicators',
-                                                      'CAPM Analysis',
-                                                      'Earnings Sentiment Analysis',
-                                                      'Intrinsic Value analysis',
-                                                      'Kelly Criterion',
-                                                      'MA Backtesting',
-                                                      'Ols Regression',
-                                                      'Perfomance Risk Analysis',
-                                                      'Risk/Returns Analysis',
-                                                      'Seasonal Stock Analysis',
-                                                      'SMA Histogram',
-                                                      'SP500 COT Sentiment Analysis',
-                                                      'SP500 Valuation',
-                                                      'Stock Pivot Resistance',
-                                                      'Stock Profit/Loss Analysis',
-                                                      'Stock Return Statistical Analysis',
-                                                      'VAR Analysis',
-                                                      'Stock Returns'])
+                                                    'CAPM Analysis',
+                                                    'Earnings Sentiment Analysis',
+                                                    'Intrinsic Value analysis',
+                                                    'Kelly Criterion',
+                                                    'MA Backtesting',
+                                                    'Ols Regression',
+                                                    'Perfomance Risk Analysis',
+                                                    'Risk/Returns Analysis',
+                                                    'Seasonal Stock Analysis',
+                                                    'SMA Histogram',
+                                                    'SP500 COT Sentiment Analysis',
+                                                    'SP500 Valuation',
+                                                    'Stock Pivot Resistance',
+                                                    'Stock Profit/Loss Analysis',
+                                                    'Stock Return Statistical Analysis',
+                                                    'VAR Analysis',
+                                                    'Stock Returns'])
 
         if pred_option_analysis == "Backtest All Indicators":
             st.success("This segment allows us to Backtest Most Technical Indicators of a ticker")
@@ -4336,7 +4355,7 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-             # Configure the stock symbol, moving average windows, initial capital, and date range
+            # Configure the stock symbol, moving average windows, initial capital, and date range
                 symbol = ticker
                 short_window = 20
                 long_window = 50
@@ -5518,87 +5537,87 @@ def main():
 
     elif option =='Technical Indicators':
         pred_option_Technical_Indicators = st.selectbox('Make a choice', [
-                                                                  'Exponential Moving Average (EMA)',
-                                                                  'EMA Volume',
-                                                                  'Positive Volume Trend (PVT)',
-                                                                  'Exponential Weighted Moving Average (EWMA)',
-                                                                  'Weighted Smoothing Moving Average (WSMA)',
-                                                                  'Z Score Indicator (Z Score)',
-                                                                  'Absolute Price Oscillator (APO)',
-                                                                  'Acceleration Bands',
-                                                                  'Accumulation Distribution Line',
-                                                                  'Aroon',
-                                                                  'Aroon Oscillator',
-                                                                  'Average Directional Index (ADX)',
-                                                                  'Average True Range (ATR)',
-                                                                  'Balance of Power',
-                                                                  'Beta Indicator',
-                                                                  'Bollinger Bands',
-                                                                  'Bollinger Bandwidth',
-                                                                  'Breadth Indicator',
-                                                                  'Candle Absolute Returns',
-                                                                  'GANN lines angles',
-                                                                  'GMMA',
-                                                                  'Moving Average Convergence Divergence (MACD)',
-                                                                  'MA high low',
-                                                                  'Price Volume Trend Indicator (PVI)',
-                                                                  'Price Volume Trend (PVT)',
-                                                                  'Rate of Change (ROC)',
-                                                                  'Return on Investment (ROI)',
-                                                                  'Relative Strength Index (RSI)',
-                                                                  'RSI BollingerBands',
-                                                                  'Simple Moving Average (SMA)',
-                                                                  'Weighted Moving Average (WMA)',
-                                                                  'Triangular Moving Average (TRIMA)',
-                                                                  'Time-Weighted Average Price (TWAP)',
-                                                                  'Volume Weighted Average Price (VWAP)',
-                                                                  'Central Pivot Range (CPR)',
-                                                                  'Chaikin Money Flow',
-                                                                  'Chaikin Oscillator',
-                                                                  'Commodity Channel Index (CCI)',
-                                                                  'Correlation Coefficient',
-                                                                  'Covariance',
-                                                                  'Detrended Price Oscillator (DPO)',
-                                                                  'Donchain Channel',
-                                                                  'Double Exponential Moving Average (DEMA)',
-                                                                  'Dynamic Momentum Index',
-                                                                  'Ease of Movement',
-                                                                  'Force Index',
-                                                                  'Geometric Return Indicator',
-                                                                  'Golden/Death Cross',
-                                                                  'High Minus Low',
-                                                                  'Hull Moving Average',
-                                                                  'Keltner Channels',
-                                                                  'Linear Regression',
-                                                                  'Linear Regression Slope',
-                                                                  'Linear Weighted Moving Average (LWMA)',
-                                                                  'McClellan Oscillator',
-                                                                  'Momentum',
-                                                                  'Moving Average Envelopes',
-                                                                  'Moving Average High/Low',
-                                                                  'Moving Average Ribbon',
-                                                                  'Moving Average Envelopes (MMA)',
-                                                                  'Moving Linear Regression',
-                                                                  'New Highs/New Lows',
-                                                                  'Pivot Point',
-                                                                  'Money Flow Index (MFI)',
-                                                                  'Price Channels',
-                                                                  'Price Relative',
-                                                                  'Realized Volatility',
-                                                                  'Relative Volatility Index',
-                                                                  'Smoothed Moving Average',
-                                                                  'Speed Resistance Lines',
-                                                                  'Standard Deviation Volatility',
-                                                                  'Stochastic RSI',
-                                                                  'Stochastic Fast',
-                                                                  'Stochastic Full',
-                                                                  'Stochastic Slow',
-                                                                  'Super Trend',
-                                                                  'True Strength Index',
-                                                                  'Ultimate Oscillator',
-                                                                  'Variance Indicator',
-                                                                  'Volume Price Confirmation Indicator',
-                                                                  'Volume Weighted Moving Average (VWMA)'])
+                                                                'Exponential Moving Average (EMA)',
+                                                                'EMA Volume',
+                                                                'Positive Volume Trend (PVT)',
+                                                                'Exponential Weighted Moving Average (EWMA)',
+                                                                'Weighted Smoothing Moving Average (WSMA)',
+                                                                'Z Score Indicator (Z Score)',
+                                                                'Absolute Price Oscillator (APO)',
+                                                                'Acceleration Bands',
+                                                                'Accumulation Distribution Line',
+                                                                'Aroon',
+                                                                'Aroon Oscillator',
+                                                                'Average Directional Index (ADX)',
+                                                                'Average True Range (ATR)',
+                                                                'Balance of Power',
+                                                                'Beta Indicator',
+                                                                'Bollinger Bands',
+                                                                'Bollinger Bandwidth',
+                                                                'Breadth Indicator',
+                                                                'Candle Absolute Returns',
+                                                                'GANN lines angles',
+                                                                'GMMA',
+                                                                'Moving Average Convergence Divergence (MACD)',
+                                                                'MA high low',
+                                                                'Price Volume Trend Indicator (PVI)',
+                                                                'Price Volume Trend (PVT)',
+                                                                'Rate of Change (ROC)',
+                                                                'Return on Investment (ROI)',
+                                                                'Relative Strength Index (RSI)',
+                                                                'RSI BollingerBands',
+                                                                'Simple Moving Average (SMA)',
+                                                                'Weighted Moving Average (WMA)',
+                                                                'Triangular Moving Average (TRIMA)',
+                                                                'Time-Weighted Average Price (TWAP)',
+                                                                'Volume Weighted Average Price (VWAP)',
+                                                                'Central Pivot Range (CPR)',
+                                                                'Chaikin Money Flow',
+                                                                'Chaikin Oscillator',
+                                                                'Commodity Channel Index (CCI)',
+                                                                'Correlation Coefficient',
+                                                                'Covariance',
+                                                                'Detrended Price Oscillator (DPO)',
+                                                                'Donchain Channel',
+                                                                'Double Exponential Moving Average (DEMA)',
+                                                                'Dynamic Momentum Index',
+                                                                'Ease of Movement',
+                                                                'Force Index',
+                                                                'Geometric Return Indicator',
+                                                                'Golden/Death Cross',
+                                                                'High Minus Low',
+                                                                'Hull Moving Average',
+                                                                'Keltner Channels',
+                                                                'Linear Regression',
+                                                                'Linear Regression Slope',
+                                                                'Linear Weighted Moving Average (LWMA)',
+                                                                'McClellan Oscillator',
+                                                                'Momentum',
+                                                                'Moving Average Envelopes',
+                                                                'Moving Average High/Low',
+                                                                'Moving Average Ribbon',
+                                                                'Moving Average Envelopes (MMA)',
+                                                                'Moving Linear Regression',
+                                                                'New Highs/New Lows',
+                                                                'Pivot Point',
+                                                                'Money Flow Index (MFI)',
+                                                                'Price Channels',
+                                                                'Price Relative',
+                                                                'Realized Volatility',
+                                                                'Relative Volatility Index',
+                                                                'Smoothed Moving Average',
+                                                                'Speed Resistance Lines',
+                                                                'Standard Deviation Volatility',
+                                                                'Stochastic RSI',
+                                                                'Stochastic Fast',
+                                                                'Stochastic Full',
+                                                                'Stochastic Slow',
+                                                                'Super Trend',
+                                                                'True Strength Index',
+                                                                'Ultimate Oscillator',
+                                                                'Variance Indicator',
+                                                                'Volume Price Confirmation Indicator',
+                                                                'Volume Weighted Moving Average (VWMA)'])
 
         if pred_option_Technical_Indicators == "Exponential Moving Average (EMA)":
             st.success("This program allows you to view the Exponential Moving Average of a stock ")
@@ -5843,7 +5862,7 @@ def main():
                 fig_candlestick.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=np.where(df['Open'] < df['Close'], 'green', 'red')))
 
                 fig_candlestick.update_layout(title="Stock Closing Price", xaxis_title="Date", yaxis_title="Price", 
-                                               yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))
+                                            yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))
                 st.plotly_chart(fig_candlestick)
 
         if pred_option_Technical_Indicators == "GMMA":
@@ -6523,7 +6542,7 @@ def main():
 
                 fig4.update_layout(title=f"Bollinger Bands & RSI for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price/RSI")
                 st.plotly_chart(fig4)
-               
+            
         if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
             st.success("This program allows you to view the VWAP over time of a ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -6539,7 +6558,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
 
@@ -6553,7 +6572,7 @@ def main():
                         for i in range(len(df) - n)
                     ]
                 )
-               
+            
                 vwap_series = pd.concat([(pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]])) for i in range(len(df) - n)])
                 vwap_series = vwap_series.dropna()
 
@@ -6567,7 +6586,7 @@ def main():
 
                 # Candlestick with VWAP
                 df.loc[:, "VolumePositive"] = df["Open"] < df["Adj Close"]
-              
+            
                 df = df.dropna()
                 df = df.reset_index()
                 df["Date"] = pd.to_datetime(df["Date"])
@@ -6601,7 +6620,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
 
@@ -6652,7 +6671,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
                 
@@ -6706,7 +6725,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-               
+            
                 # Read data
                 df = yf.download(symbol, start, end)
             
@@ -6825,7 +6844,7 @@ def main():
                 end = end_date
                 # Read data
                 df = yf.download(symbol, start, end)
-               
+            
 
                 n = 7
                 UBB = df["High"] * (1 + 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
@@ -6928,7 +6947,7 @@ def main():
                 fig.update_layout(yaxis3=dict(title="Volume"))
 
                 st.plotly_chart(fig)
-               
+            
         if pred_option_Technical_Indicators == "Aroon":
             st.success("This program allows you to view the Aroon of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -7462,7 +7481,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-           
+        
                 # Read data
                 df = yf.download(symbol, start, end)
 
@@ -7544,7 +7563,7 @@ def main():
 
                 # Calculate Chaikin Oscillator
                 Chaikin(df)
-              
+            
 
                 # Chaikin Oscillator Plot
                 fig = go.Figure()
@@ -7584,7 +7603,7 @@ def main():
                 symbol = ticker
                 start = start_date
                 end = end_date
-           
+        
                 # Read data
                 df = yf.download(symbol, start, end)
                 df["Absolute_Return"] = (
@@ -8773,7 +8792,7 @@ def main():
                                 yaxis_title='Price')
                 
                 st.plotly_chart(fig)
-       
+    
         if pred_option_Technical_Indicators == "Price Channels":
             st.success("This program allows you to visualize Price Channels for a selected ticker")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -9306,7 +9325,7 @@ def main():
                                 yaxis_title="Price",
                                 legend=dict(x=0, y=1, traceorder="normal"))
                 st.plotly_chart(fig_candle)
-       
+    
         if pred_option_Technical_Indicators == "Ultimate Oscillator":
             st.success("This program allows you to view the Ultimate Oscillator of a ticker over time")
             ticker = st.text_input("Enter the ticker you want to monitor")
@@ -9500,31 +9519,32 @@ def main():
                 st.plotly_chart(fig_candle)
     elif option =='Portfolio Strategies':
         pred_option_portfolio_strategies = st.selectbox('Make a choice', [
-                                                                  'Astral Timing signals',
-                                                                  'Backtest Strategies',
-                                                                  'Backtrader Backtest',
-                                                                  'Best Moving Averages Analysis',
-                                                                  'EMA Crossover Strategy',
-                                                                  'Factor Analysis',
-                                                                  'Financial Signal Analysis',
-                                                                  'Geometric Brownian Motion',
-                                                                  'Long Hold Stats Analysis',
-                                                                  'LS DCA Analysis',
-                                                                  'Monte Carlo',
-                                                                  'Moving Average Crossover Signals',
-                                                                  'Moving Average Strategy',
-                                                                  'Optimal Portfolio',
-                                                                  'Optimized Bollinger Bands',
-                                                                  'Pairs Trading',
-                                                                  'Portfolio Analysis',
-                                                                  'Portfolio Optimization',
-                                                                  'Portfolio VAR Simulation',
-                                                                  'Risk Management'
-                                                                  'RSI Trendline Strategy',
-                                                                  'RWB Strategy',
-                                                                  'SMA Trading Strategy',
-                                                                  'Stock Spread Plotter',
-                                                                  'Support Resistance Finder'])
+                                                                'Astral Timing signals',
+                                                                'Lumibot Backtesting strategy',
+                                                                'Backtest Strategies',
+                                                                'Backtrader Backtest',
+                                                                'Best Moving Averages Analysis',
+                                                                'EMA Crossover Strategy',
+                                                                'Factor Analysis',
+                                                                'Financial Signal Analysis',
+                                                                'Geometric Brownian Motion',
+                                                                'Long Hold Stats Analysis',
+                                                                'LS DCA Analysis',
+                                                                'Monte Carlo',
+                                                                'Moving Average Crossover Signals',
+                                                                'Moving Average Strategy',
+                                                                'Optimal Portfolio',
+                                                                'Optimized Bollinger Bands',
+                                                                'Pairs Trading',
+                                                                'Portfolio Analysis',
+                                                                'Portfolio Optimization',
+                                                                'Portfolio VAR Simulation',
+                                                                'Risk Management'
+                                                                'RSI Trendline Strategy',
+                                                                'RWB Strategy',
+                                                                'SMA Trading Strategy',
+                                                                'Stock Spread Plotter',
+                                                                'Support Resistance Finder'])
 
         if pred_option_portfolio_strategies == "Astral Timing signals":
             st.success("This program allows you to start backtesting using Astral Timing signals")
@@ -9563,7 +9583,7 @@ def main():
                     return data
 
                 # Define stock ticker and date range
-               
+            
                 start = start_date
                 end = end_date
 
@@ -9692,6 +9712,52 @@ def main():
                 sma_stats = calculate_trading_statistics(df, sma_strategy_logic)
                 st.write("Simple Moving Average Strategy Stats:", sma_stats)
 
+        if pred_option_portfolio_strategies == "Lumibot Backtesting strategy":
+            st.success("This portion allows you backtest a ticker for a period using Lumibot YahooBacktesting strategy ")
+            ticker = st.text_input("Enter the ticker for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            quantities = st.number_input("Enter the quantities of the ticker to buy")
+            if quantities:
+                st.write(f"The noted quantities are : {quantities}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Check"):
+                start = start_date
+                end = end_date
+                class MyStrategy(Strategy):
+                    def on_trading_iteration(self):
+                        if self.first_iteration:
+                            order = self.create_order(ticker, quantity=quantities, side="buy")
+                            self.submit_order(order)
+
+                # Create a backtest
+                backtesting_start = start
+                backtesting_end = end
+
+                # The benchmark asset to use for the backtest to compare to
+                benchmark_asset = Asset(symbol="QQQ", asset_type="stock")
+
+                backtest = MyStrategy.backtest(
+                    datasource_class=YahooDataBacktesting,
+                    backtesting_start=backtesting_start,
+                    backtesting_end=backtesting_end,
+                    benchmark_asset=benchmark_asset,
+                )
+
+
+            
         if pred_option_portfolio_strategies == "Backtrader Backtest":
             ticker = st.text_input("Enter the ticker for investigation")
             if ticker:
@@ -9719,7 +9785,7 @@ def main():
                 SECRET_KEY = SECRET_KEY_ALPACA
 
                 # Initialize REST API
-                rest_api = REST(API_KEY, SECRET_KEY, 'https://paper-api.alpaca.markets')
+                rest_api = REST(API_KEY, SECRET_KEY, 'https://paper-api.alpaca.markets/v2')
 
                 def run_backtest(strategy, symbol, start, end, timeframe=TimeFrame.Day, cash=10000):
                     cerebro = bt.Cerebro(stdstats=True)
@@ -9750,7 +9816,7 @@ def main():
 
                     # Plotting the results
                     cerebro.plot(iplot=False)
-                  
+                
                 def strategy_statistics(results, initial_value, data):
                     # Analyzing the results
                     strat = results[0]
@@ -9852,7 +9918,7 @@ def main():
 
                     # Run backtest
                 run_backtest(SmaCross, ticker, start_date, end_date, TimeFrame.Day, portfolio)
-           
+        
         if pred_option_portfolio_strategies == "Best Moving Averages Analysis":
             st.success("This portion allows you backtest a ticker for a period using the best moving averages Logic ")
             ticker = st.text_input("Enter the ticker for investigation")
@@ -10289,7 +10355,7 @@ def main():
                                 yaxis_title='Price')
                 st.plotly_chart(fig)
 
-          
+        
         if pred_option_portfolio_strategies == "Long Hold Stats Analysis":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -10410,7 +10476,7 @@ def main():
                 # Analysis for Lump Sum and DCA
                 lump_sum_values = [lump_sum_investment(stock_data, date, principal) for date in stock_data.index]
                 dca_values = [dca_investment(stock_data, date, 12, '30D', principal) for date in stock_data.index]
-               
+            
                 fig1 = go.Figure()
                 fig1.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Adj Close'], mode='lines', name=f'{symbol} Price'))
                 fig1.update_layout(title=f'{symbol} Stock Price', yaxis_title='Price', yaxis_tickprefix='$', yaxis_tickformat=',.0f')
@@ -10585,7 +10651,7 @@ def main():
                                     yaxis_title='Close Price')
 
                     st.plotly_chart(fig)
-         
+        
         if pred_option_portfolio_strategies == "Moving Average Strategy":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -10604,7 +10670,7 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-               
+            
                 # Function to download stock data
                 def download_stock_data(ticker, start_date, end_date):
                     return yf.download(ticker, start_date, end_date)
@@ -10719,7 +10785,7 @@ def main():
                     st.write(f"Optimal Portfolio Weights: {optimal_weights}")
                     st.write(f"Optimal Portfolio Sharpe Ratio: {optimal_sharpe}")
 
-      
+    
         if pred_option_portfolio_strategies == "Optimized Bollinger Bands":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -10855,7 +10921,7 @@ def main():
 
                         # Display the found pairs
                         st.write("Cointegrated Pairs:", pairs)
-                  
+                
         if pred_option_portfolio_strategies == "Portfolio Analysis":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -11189,7 +11255,7 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-                               
+                            
                 # Define the start and end dates for data retrieval
                 start = dt.datetime(2019, 1, 1)
                 now = dt.datetime.now()
@@ -11479,9 +11545,9 @@ def main():
                 st.write(f"Number of Trades: {numGains + numLosses}")
                 st.write(f"Total return: {totReturn}%")
 
- 
+
         
-     
+    
         if pred_option_portfolio_strategies == "Stock Spread Plotter":
             portfolio = st.number_input("Enter the portfolio size in USD")
             if portfolio:
@@ -11565,8 +11631,6 @@ def main():
                 else:
                     st.error("Please enter at least two tickers for the analysis.")
 
-
-
         if pred_option_portfolio_strategies == "Support Resistance Finder":
             ticker = st.text_input("Please enter the ticker needed for investigation")
             if ticker:
@@ -11635,10 +11699,1299 @@ def main():
                 levels = identify_levels(df)
                 plot_support_resistance(df, levels)
 
-    elif option == "AI Trading":
-        #TODO - add the Robinhood and alpaca bots
-        st.write("This bot allows you to initate a trade")
-        pass
+    elif option == "Algorithmic Trading":
+        AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Diversified Leverage", "Lumibots : Stock Bracket Strategy","Lumibots : Hold to Expiry","Lumibots : Important functions (Crypto)", "Lumibots : Stock Limit & Trailing Stops","Lumibots : Momentum Strategy","Lumibots : Stock OCO Strategy","Lumibots : CCXT Backtesting Strategy","Lumibots : Buy & Hold Strategy", "Lumibots : GLD signal", "Lumibots : Trend Strategy", "Lumibots : Swing High Strategy"])
+        if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                    
+                def initialize(self):
+                    self.sleeptime = "1D"
+
+                def on_trading_iteration(self):
+                    if self.first_iteration:
+                        stocks_and_quantities = [
+                            {"symbol": ticker_input, "quantity": quantities_input},
+                        ]
+                        for stock_info in stocks_and_quantities:
+                            symbol = stock_info["symbol"]
+                            quantity = stock_info["quantity"]
+                            price = self.get_last_price(symbol)
+                            cost = price * quantity
+                            self.cash = portfolio_size
+                            if self.cash >= cost:
+                                order = self.create_order(symbol, quantity, "buy")
+                                self.submit_order(order)
+            
+                broker = Alpaca(ALPACA_CONFIG)
+                strategy = BuyHold(broker=broker)
+                trader = Trader()
+                trader.add_strategy(strategy)
+                trader.run_all()
+
+        if AI_option_trading == 'Lumibots : GLD Signal Strategy':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                gld = pd.DataFrame(yf.download(ticker_input, start_date)['Close'])
+                gld['9-day'] = gld['Close'].rolling(9).mean()
+                gld['21-day'] = gld['Close'].rolling(21).mean()
+                gld['Signal'] = np.where(np.logical_and(gld['9-day'] > gld['21-day'],
+                                        gld['9-day'].shift(1) < gld['21-day'].shift(1)),
+                                        "BUY", None)
+                gld['Signal'] = np.where(np.logical_and(gld['9-day'] < gld['21-day'],
+                                        gld['9-day'].shift(1) > gld['21-day'].shift(1)),
+                                        "SELL", gld['Signal'])
+
+                def signal(df, start=start_date, end=end_date):
+                    df = pd.DataFrame(yf.download(ticker_input, start, end)['Close'])
+                    df['9-day'] = df['Close'].rolling(9).mean()
+                    df['21-day'] = df['Close'].rolling(21).mean()
+                    df['Signal'] = np.where(np.logical_and(df['9-day'] > df['21-day'],
+                                            df['9-day'].shift(1) < df['21-day'].shift(1)),
+                                            "BUY", None)
+                    df['Signal'] = np.where(np.logical_and(df['9-day'] < df['21-day'],
+                                            df['9-day'].shift(1) > df['21-day'].shift(1)),
+                                            "SELL", df['Signal'])
+                    return df, df.iloc[-1].Signal
+
+            
+        if AI_option_trading == 'Lumibots : Swing High Strategy':
+            st.write("Lumibots buy hold strategy for Long term investors")
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                class SwingHigh(Strategy):
+                    data = {}  # Dictionary to store last price data for each symbol
+                    order_numbers = {}  # Dictionary to store order numbers for each symbol
+                    shares_per_ticker = {}  # Dictionary to specify the number of shares per ticker
+
+                    def initialize(self, ticker_input, quantities_input):
+                        self.symbols = ticker_input# Add other symbols as needed
+                        self.shares_per_ticker = {ticker_input: quantities_input}   # Specify the number of shares for each symbol
+                        self.sleeptime = "10S"
+                    
+                    def on_trading_iteration(self):
+                        for symbol in self.symbols:
+                            if symbol not in self.data:
+                                self.data[symbol] = []
+
+                            entry_price = self.get_last_price(symbol)
+                            self.log_message(f"Position for {symbol}: {self.get_position(symbol)}")
+                            self.data[symbol].append(entry_price)
+
+                            if len(self.data[symbol]) > 3:
+                                temp = self.data[symbol][-3:]
+                                if temp[-1] > temp[1] > temp[0]:
+                                    self.log_message(f"Last 3 prints for {symbol}: {temp}")
+                                    order = self.create_order(symbol, quantity=self.shares_per_ticker[symbol], side="buy")
+                                    self.submit_order(order)
+                                    if symbol not in self.order_numbers:
+                                        self.order_numbers[symbol] = 0
+                                    self.order_numbers[symbol] += 1
+                                    if self.order_numbers[symbol] == 1:
+                                        self.log_message(f"Entry price for {symbol}: {temp[-1]}")
+                                        entry_price = temp[-1]  # filled price
+                                if self.get_position(symbol) and self.data[symbol][-1] < entry_price * 0.995:
+                                    self.sell_all(symbol)
+                                    self.order_numbers[symbol] = 0
+                                elif self.get_position(symbol) and self.data[symbol][-1] >= entry_price * 1.015:
+                                    self.sell_all(symbol)
+                                    self.order_numbers[symbol] = 0
+
+                    def before_market_closes(self):
+                        for symbol in self.symbols:
+                            self.sell_all(symbol)
+
+        if AI_option_trading == 'Lumibots : Trend Strategy':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                class Trend(Strategy):
+
+                    def initialize(self):
+                        signal = None
+                        start = start_date
+
+                        self.signal = signal
+                        self.start = start
+                        self.sleeptime = "1D"
+                    # minute bars, make functions    
+
+                    def on_trading_iteration(self):
+                        bars = self.get_historical_prices("GLD", 22, "day")
+                        gld = bars.df
+                        #gld = pd.DataFrame(yf.download("GLD", self.start)['Close'])
+                        gld['9-day'] = gld['close'].rolling(9).mean()
+                        gld['21-day'] = gld['close'].rolling(21).mean()
+                        gld['Signal'] = np.where(np.logical_and(gld['9-day'] > gld['21-day'],
+                                                                gld['9-day'].shift(1) < gld['21-day'].shift(1)),
+                                                "BUY", None)
+                        gld['Signal'] = np.where(np.logical_and(gld['9-day'] < gld['21-day'],
+                                                                gld['9-day'].shift(1) > gld['21-day'].shift(1)),
+                                                "SELL", gld['Signal'])
+                        self.signal = gld.iloc[-1].Signal
+                        
+                        symbol = "GLD"
+                        quantity = 200
+                        if self.signal == 'BUY':
+                            pos = self.get_position(symbol)
+                            if pos is not None:
+                                self.sell_all()
+                                
+                            order = self.create_order(symbol, quantity, "buy")
+                            self.submit_order(order)
+
+                        elif self.signal == 'SELL':
+                            pos = self.get_position(symbol)
+                            if pos is not None:
+                                self.sell_all()
+                                
+                            order = self.create_order(symbol, quantity, "sell")
+                            self.submit_order(order)
+
+                    
+                if __name__ == "__main__":
+                    trade = False
+                    #Reactivate after code rebase
+                    if trade:
+                        broker = Alpaca(ALPACA_CONFIG)
+                        strategy = Trend(broker=broker)
+                        bot = Trader()
+                        bot.add_strategy(strategy)
+                        bot.run_all()
+                    else:
+                        start = start_date
+                        end = end_date
+                        Trend.backtest(
+                            YahooDataBacktesting,
+                            start,
+                            end
+                        )
+        if AI_option_trading == 'Lumibots : CCXT Backtesting Strategy':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                class CcxtBacktestingExampleStrategy(Strategy):
+                    def initialize(self, asset:tuple[Asset,Asset] = None,
+                                cash_at_risk:float=.25,window:int=21):
+                        if asset is None:
+                            raise ValueError("You must provide a valid asset pair")
+                        # for crypto, market is 24/7
+                        self.set_market("24/7")
+                        self.sleeptime = "1D"
+                        self.asset = asset
+                        self.base, self.quote = asset
+                        self.window = window
+                        self.symbol = f"{self.base.symbol}/{self.quote.symbol}"
+                        self.last_trade = None
+                        self.order_quantity = 0.0
+                        self.cash_at_risk = cash_at_risk
+
+                    def _position_sizing(self):
+                        cash = self.get_cash()
+                        last_price = self.get_last_price(asset=self.asset,quote=self.quote)
+                        quantity = round(cash * self.cash_at_risk / last_price,0)
+                        return cash, last_price, quantity
+
+                    def _get_historical_prices(self):
+                        return self.get_historical_prices(asset=self.asset,length=None,
+                                                    timestep="day",quote=self.quote).df
+
+                    def _get_bbands(self,history_df:DataFrame):
+                        # BBL (Lower Bollinger Band): Can act as a support level based on price volatility, and can indicate an 'oversold' condition if the price falls below this line.
+                        # BBM (Breaking Bollinger Bands): This is essentially a moving average over a selected period of time, used as a reference point for price trends.
+                        # BBU (Upper Bollinger Band): Can act as a resistance level based on price volatility, and can indicate an 'overbought' condition if the price moves above this line.
+                        # BBB (Bollinger Band Width): Indicates the distance between the upper and lower bands, with a higher value indicating a more volatile market.
+                        # BBP (Bollinger Band Percentage): This shows where the current price is located within the Bollinger Bands as a percentage, where a value close to 0 means that the price is close to the lower band, and a value close to 1 means that the price is close to the upper band.
+                        # return bbands
+                        num_std_dev = 2.0
+                        close = 'close'
+
+                        df = DataFrame(index=history_df.index)
+                        df[close] = history_df[close]
+                        df['bbm'] = df[close].rolling(window=self.window).mean()
+                        df['bbu'] = df['bbm'] + df[close].rolling(window=self.window).std() * num_std_dev
+                        df['bbl'] = df['bbm'] - df[close].rolling(window=self.window).std() * num_std_dev
+                        df['bbb'] = (df['bbu'] - df['bbl']) / df['bbm']
+                        df['bbp'] = (df[close] - df['bbl']) / (df['bbu'] - df['bbl'])
+                        return df
+
+                    def on_trading_iteration(self):
+                        # During the backtest, we get the current time with self.get_datetime().
+                        # The time interval is self.sleeptime.
+                        current_dt = self.get_datetime()
+                        cash, last_price, quantity = self._position_sizing()
+                        history_df = self._get_historical_prices()
+                        bbands = self._get_bbands(history_df)
+                        prev_bbp = bbands[bbands.index < current_dt].tail(1).bbp.values[0]
+
+                        if prev_bbp < -0.13 and cash > 0 and self.last_trade != Order.OrderSide.BUY and quantity > 0.0:
+                            order = self.create_order(self.base,
+                                                    quantity,
+                                                    side = Order.OrderSide.BUY,
+                                                    type = Order.OrderType.MARKET,
+                                                    quote=self.quote)
+                            self.submit_order(order)
+                            self.last_trade = Order.OrderSide.BUY
+                            self.order_quantity = quantity
+                            self.log_message(f"Last buy trade was at {current_dt}")
+                        elif prev_bbp > 1.2 and self.last_trade != Order.OrderSide.SELL and self.order_quantity > 0.0:
+                            order = self.create_order(self.base,
+                                                    self.order_quantity,
+                                                    side = Order.OrderSide.SELL,
+                                                    type = Order.OrderType.MARKET,
+                                                    quote=self.quote)
+                            self.submit_order(order)
+                            self.last_trade = Order.OrderSide.SELL
+                            self.order_quantity = 0.0
+                            self.log_message(f"Last sell trade was at {current_dt}")
+
+                    base_symbol = "ETH" # TODO-Adjust for either SPY/ETH for crypto
+                    quote_symbol = ticker
+                    start_date = datetime(2023,2,11)
+                    end_date = datetime(2024,2,12)
+                    asset = (Asset(symbol=base_symbol, asset_type="crypto"),
+                            Asset(symbol=quote_symbol, asset_type="crypto"))
+
+                    exchange_id = "kraken"  #"kucoin" #"bybit" #"okx" #"bitmex" # "binance"
+
+
+                    # CcxtBacktesting default data download limit is 50,000
+                    # If you want to change the maximum data download limit, you can do so by using 'max_data_download_limit'.
+                    kwargs = {
+                        # "max_data_download_limit":10000, # optional
+                        "exchange_id":exchange_id,
+                    }
+                    CcxtBacktesting.MIN_TIMESTEP = "day"
+                    results, strat_obj = CcxtBacktestingExampleStrategy.run_backtest(
+                        CcxtBacktesting,
+                        start_date,
+                        end_date,
+                        benchmark_asset=f"{base_symbol}/{quote_symbol}",
+                        quote_asset=Asset(symbol=quote_symbol, asset_type="crypto"),
+                        parameters={
+                                "asset":asset,
+                                "cash_at_risk":.25,
+                                "window":21,},
+                        **kwargs,
+                    )
+        if AI_option_trading == 'Lumibots : Important functions (Crypto)':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                class ImportantFunctions(Strategy):
+                    def initialize(self):
+                        # Set the time between trading iterations
+                        self.sleeptime = "30S"
+
+                        # Set the market to 24/7 since those are the hours for the crypto market
+                        self.set_market("24/7")
+
+                    def on_trading_iteration(self):
+                        ###########################
+                        # Placing an Order
+                        ###########################
+
+                        # Define the base and quote assets for our transactions
+                        base = Asset(symbol="BTC", asset_type="crypto")
+                        quote = self.quote_asset
+
+                        # Market Order for 0.1 BTC
+                        mkt_order = self.create_order(base, 0.1, "buy", quote=quote)
+                        self.submit_order(mkt_order)
+
+                        # Limit Order for 0.1 BTC at a limit price of $10,000
+                        lmt_order = self.create_order(base, 0.1, "buy", quote=quote, limit_price=10000)
+                        self.submit_order(lmt_order)
+
+                        ###########################
+                        # Getting Historical Data
+                        ###########################
+
+                        # Get the historical prices for our base/quote pair for the last 100 minutes
+                        bars = self.get_historical_prices(base, 100, "minute", quote=quote)
+                        if bars is not None:
+                            df = bars.df
+                            max_price = df["close"].max()
+                            self.log_message(f"Max price for {base} was {max_price}")
+
+                            ############################
+                            # TECHNICAL ANALYSIS
+                            ############################
+
+                            # Use pandas_ta to calculate the 20 period RSI
+                            rsi = df.ta.rsi(length=20)
+                            current_rsi = rsi.iloc[-1]
+                            self.log_message(f"RSI for {base} was {current_rsi}")
+
+                            # Use pandas_ta to calculate the MACD
+                            macd = df.ta.macd()
+                            current_macd = macd.iloc[-1]
+                            self.log_message(f"MACD for {base} was {current_macd}")
+
+                            # Use pandas_ta to calculate the 55 EMA
+                            ema = df.ta.ema(length=55)
+                            current_ema = ema.iloc[-1]
+                            self.log_message(f"EMA for {base} was {current_ema}")
+
+                        ###########################
+                        # Positions and Orders
+                        ###########################
+
+                        # Get all the positions that we own, including cash
+                        positions = self.get_positions()
+                        for position in positions:
+                            self.log_message(f"Position: {position}")
+
+                            # Get the asset of the position
+                            asset = position.asset
+
+                            # Get the quantity of the position
+                            quantity = position.quantity
+
+                            # Get the symbol from the asset
+                            symbol = asset.symbol
+
+                            self.log_message(f"we own {quantity} shares of {symbol}")
+
+                        # Get one specific position
+                        asset_to_get = Asset(symbol="BTC", asset_type="crypto")
+                        position = self.get_position(asset_to_get)
+
+                        # Get all of the outstanding orders
+                        orders = self.get_orders()
+                        for order in orders:
+                            self.log_message(f"Order: {order}")
+                            # Do whatever you need to do with the order
+
+                        # Get one specific order
+                        order = self.get_order(mkt_order.identifier)
+
+                        ###########################
+                        # Other Useful Functions
+                        ###########################
+
+                        # Get the current (last) price for the base/quote pair
+                        last_price = self.get_last_price(base, quote=quote)
+                        self.log_message(
+                            f"Last price for {base}/{quote} was {last_price}", color="green"
+                        )
+
+                        dt = self.get_datetime()
+                        self.log_message(f"The current datetime is {dt}")
+                        self.log_message(f"The current time is {dt.time()}")
+
+                        # If you want to check if it's after a certain time, you can do this (eg. trading only after 9:30am)
+                        if dt.time() > datetime.time(hour=9, minute=30):
+                            self.log_message("It's after 9:30am")
+
+                        # Get the value of the entire portfolio, including positions and cash
+                        portfolio_value = self.portfolio_value
+                        # Get the amount of cash in the account (the amount in the quote_asset)
+                        cash = self.cash
+
+                        self.log_message(f"The current value of your account is {portfolio_value}")
+                        # Note: Cash is based on the quote asset
+                        self.log_message(f"The current amount of cash in your account is {cash}")
+
+
+                if __name__ == "__main__":
+                    trader = Trader()
+
+                
+                    broker = Ccxt(KRAKEN_CONFIG)
+
+                    strategy = ImportantFunctions(
+                        broker=broker,
+                    )
+
+                    trader.add_strategy(strategy)
+                    strategy_executors = trader.run_all()
+
+        if AI_option_trading == 'Lumibots : Hold to Expiry':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                """
+                Strategy Description
+                An example strategy for buying an option and holding it to expiry.
+                """
+
+
+                class OptionsHoldToExpiry(Strategy):
+                    parameters = {
+                        "buy_symbol": "SPY",
+                        "expiry": datetime(2023, 10, 20),
+                    }
+
+                    # =====Overloading lifecycle methods=============
+
+                    def initialize(self):
+                        # Set the initial variables or constants
+
+                        # Built in Variables
+                        self.sleeptime = "1D"
+
+                    def on_trading_iteration(self):
+                        """Buys the self.buy_symbol once, then never again"""
+
+                        buy_symbol = self.parameters["buy_symbol"]
+                        expiry = self.parameters["expiry"]
+
+                        # What to do each iteration
+                        underlying_price = self.get_last_price(buy_symbol)
+                        self.log_message(f"The value of {buy_symbol} is {underlying_price}")
+
+                        if self.first_iteration:
+                            # Calculate the strike price (round to nearest 1)
+                            strike = round(underlying_price)
+
+                            # Create options asset
+                            asset = Asset(
+                                symbol=buy_symbol,
+                                asset_type="option",
+                                expiration=expiry,
+                                strike=strike,
+                                right="call",
+                            )
+
+                            # Create order
+                            order = self.create_order(
+                                asset,
+                                10,
+                                "buy_to_open",
+                            )
+                            
+                            # Submit order
+                            self.submit_order(order)
+
+                            # Log a message
+                            self.log_message(f"Bought {order.quantity} of {asset}")
+
+
+                if __name__ == "__main__":
+                    is_live = False
+
+                    if is_live:
+
+                        from lumibot.brokers import InteractiveBrokers
+                        from lumibot.traders import Trader
+
+                        trader = Trader()
+
+                        broker = InteractiveBrokers(INTERACTIVE_BROKERS_CONFIG)
+                        strategy = OptionsHoldToExpiry(broker=broker)
+
+                        trader.add_strategy(strategy)
+                        strategy_executors = trader.run_all()
+
+                    else:
+                        from lumibot.backtesting import PolygonDataBacktesting
+
+                        # Backtest this strategy
+                        backtesting_start = datetime(2023, 10, 19)
+                        backtesting_end = datetime(2023, 10, 24)
+
+                        results = OptionsHoldToExpiry.backtest(
+                            PolygonDataBacktesting,
+                            backtesting_start,
+                            backtesting_end,
+                            benchmark_asset="SPY",
+                            polygon_api_key="YOUR_POLYGON_API_KEY_HERE",  # Add your polygon API key here
+                            polygon_has_paid_subscription=False,
+                        )
+
+
+
+
+        if AI_option_trading == 'Lumibots : Stock Bracket Strategy':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                """
+                Strategy Description
+
+                An example strategy for how to use bracket orders.
+                """
+                class StockBracket(Strategy):
+                    parameters = {
+                        "buy_symbol": "SPY",
+                        "take_profit_price": 405,
+                        "stop_loss_price": 395,
+                        "quantity": 10,
+                    }
+
+                    # =====Overloading lifecycle methods=============
+
+                    def initialize(self):
+                        # Set the initial variables or constants
+
+                        # Built in Variables
+                        self.sleeptime = "1D"
+
+                        # Our Own Variables
+                        self.counter = 0
+
+                    def on_trading_iteration(self):
+                        """Buys the self.buy_symbol once, then never again"""
+
+                        buy_symbol = self.parameters["buy_symbol"]
+                        take_profit_price = self.parameters["take_profit_price"]
+                        stop_loss_price = self.parameters["stop_loss_price"]
+                        quantity = self.parameters["quantity"]
+
+                        # What to do each iteration
+                        current_value = self.get_last_price(buy_symbol)
+                        self.log_message(f"The value of {buy_symbol} is {current_value}")
+
+                        if self.first_iteration:
+                            # Bracket order
+                            order = self.create_order(
+                                buy_symbol,
+                                quantity,
+                                "buy",
+                                take_profit_price=take_profit_price,
+                                stop_loss_price=stop_loss_price,
+                                type="bracket",
+                            )
+                            self.submit_order(order)
+
+
+                if __name__ == "__main__":
+                    is_live = False
+
+                    if is_live:
+
+                        from lumibot.brokers import Alpaca
+                        from lumibot.traders import Trader
+
+                        trader = Trader()
+
+                        broker = Alpaca(ALPACA_CONFIG)
+
+                        strategy = StockBracket(broker=broker)
+
+                        trader.add_strategy(strategy)
+                        strategy_executors = trader.run_all()
+
+                    else:
+                        from lumibot.backtesting import YahooDataBacktesting
+
+                        # Backtest this strategy
+                        backtesting_start = datetime(2023, 3, 3)
+                        backtesting_end = datetime(2023, 3, 10)
+
+                        results = StockBracket.backtest(
+                            YahooDataBacktesting,
+                            backtesting_start,
+                            backtesting_end,
+                            benchmark_asset="SPY",
+                        )
+
+
+
+
+        if AI_option_trading == 'Lumibots : Diversified Leverage':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+                """
+                Strategy Description
+
+                This strategy will buy a few symbols that have 2x or 3x returns (have leverage), but will 
+                also diversify and rebalance the portfolio often.
+                """
+
+
+                class DiversifiedLeverage(Strategy):
+                    # =====Overloading lifecycle methods=============
+
+                    parameters = {
+                        "portfolio": [
+                            {
+                                "symbol": "TQQQ",  # 3x Leveraged Nasdaq
+                                "weight": 0.20,
+                            },
+                            {
+                                "symbol": "UPRO",  # 3x Leveraged S&P 500
+                                "weight": 0.20,
+                            },
+                            {
+                                "symbol": "UDOW",  # 3x Leveraged Dow Jones
+                                "weight": 0.10,
+                            },
+                            {
+                                "symbol": "TMF",  # 3x Leveraged Treasury Bonds
+                                "weight": 0.25,
+                            },
+                            {
+                                "symbol": "UGL",  # 3x Leveraged Gold
+                                "weight": 0.10,
+                            },
+                            {
+                                "symbol": "DIG",  # 2x Leveraged Oil and Gas Companies (Commodities)
+                                "weight": 0.15,
+                            },
+                        ],
+                        "rebalance_period": 4,
+                    }
+
+                    def initialize(self):
+                        # Setting the waiting period (in days) and the counter
+                        self.counter = None
+
+                        # There is only one trading operation per day
+                        # no need to sleep between iterations
+                        self.sleeptime = "1D"
+
+                        # Initializing the portfolio variable with the assets and proportions we want to own
+                        self.initialized = False
+
+                        self.minutes_before_closing = 1
+
+                    def on_trading_iteration(self):
+                        rebalance_period = self.parameters["rebalance_period"]
+                        # If the target number of days (period) has passed, rebalance the portfolio
+                        if self.counter == rebalance_period or self.counter == None:
+                            self.counter = 0
+                            self.rebalance_portfolio()
+                            self.log_message(
+                                f"Next portfolio rebalancing will be in {rebalance_period} day(s)"
+                            )
+
+                        self.log_message("Sleeping until next trading day")
+                        self.counter += 1
+
+                    # =============Helper methods====================
+
+                    def rebalance_portfolio(self):
+                        """Rebalance the portfolio and create orders"""
+
+                        orders = []
+                        for asset in self.parameters["portfolio"]:
+                            # Get all of our variables from portfolio
+                            symbol = asset.get("symbol")
+                            weight = asset.get("weight")
+                            last_price = self.get_last_price(symbol)
+
+                            # Get how many shares we already own
+                            # (including orders that haven't been executed yet)
+                            position = self.get_position(symbol)
+                            quantity = 0
+                            if position is not None:
+                                quantity = float(position.quantity)
+
+                            # Calculate how many shares we need to buy or sell
+                            shares_value = self.portfolio_value * weight
+                            self.log_message(
+                                f"The current portfolio value is {self.portfolio_value} and the weight needed is {weight}, so we should buy {shares_value}"
+                            )
+                            new_quantity = shares_value // last_price
+                            quantity_difference = new_quantity - quantity
+                            self.log_message(
+                                f"Currently own {quantity} shares of {symbol} but need {new_quantity}, so the difference is {quantity_difference}"
+                            )
+
+                            # If quantity is positive then buy, if it's negative then sell
+                            side = ""
+                            if quantity_difference > 0:
+                                side = "buy"
+                            elif quantity_difference < 0:
+                                side = "sell"
+
+                            # Execute the order if necessary
+                            if side:
+                                order = self.create_order(symbol, abs(quantity_difference), side)
+                                orders.append(order)
+
+                        self.submit_orders(orders)
+
+
+                    if __name__ == "__main__":
+                        is_live = False
+
+                        if is_live:
+                            ####
+                            # Run the strategy live
+                            ####
+
+                            trader = Trader()
+                            broker = Alpaca(ALPACA_CONFIG)
+                            strategy = DiversifiedLeverage(broker=broker)
+                            trader.add_strategy(strategy)
+                            trader.run_all()
+
+                        else:
+                            ####
+                            # Backtest the strategy
+                            ####
+
+                            # Choose the time from and to which you want to backtest
+                            backtesting_start = datetime(2010, 6, 1)
+                            backtesting_end = datetime(2023, 7, 31)
+
+                            # 0.01% trading/slippage fee
+                            trading_fee = TradingFee(percent_fee=0.005)
+
+                            # Initialize the backtesting object
+                            print("Starting Backtest...")
+                            result = DiversifiedLeverage.backtest(
+                                YahooDataBacktesting,
+                                backtesting_start,
+                                backtesting_end,
+                                benchmark_asset="SPY",
+                                parameters={},
+                                buy_trading_fees=[trading_fee],
+                                sell_trading_fees=[trading_fee],
+                            )
+
+                            print("Backtest result: ", result)
+
+
+
+        if AI_option_trading == 'Lumibots : Stock Limit & Trailing Stops':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+
+                """
+                Strategy Description
+
+                An example of how to use limit orders and trailing stops to buy a stock and then sell it when it drops by a certain
+                percentage. This is a very simple strategy that is meant to demonstrate how to use limit orders and trailing stops.
+                """
+
+
+                class LimitAndTrailingStop(Strategy):
+                    parameters = {
+                        "buy_symbol": "SPY",
+                        "limit_buy_price": 403,
+                        "limit_sell_price": 407,
+                        "trail_percent": 0.02,
+                        "trail_price": 7,
+                    }
+
+                    # =====Overloading lifecycle methods=============
+
+                    def initialize(self):
+                        # Set the initial variables or constants
+
+                        # Built in Variables
+                        self.sleeptime = "1D"
+
+                        # Our Own Variables
+                        self.counter = 0
+
+                    def on_trading_iteration(self):
+                        """Buys the self.buy_symbol once, then never again"""
+
+                        buy_symbol = self.parameters["buy_symbol"]
+                        limit_buy_price = self.parameters["limit_buy_price"]
+                        limit_sell_price = self.parameters["limit_sell_price"]
+                        trail_percent = self.parameters["trail_percent"]
+                        trail_price = self.parameters["trail_price"]
+
+                        # What to do each iteration
+                        current_value = self.get_last_price(buy_symbol)
+                        self.log_message(f"The value of {buy_symbol} is {current_value}")
+
+                        if self.first_iteration:
+                            # Create the limit buy order
+                            purchase_order = self.create_order(buy_symbol, 100, "buy", limit_price=limit_buy_price)
+                            self.submit_order(purchase_order)
+
+                            # Create the limit sell order
+                            sell_order = self.create_order(buy_symbol, 100, "sell", limit_price=limit_sell_price)
+                            self.submit_order(sell_order)
+
+                            # Place the trailing percent stop
+                            trailing_pct_stop_order = self.create_order(buy_symbol, 100, "sell", trail_percent=trail_percent)
+                            self.submit_order(trailing_pct_stop_order)
+
+                            # Place the trailing price stop
+                            trailing_price_stop_order = self.create_order(buy_symbol, 50, "sell", trail_price=trail_price)
+                            self.submit_order(trailing_price_stop_order)
+
+
+                if __name__ == "__main__":
+                    is_live = False
+
+                    if is_live:
+
+                        from lumibot.brokers import Alpaca
+                        from lumibot.traders import Trader
+
+                        trader = Trader()
+
+                        broker = Alpaca(ALPACA_CONFIG)
+
+                        strategy = LimitAndTrailingStop(broker=broker)
+
+                        trader.add_strategy(strategy)
+                        strategy_executors = trader.run_all()
+
+                    else:
+                        from lumibot.backtesting import YahooDataBacktesting
+
+                        # Backtest this strategy
+                        backtesting_start = datetime(2023, 3, 3)
+                        backtesting_end = datetime(2023, 3, 10)
+
+                        results = LimitAndTrailingStop.backtest(
+                            YahooDataBacktesting,
+                            backtesting_start,
+                            backtesting_end,
+                            benchmark_asset="SPY",
+                        )
+                
+
+        if AI_option_trading == 'Lumibots : Momentum Strategy':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+
+                """
+                Strategy Description
+
+                Buys the best performing asset from self.symbols over self.period number of days.
+                For example, if SPY increased 2% yesterday, but VEU and AGG only increased 1% yesterday,
+                then we will buy SPY.
+                """
+
+
+                class Momentum(Strategy):
+                    # =====Overloading lifecycle methods=============
+
+                    def initialize(self, symbols=None):
+                        # Setting the waiting period (in days)
+                        self.period = 2
+
+                        # The counter for the number of days we have been holding the current asset
+                        self.counter = 0
+
+                        # There is only one trading operation per day
+                        # No need to sleep between iterations
+                        self.sleeptime = 0
+
+                        # Set the symbols that we will be monitoring for momentum
+                        if symbols:
+                            self.symbols = symbols
+                        else:
+                            self.symbols = ["SPY", "VEU", "AGG"]
+
+                        # The asset that we want to buy/currently own, and the quantity
+                        self.asset = ""
+                        self.quantity = 0
+
+                    def on_trading_iteration(self):
+                        # When the counter reaches the desired holding period,
+                        # re-evaluate which asset we should be holding
+                        momentums = []
+                        if self.counter == self.period or self.counter == 0:
+                            self.counter = 0
+                            momentums = self.get_assets_momentums()
+
+                            # Get the asset with the highest return in our period
+                            # (aka the highest momentum)
+                            momentums.sort(key=lambda x: x.get("return"))
+                            best_asset_data = momentums[-1]
+                            best_asset = best_asset_data["symbol"]
+                            best_asset_return = best_asset_data["return"]
+
+                            # Get the data for the currently held asset
+                            if self.asset:
+                                current_asset_data = [
+                                    m for m in momentums if m["symbol"] == self.asset
+                                ][0]
+                                current_asset_return = current_asset_data["return"]
+
+                                # If the returns are equals, keep the current asset
+                                if current_asset_return >= best_asset_return:
+                                    best_asset = self.asset
+                                    best_asset_data = current_asset_data
+
+                            self.log_message("%s best symbol." % best_asset)
+
+                            # If the asset with the highest momentum has changed, buy the new asset
+                            if best_asset != self.asset:
+                                # Sell the current asset that we own
+                                if self.asset:
+                                    self.log_message("Swapping %s for %s." % (self.asset, best_asset))
+                                    order = self.create_order(self.asset, self.quantity, "sell")
+                                    self.submit_order(order)
+
+                                # Calculate the quantity and send the buy order for the new asset
+                                self.asset = best_asset
+                                best_asset_price = best_asset_data["price"]
+                                self.quantity = int(self.portfolio_value // best_asset_price)
+                                order = self.create_order(self.asset, self.quantity, "buy")
+                                self.submit_order(order)
+                            else:
+                                self.log_message("Keeping %d shares of %s" % (self.quantity, self.asset))
+
+                        self.counter += 1
+
+                        # Stop for the day, since we are looking at daily momentums
+                        self.await_market_to_close()
+
+                    def on_abrupt_closing(self):
+                        # Sell all positions
+                        self.sell_all()
+
+                    def trace_stats(self, context, snapshot_before):
+                        """
+                        Add additional stats to the CSV logfile
+                        """
+                        # Get the values of all our variables from the last iteration
+                        row = {
+                            "old_best_asset": snapshot_before.get("asset"),
+                            "old_asset_quantity": snapshot_before.get("quantity"),
+                            "old_cash": snapshot_before.get("cash"),
+                            "new_best_asset": self.asset,
+                            "new_asset_quantity": self.quantity,
+                        }
+
+                        # Get the momentums of all the assets from the context of on_trading_iteration
+                        # (notice that on_trading_iteration has a variable called momentums, this is what
+                        # we are reading here)
+                        momentums = context.get("momentums")
+                        if len(momentums) != 0:
+                            for item in momentums:
+                                symbol = item.get("symbol")
+                                for key in item:
+                                    if key != "symbol":
+                                        row[f"{symbol}_{key}"] = item[key]
+
+                        # Add all of our values to the row in the CSV file. These automatically get
+                        # added to portfolio_value, cash and return
+                        return row
+
+                    # =============Helper methods====================
+
+                    def get_assets_momentums(self):
+                        """
+                        Gets the momentums (the percentage return) for all the assets we are tracking,
+                        over the time period set in self.period
+                        """
+
+                        momentums = []
+                        start_date = self.get_round_day(timeshift=self.period + 1)
+                        end_date = self.get_round_day(timeshift=1)
+                        data = self.get_bars(self.symbols, self.period + 2, timestep="day")
+                        for asset, bars_set in data.items():
+                            # Get the return for symbol over self.period days
+                            # (from start_date to end_date)
+                            symbol = asset.symbol
+                            symbol_momentum = bars_set.get_momentum(start=start_date, end=end_date)
+                            self.log_message(
+                                "%s has a return value of %.2f%% over the last %d day(s)."
+                                % (symbol, 100 * symbol_momentum, self.period)
+                            )
+
+                            momentums.append(
+                                {
+                                    "symbol": symbol,
+                                    "price": bars_set.get_last_price(),
+                                    "return": symbol_momentum,
+                                }
+                            )
+
+                        return momentums
+
+
+                if __name__ == "__main__":
+                    is_live = False
+
+                    if is_live:
+
+                        from lumibot.brokers import Alpaca
+                        from lumibot.traders import Trader
+
+                        trader = Trader()
+
+                        broker = Alpaca(ALPACA_CONFIG)
+
+                        strategy = Momentum(broker=broker)
+
+                        trader.add_strategy(strategy)
+                        strategy_executors = trader.run_all()
+
+                    else:
+                        from lumibot.backtesting import YahooDataBacktesting
+
+                        # Backtest this strategy
+                        backtesting_start = datetime(2023, 1, 1)
+                        backtesting_end = datetime(2023, 8, 1)
+
+                        results = Momentum.backtest(
+                            YahooDataBacktesting,
+                            backtesting_start,
+                            backtesting_end,
+                            benchmark_asset="SPY",
+                        )
+
+        if AI_option_trading == 'Lumibots : Stock OCO Strategy':
+            ticker = st.text_input("Please enter the ticker needed for investigation")
+            if ticker:
+                message = (f"Ticker captured : {ticker}")
+                st.success(message)
+            portfolio = st.number_input("Enter the portfolio size in USD")
+            if portfolio:
+                st.write(f"The portfolio size in USD Captured is : {portfolio}")
+            min_date = datetime(1980, 1, 1)
+            # Date input widget with custom minimum date
+            col1, col2 = st.columns([2, 2])
+            with col1:
+                start_date = st.date_input("Start date:", min_value=min_date)
+            with col2:
+                end_date = st.date_input("End Date:")
+            years = end_date.year - start_date.year
+            st.success(f"years captured : {years}")
+            if st.button("Trade"):
+
+                """
+                Strategy Description
+
+                An example strategy for how to use OCO orders.
+                """
+
+
+                class StockOco(Strategy):
+                    parameters = {
+                        "buy_symbol": "SPY",
+                        "take_profit_price": 405,
+                        "stop_loss_price": 395,
+                        "quantity": 10,
+                    }
+
+                    # =====Overloading lifecycle methods=============
+
+                    def initialize(self):
+                        # Set the initial variables or constants
+
+                        # Built in Variables
+                        self.sleeptime = "1D"
+
+                        # Our Own Variables
+                        self.counter = 0
+
+                    def on_trading_iteration(self):
+                        """Buys the self.buy_symbol once, then never again"""
+
+                        buy_symbol = self.parameters["buy_symbol"]
+                        take_profit_price = self.parameters["take_profit_price"]
+                        stop_loss_price = self.parameters["stop_loss_price"]
+                        quantity = self.parameters["quantity"]
+
+                        # What to do each iteration
+                        current_value = self.get_last_price(buy_symbol)
+                        self.log_message(f"The value of {buy_symbol} is {current_value}")
+
+                        if self.first_iteration:
+                            # Market order
+                                main_order = self.create_order(
+                                    buy_symbol, quantity, "buy",
+                                )
+                                self.submit_order(main_order)
+
+                                # OCO order
+                                order = self.create_order(
+                                    buy_symbol,
+                                    quantity,
+                                    "sell",
+                                    take_profit_price=take_profit_price,
+                                    stop_loss_price=stop_loss_price,
+                                    type="oco",
+                                )
+                                self.submit_order(order)
+
+
+                if __name__ == "__main__":
+                    is_live = False
+
+                    if is_live:
+
+                        trader = Trader()
+
+                        broker = Alpaca(ALPACA_CONFIG)
+
+                        strategy = StockOco(broker=broker)
+
+                        trader.add_strategy(strategy)
+                        strategy_executors = trader.run_all()
+
+                    else:
+                        from lumibot.backtesting import YahooDataBacktesting
+
+                        # Backtest this strategy
+                        backtesting_start = datetime(2023, 3, 3)
+                        backtesting_end = datetime(2023, 3, 10)
+
+                        results = StockOco.backtest(
+                            YahooDataBacktesting,
+                            backtesting_start,
+                            backtesting_end,
+                            benchmark_asset="SPY",
+                        )
+
 
 if __name__ == "__main__":
     main()
