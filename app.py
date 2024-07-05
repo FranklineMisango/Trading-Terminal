@@ -366,6 +366,7 @@ def main():
                 # Output the lists of oversold and overbought tickers
                 st.write(f'Oversold tickers: {oversold_tickers}')
                 st.write(f'Overbought tickers: {overbought_tickers}')
+                
         if options=="Green_line Valuations":
             st.success("This programme analyzes all tickers to help identify the Green Value ones")
             # Retrieve S&P 500 tickers
