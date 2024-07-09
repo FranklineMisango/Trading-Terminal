@@ -146,7 +146,6 @@ from lumibot.entities import TradingFee
 
 ##Terminal config
 
-from streamlit_ttyd import terminal
 import time 
 
 
