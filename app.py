@@ -2,7 +2,7 @@
 import streamlit as st
 
 #Page config
-st.set_page_config(page_title='Trading terminal', page_icon=📈, layout="wide")  
+st.set_page_config(page_title='Trading terminal', page_icon="📈", layout="wide")  
 
 
 import scipy.optimize as sco
