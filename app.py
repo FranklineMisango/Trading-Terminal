@@ -181,7 +181,7 @@ def main():
         st.plotly_chart(fig)
 
     #option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
-    option = st.sidebar.selectbox("Make a choice",('Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading")
+    option = st.sidebar.radio("Make a choice",('Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading")
 )
 
     if option == 'Find stocks':
