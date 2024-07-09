@@ -2,7 +2,8 @@
 import streamlit as st
 
 #Page config
-st.set_page_config(layout="wide")
+st.set_page_config(page_title='Trading terminal', page_icon=📈, layout="wide")  
+
 
 import scipy.optimize as sco
 import matplotlib.dates as mpl_dates
@@ -148,9 +149,9 @@ from lumibot.entities import TradingFee
 
 import time 
 
-
 def main():
     #Main app
+    st.title("Frankline and Co. LP Trading Terminal)
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     @st.cache_resource
     def correlated_stocks(start_date, end_date, tickers):
