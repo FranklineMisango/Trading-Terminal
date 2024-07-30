@@ -29,7 +29,6 @@ pysocks
 qu
 schedule
 selenium
-streamlit-ttyd
 ta
 textblob
 tf-keras
