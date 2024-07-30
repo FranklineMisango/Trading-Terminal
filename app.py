@@ -1,8 +1,8 @@
-#Library imports
+#Full stack streamlit import
 import streamlit as st
 
 #Page config
-st.set_page_config(layout="wide")
+st.set_page_config(page_title='Trading Terminal', page_icon="📈", layout="wide")  
 
 import scipy.optimize as sco
 import matplotlib.dates as mpl_dates
@@ -146,12 +146,11 @@ from lumibot.entities import TradingFee
 
 ##Terminal config
 
-from streamlit_ttyd import terminal
 import time 
-
 
 def main():
     #Main app
+    st.title("Frankline and Co. LP Trading Terminal Beta")
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     @st.cache_resource
     def correlated_stocks(start_date, end_date, tickers):
@@ -181,7 +180,10 @@ def main():
         )
         st.plotly_chart(fig)
 
-    option = st.sidebar.selectbox('Make a choice', ['Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
+    #option = st.sidebar.selectbox('Make a choice', ['Home', 'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
+    option = st.sidebar.radio("Make a choice",('Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading")
+)
+
     if option == 'Find stocks':
         options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
         if options == "IDB_RS_Rating":
@@ -385,6 +387,7 @@ def main():
                 # Output the lists of oversold and overbought tickers
                 st.write(f'Oversold tickers: {oversold_tickers}')
                 st.write(f'Overbought tickers: {overbought_tickers}')
+                
         if options=="Green_line Valuations":
             st.success("This programme analyzes all tickers to help identify the Green Value ones")
             # Retrieve S&P 500 tickers
