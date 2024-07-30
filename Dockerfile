@@ -11,10 +11,6 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone  https://github.com/FranklineMisango/Trading-Terminal.git
-
-COPY Trading-Terminal/requirements.txt
-
 RUN pip install -r requirements.txt
 
 EXPOSE 8501
