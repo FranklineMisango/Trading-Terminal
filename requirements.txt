@@ -1,9 +1,5 @@
 alpaca-trade-api
 autoscraper
-azure-ai-formrecognizer
-azure-identity
-azure-search-documents
-azure-storage-blob
 backtrader-plotting
 exceptiongroup
 factor-analyzer
@@ -13,10 +9,6 @@ image
 imageio
 ipykernel
 json5
-langchain-chroma
-langchain-community
-langchain-openai
-langchainhub
 lumibot
 mplfinance
 numpydoc
@@ -31,8 +23,6 @@ schedule
 selenium
 ta
 textblob
-tf-keras
-transformers
 uvloop
 watchfiles
 webdriver-manager
