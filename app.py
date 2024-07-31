@@ -53,8 +53,6 @@ from pandas_datareader import data as pdr
 import sys
 from websocket import create_connection
 import os
-parent_dir = os.path.dirname(os.getcwd())
-sys.path.append(parent_dir)
 import ta_functions as ta
 import ta as taf
 import tickers as ti

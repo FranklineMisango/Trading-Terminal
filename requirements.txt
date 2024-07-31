@@ -28,3 +28,5 @@ watchfiles
 webdriver-manager
 websocket
 yahoo-earnings-calendar
+keras
+tensorflow
