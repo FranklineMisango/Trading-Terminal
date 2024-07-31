@@ -11,10 +11,9 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-
 COPY requirements.txt requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --cache-dir /root/.cache/pip -r requirements.txt
 
 EXPOSE 8501
 
