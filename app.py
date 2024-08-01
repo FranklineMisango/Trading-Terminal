@@ -5,8 +5,6 @@ import streamlit as st
 st.set_page_config(page_title='Trading Terminal', page_icon="📈", layout="wide")  
 
 import yfinance as yf
-yf.pdr_override()
-
 import scipy.optimize as sco
 import matplotlib.dates as mpl_dates
 from scipy.stats import zscore
