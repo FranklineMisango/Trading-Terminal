@@ -484,7 +484,7 @@ def main():
                 for ticker in tickers:
                     # Download stock data
                     df = yf.download(ticker, start_date, end_date)
-                    #df = pdr.get_data_yahoo(ticker, start_date, end_date)
+                    #df = yf.download(ticker, start_date, end_date)
                     df['Percent Change'] = df['Adj Close'].pct_change()
                     stock_return = df['Percent Change'].cumprod().iloc[-1]
                     returns_multiple = round(stock_return / index_return, 2)
@@ -568,7 +568,7 @@ def main():
 
             if st.button("Check"):
                 # Fetch stock data
-                df = pdr.get_data_yahoo(stock, start_date, end_date)
+                df = yf.download(stock, start_date, end_date)
                 current_close = df["Adj Close"][-1]
                 # Check if the target price is reached
                 if current_close > target_price and not alerted:
@@ -628,7 +628,7 @@ def main():
                         sells.append(float(counters[0]))
                         neutrals.append(float(counters[1]))
                         buys.append(float(counters[2]))
-                        price = pdr.get_data_yahoo(ticker)['Adj Close'][-1]
+                        price = yf.download(ticker)['Adj Close'][-1]
                         prices.append(price)
                         valid_tickers.append(ticker)
 
@@ -2201,7 +2201,7 @@ def main():
                 end = pd.to_datetime(end)
 
                 # Download stock data from Yahoo Finance
-                data = pdr.get_data_yahoo(symbol, start, end)
+                data = yf.download(symbol, start, end)
 
                 # Display Adjusted Close Price
                 st.header(f"Adjusted Close Price\n {symbol}")
@@ -2386,15 +2386,13 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-                # Override yfinance with pandas datareader
-                yf.pdr_override()
                 # Define the stock symbol to analyze
                 stock = ticker
 
                 # Function to retrieve stock data for a specified period
                 def get_symbol(symbol):
                     # Fetch the stock data
-                    df = pdr.get_data_yahoo(symbol, start_date, end_date)
+                    df = yf.download(symbol, start_date, end_date)
                     return df
 
                 # Function to calculate VWAP (Volume Weighted Average Price)
@@ -2557,8 +2555,6 @@ def main():
                 end_date = st.date_input("End Date:")
             
             if st.button("Check"):
-
-                yf.pdr_override()
 
                 # Setting pandas display options
                 pd.set_option('display.max_columns', None)
@@ -2811,7 +2807,7 @@ def main():
                         print(f"Could not find the exchange for {ticker}")
                         
                     # Get the current price of the ticker
-                    df = pdr.get_data_yahoo(ticker)
+                    df = yf.download(ticker)
                     price = round(df["Adj Close"][-1], 2)
 
                     # Open TradingView page for the ticker
@@ -4244,7 +4240,7 @@ def main():
                 base_url = "https://financialmodelingprep.com/api/v3/"
                 apiKey = "demo"  # Note: Demo API only works for AAPL stock
                 ticker = 'AAPL'
-                current_price = pdr.get_data_yahoo(ticker)['Adj Close'][-1]
+                current_price = yf.download(ticker)['Adj Close'][-1]
 
                 # Function to retrieve JSON data from URL
                 def json_data(url):
@@ -9589,7 +9585,7 @@ def main():
                 end = end_date
 
                 # Fetch stock data
-                data = pdr.get_data_yahoo(ticker, start, end)
+                data = yf.download(ticker, start, end)
 
                 # Apply Astral Timing signals
                 astral_data = astral(data, 8, 1, 5, 'Close', 'High', 'Low', 'long_signal', 'short_signal')
@@ -9643,7 +9639,7 @@ def main():
                     """
                     Fetches stock data from Yahoo Finance.
                     """
-                    return pdr.get_data_yahoo(stock, start, end)
+                    return yf.download(stock, start, end)
 
                 # Trading statistics calculation
                 def calculate_trading_statistics(df, buy_sell_logic, additional_logic=None):
@@ -10045,7 +10041,7 @@ def main():
                     # Define tickers for analysis
 
                     # Fetch stock data using Yahoo Finance
-                    df = pdr.get_data_yahoo(tickers, start, end)['Close']
+                    df = yf.download(tickers, start, end)['Close']
 
                     # Calculate moving averages
                     short_rolling = df.rolling(window=20).mean()
@@ -10302,8 +10298,8 @@ def main():
                 index = '^GSPC'
 
                 # Fetching historical data from Yahoo Finance
-                stock_data = pdr.get_data_yahoo(stock, start_date, end_date)
-                index_data = pdr.get_data_yahoo(index, start_date, end_date)
+                stock_data = yf.download(stock, start_date, end_date)
+                index_data = yf.download(index, start_date, end_date)
 
                 # Resampling data to monthly frequency and calculating returns
                 stock_monthly = stock_data.resample('M').last()
@@ -10942,8 +10938,6 @@ def main():
             st.success(f"years captured : {years}")
             if st.button("Check"): 
                 # Override yfinance with Pandas Datareader's Yahoo Finance API
-                yf.pdr_override()
-
                 def get_historical_prices(symbols, start_date, end_date):
                     """Retrieve historical stock prices for specified symbols."""
                     return yf.download(symbols, start=start_date, end=end_date)['Adj Close']
@@ -11330,10 +11324,6 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-
-                # Override the yfinance module
-                yf.pdr_override()
-
                 # Define the date range for data retrieval
                 num_of_years = 10
                 start = datetime.datetime.now() - datetime.timedelta(days=365.25 * num_of_years)
@@ -11356,7 +11346,7 @@ def main():
                     st.write(f"\npulling {stock}")
 
                     # Fetch stock data
-                    df = pdr.get_data_yahoo(stock, start=start, end=end)
+                    df = yf.download(stock, start=start, end=end)
 
                     try:
                         # Calculate indicators: 200-day MA, RSI
@@ -11395,15 +11385,12 @@ def main():
             years = end_date.year - start_date.year
             st.success(f"years captured : {years}")
             if st.button("Check"):
-        
-                yf.pdr_override()
-
                 emas_used = [3, 5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60]
 
                 def get_stock_data(ticker, num_of_years):
                     start_date = dt.date.today() - dt.timedelta(days=365.25 * num_of_years)
                     end_date = dt.datetime.now()
-                    df = pdr.get_data_yahoo(ticker, start_date, end_date).dropna()
+                    df = yf.download(ticker, start_date, end_date).dropna()
                     for ema in emas_used:
                         df[f"Ema_{ema}"] = df.iloc[:, 4].ewm(span=ema, adjust=False).mean()
                     return df.iloc[60:]
@@ -11587,7 +11574,7 @@ def main():
             if st.button("Check"):
                 # Function to fetch stock data
                 def fetch_stock_data(tickers, start_date, end_date):
-                    data = pdr.get_data_yahoo(tickers, start=start_date, end=end_date)['Adj Close']
+                    data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
                     data.index = pd.to_datetime(data.index)
                     return data
 
