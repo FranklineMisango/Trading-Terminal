@@ -1,4 +1,5 @@
-# Trading-Terminal (Beta) 
+**Trading Terminal is down for now, I am working to restore it up**
+# Trading-Terminal (Beta)
 ## About
 * A Comprehensive Trading App that allows Analysts to visualize, Research, Predict and carry out algorithmic trading on either stocks/crypto
 * Beware, this is not an advisory Investment app but just a base tool for investment decisions and you carry further liability when utilizing its CCXT and interactive brokerage aspect
