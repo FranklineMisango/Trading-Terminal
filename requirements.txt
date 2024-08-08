@@ -5,9 +5,7 @@ exceptiongroup
 factor-analyzer
 fastai
 httptools
-image
-imageio
-ipykernel
+ipykerne
 json5
 lumibot
 mplfinance
@@ -28,5 +26,3 @@ watchfiles
 webdriver-manager
 websocket
 yahoo-earnings-calendar
-keras
-tensorflow
