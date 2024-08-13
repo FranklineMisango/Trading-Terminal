@@ -1,4 +1,3 @@
-**Trading Terminal is down for now, I am working to restore it up**
 # Trading-Terminal (Beta)
 ## About
 * A Comprehensive Trading App that allows Analysts to visualize, Research, Predict and carry out algorithmic trading on either stocks/crypto
