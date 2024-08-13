@@ -1,7 +1,6 @@
 # Trading-Terminal (Beta)
 ## About
-* A Comprehensive Trading App that allows Analysts to visualize, Research, Predict and carry out algorithmic trading on either stocks/crypto
-* Beware, this is not an advisory Investment app but just a base tool for investment decisions and you carry further liability when utilizing its CCXT and interactive brokerage aspect
+* A Comprehensive Trading App that allows Analysts to visualize, Research, Predict and carry out algorithmic trading on either stocks/crypto. Beware, this is not an advisory Investment app but just a base tool for investment decisions and you carry further liability when utilizing its CCXT and interactive brokerage aspect
 
 ## Updates and project goals
 * Beta is up and running, Thanks to the Cloud Provision by AWS Grant for businesses that allowed me to utilize powerful EC2 instance to run the heavy Backtesting models and test out this proof of concept enabling a transition from streamlit cloud
@@ -9,7 +8,12 @@
 * I am working on the AI Multi-modial Chatbot to utilize relevant code, generate data and report in real-time how the market is doing and the most potential profit trades to do.
 * On side, I am continously improving the UI/UX by livening the charts and appending sentiment analysis, alongside the bot ux 
 * I decided to Re-structure the code into individual folders for readability and future updates, everything is still in the app.py and will break the repo down into individual components and start updating and continously testing
- 
+
+ ## Issues 
+ * Since we are running on AWS EC2, I am implementing a secure SSL pipeline to allow website access without warnings of security for some users
+ * remote running best runner R & D : tmux or screen
+ * TensorRT error for running the ML segments : compute optimization
+
 # Tech stack
 * Python
 * AWS 
