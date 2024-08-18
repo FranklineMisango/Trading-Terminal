@@ -147,29 +147,15 @@ from lumibot.entities import TradingFee
 
 
 #Multimodial agent bot configuration 
-import boto3
-import io
-import openai
-import contextlib
 
-openai.api_key = 'your-openai-api-key'
-
-def get_openai_response(query):
-    response = openai.Completion.create(
-        engine="davinci-codex",
-        prompt=query,
-        max_tokens=150
-    )
-    return response.choices[0].text.strip()
-
-def execute_code(code):
-    local_vars = {}
-    with contextlib.redirect_stdout(io.StringIO()) as f:
-        try:
-            exec(code, globals(), local_vars)
-        except Exception as e:
-            return str(e)
-    return f.getvalue()
+from openai import OpenAI
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.vectorstores import Chroma
+#from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+from langchain import hub
+import bs4
 
 
 ##Terminal config
@@ -13071,27 +13057,49 @@ def main():
                                 backtesting_end,
                                 benchmark_asset="SPY",
                             )
+    # Right column setup
     with right_column:
-        # Divider line
-        
-        st.markdown("<hr style='border:1px solid grady'>", unsafe_allow_html=True)
-
-        # Notification in the right "sidebar"
+        st.markdown("<hr style='border:1px solid gray'>", unsafe_allow_html=True)
         st.markdown("### Frankline & Co. LP Bot !")
-        if st.button("Try Me"):
-            show_bot = True
-        else:
-            show_bot = False
 
-        if show_bot:
-            st.header("OpenAI Powered Bot")
-            user_query = st.text_input("Ask me anything:")
-            if user_query:
-                response = get_openai_response(user_query)
-                st.write(response)
-                if st.button("Run Code"):
-                    code_response = execute_code(response)
-                    st.code(code_response)
+        # Specify the path to the existing code file
+        code_file_path = "reference-code.py"  # Replace with the actual path
+
+        # Check if the file exists
+        if os.path.exists(code_file_path):
+            # Read the contents of the code file
+            with open(code_file_path, "r") as file:
+                code_content = file.read()
+            
+            # Display the code (Optional)
+            st.code(code_content, language='python')
+
+            # Create a text input box for the user to ask a question
+            user_query = st.text_input('Input your question about the code or specify a function to run')
+
+            # Check if user submitted input
+            if st.button('Submit'):
+                if user_query.strip() == '':
+                    st.error("Please enter a query or function to run.")
+                else:
+                    try:
+                        # Execute the entire code content first
+                        exec(code_content)
+                        
+                        # Extract the function or expression from the user query
+                        # Make sure to validate the input to avoid syntax errors
+                        if "(" in user_query and ")" in user_query:
+                            local_scope = {}
+                            exec(f"result = {user_query}", globals(), local_scope)
+                            st.write(f"Result of '{user_query}':")
+                            st.write(local_scope.get('result'))
+                        else:
+                            st.error("Please enter a valid function call like 'function_name()'.")
+
+                    except Exception as e:
+                        st.error(f"An error occurred: {str(e)}")
+        else:
+            st.error("The specified code file does not exist. Please check the path.")
 
 
 if __name__ == "__main__":
