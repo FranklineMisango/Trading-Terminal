@@ -146,16 +146,26 @@ from lumibot.entities import TradingFee
 
 
 
-#Multimodial agent bot configuration 
-
+#Multimodial agent bot configuration
+import tools
 from openai import OpenAI
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import Chroma
-#from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 from langchain import hub
-import bs4
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+import getpass
+from langchain_openai import ChatOpenAI
+from langsmith.client import Client
+# Set your API key here
+api_key = st.secrets["Langsmith_key"]
+# Set the LANGCHAIN_API_KEY environment variable
+os.environ["LANGCHAIN_API_KEY"] = api_key
+# Now you can use the key in your code
+prompt = hub.pull("trading-terminal-prompter")
+llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
+agent = create_tool_calling_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+
+
 
 
 ##Terminal config
@@ -13071,8 +13081,6 @@ def main():
             with open(code_file_path, "r") as file:
                 code_content = file.read()
             
-            # Display the code (Optional)
-            st.code(code_content, language='python')
 
             # Create a text input box for the user to ask a question
             user_query = st.text_input('Input your question about the code or specify a function to run')
@@ -13084,7 +13092,7 @@ def main():
                 else:
                     try:
                         # Execute the entire code content first
-                        exec(code_content)
+                        #exec(code_content)
                         
                         # Extract the function or expression from the user query
                         # Make sure to validate the input to avoid syntax errors
