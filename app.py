@@ -144,27 +144,51 @@ from lumibot.example_strategies.crypto_important_functions import ImportantFunct
 from lumibot.entities import TradingFee
 
 
+#Testing tools
+
+from langchain_core.tools import tool
+
+
+#Test tools
+@tool
+def multiply(first_int: int, second_int: int) -> int:
+    """Multiply two integers together."""
+    return first_int * second_int
+
+
+@tool
+def add(first_int: int, second_int: int) -> int:
+    "Add two integers."
+    return first_int + second_int
+
+
+@tool
+def exponentiate(base: int, exponent: int) -> int:
+    "Exponentiate the base to the exponent power."
+    return base**exponent
+
+
+tools = [multiply, add, exponentiate]
+
 
 
 #Multimodial agent bot configuration
-import tools
 from openai import OpenAI
 from langchain import hub
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 import getpass
 from langchain_openai import ChatOpenAI
-from langsmith.client import Client
 # Set your API key here
 api_key = st.secrets["Langsmith_key"]
-# Set the LANGCHAIN_API_KEY environment variable
 os.environ["LANGCHAIN_API_KEY"] = api_key
 # Now you can use the key in your code
-prompt = hub.pull("trading-terminal-prompter")
+prompt = hub.pull("hwchase17/openai-tools-agent")
 llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-
+'''
+agent_executor.invoke({"input": "what is LangChain?"})
+'''
 
 
 
@@ -176,7 +200,7 @@ def main():
     st.title("📈 Frankline and Co. LP Trading Terminal Beta")
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     # Create a two-column layout
-    left_column, right_column = st.columns([3, 1])
+    left_column, right_column = st.columns([2, 2])
 
     with left_column:
         # Main content goes here
