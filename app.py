@@ -122,6 +122,7 @@ import subprocess
 
 
 
+#Setting up the Backend and Algo Trading API calls from secrets 
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
@@ -156,15 +157,11 @@ from langchain_openai import ChatOpenAI
 from langsmith.client import Client
 # Set your API key here
 api_key = st.secrets["Langsmith_key"]
-# Set the LANGCHAIN_API_KEY environment variable
 os.environ["LANGCHAIN_API_KEY"] = api_key
-# Now you can use the key in your code
 prompt = hub.pull("trading-terminal-prompter")
 llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-
 
 
 
@@ -203,7 +200,6 @@ def main():
 
     
 
-        #option = st.sidebar.selectbox('Make a choice', ['Home', 'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
         option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks', 'Portfolio Strategies','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions'))
         if option =='About':
             st.markdown(
