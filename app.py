@@ -167,7 +167,7 @@ def add(first_int: int, second_int: int) -> int:
 @tool
 def exponentiate(first_int: int, second_int: int) -> int:
     "return the exponent."
-    return first_int ** 2
+    return first_int ** second_int
 
 #Test the analysis tool
 @tool
@@ -175,13 +175,13 @@ def analyze_idb_rs_rating():
     '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
     col1, col2 = st.columns([2, 2])
     with col1:
-        start_date = st.date_input("Start date:")
+        tool_start_date = st.date_input("Start date:")
     with col2:
-        end_date = st.date_input("End Date:")
+        tool_end_date = st.date_input("End Date:")
     if st.button('Start Analysis'):
         sp500_tickers = ti.tickers_sp500()
         sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
-        sp500_df = yf.download(sp500_tickers, start=start_date, end=end_date)
+        sp500_df = yf.download(sp500_tickers, start=tool_start_date, end=tool_end_date)
         percentage_change_df = sp500_df['Adj Close'].pct_change()
         sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
         st.write(sp500_df)
