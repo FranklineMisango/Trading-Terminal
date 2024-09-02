@@ -18,6 +18,7 @@ pysocks
 qu
 schedule
 selenium
+smptlib
 ta
 textblob
 uvloop
