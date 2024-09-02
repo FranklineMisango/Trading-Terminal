@@ -184,6 +184,8 @@ from langchain_openai import ChatOpenAI
 # Set your API key here
 api_key = st.secrets["Langsmith_key"]
 os.environ["LANGCHAIN_API_KEY"] = api_key
+if 'conversation' not in st.session_state:
+    st.session_state.conversation = ""
 
 
 
@@ -13086,32 +13088,39 @@ def main():
                                 backtesting_end,
                                 benchmark_asset="SPY",
                             )
-    # Right column setup
-    with right_column:
-        # Now you can use the key in your code
-        prompt = hub.pull("hwchase17/openai-tools-agent")
-        llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
-        agent = create_tool_calling_agent(llm, tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+                # Right column setup
+                # Initialize session state for conversation history
 
-        st.markdown("<hr style='border:1px solid gray'>", unsafe_allow_html=True)
-        st.markdown("### Frankline & Co. LP Bot !")
+        with right_column:
+            # Now you can use the key in your code
+            prompt = hub.pull("hwchase17/openai-tools-agent")
+            llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
+            agent = create_tool_calling_agent(llm, tools, prompt)
+            agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-        # Create a text input box for the user to ask a question
-        user_query = st.text_input('Input your question about the code or specify a function to run')
+            st.markdown("### Frankline & Co. LP Bot 🤖")
+            st.markdown("<hr style='border:1px solid gray'>", unsafe_allow_html=True)
 
-        # Check if user submitted input
-        if st.button('Submit'):
-            if user_query.strip() == '':
-                st.error("Please enter a query or function to run.")
-            else:
-                try:
-                    # Use the agent_executor to handle the user query
-                    result = agent_executor.invoke({"input": user_query})
-                    st.write(result)
-                except Exception as e:
-                    st.error(f"An error occurred: {str(e)}")
+            # Display the conversation history
+            st.text_area("Conversation", value=st.session_state.conversation, height=300, disabled=True)
 
+            # Create a text input box for the user to ask a question
+            user_query = st.text_input('Chat with me about Trading Terminal')
+
+            # Check if user submitted input
+            if st.button('Submit'):
+                if user_query.strip() == '':
+                    st.error("Please enter a query or function to run.")
+                else:
+                    try:
+                        # Use the agent_executor to handle the user query
+                        result = agent_executor.invoke({"input": user_query})
+                        # Update the conversation history
+                        st.session_state.conversation += f"User: {user_query}\nBot: {result}\n"
+                        # Display the updated conversation history
+                        st.text_area("Conversation", value=st.session_state.conversation, height=300, disabled=True)
+                    except Exception as e:
+                        st.error(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     main()
