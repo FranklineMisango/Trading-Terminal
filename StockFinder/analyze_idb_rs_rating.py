@@ -6,6 +6,7 @@ import yfinance as yf
 import tickers as ti
 import pandas as pd
 
+
 @tool
 def analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
     '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
