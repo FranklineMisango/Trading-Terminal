@@ -10,6 +10,7 @@ import plotly.figure_factory as ff
 
 @tool
 def correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date):
+    '''This tool allows you to find correlated stocks in a sector'''
     sectors = {
                     "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
                     "Health Care": ['JNJ', 'PFE', 'UNH', 'MRK', 'ABBV', 'TMO', 'MDT', 'DHR', 'AMGN', 'LLY'],
