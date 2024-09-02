@@ -164,6 +164,11 @@ def add(first_int: int, second_int: int) -> int:
     "Add two integers."
     return first_int + second_int
 
+@tool
+def exponentiate(first_int: int, second_int: int) -> int:
+    "return the exponent."
+    return first_int ** 2
+
 #Test the analysis tool
 @tool
 def analyze_idb_rs_rating():
