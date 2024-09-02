@@ -13128,18 +13128,19 @@ def main():
 
             # Check if user submitted input
             if st.button('Submit'):
-                st.success("Query running...")
                 if user_query.strip() == '':
                     st.error("Please enter a query or function to run.")
                 else:
                     try:
-                        st.success("Query running...")
+                        st.success("Query running...wait for output")
                         # Use the agent_executor to handle the user query
                         result = agent_executor.invoke({"input": user_query})
-                        # Update the conversation history
-                        st.session_state.conversation += f"User: {user_query}\nBot: {result}\n"
-                        # Display the updated conversation history
-                        st.text_area("Conversation", value=st.session_state.conversation, height=300, disabled=True)
+                        if result:
+                            st.success("Result returned")
+                            # Update the conversation history
+                            st.session_state.conversation += f"User: {user_query}\nBot: {result}\n"
+                            # Display the updated conversation history
+                            st.text_area("Conversation", value=st.session_state.conversation, height=300, disabled=True)
                     except Exception as e:
                         st.error(f"An error occurred: {str(e)}")
 
