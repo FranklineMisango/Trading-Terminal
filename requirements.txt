@@ -27,3 +27,4 @@ websocket-client
 yfinance
 yahoo-earnings-calendar
 streamlit
+tensorflow
