@@ -175,9 +175,9 @@ def analyze_idb_rs_rating():
     '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
     col1, col2 = st.columns([2, 2])
     with col1:
-        tool_start_date = st.date_input("Start date:", key="start_date")
+        tool_start_date = st.date_input("idb_rs_start_date")
     with col2:
-        tool_end_date = st.date_input("End Date:", key="end_date")
+        tool_end_date = st.date_input("idb_rs_end_date")
     if st.button('Start Analysis'):
         sp500_tickers = ti.tickers_sp500()
         sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
