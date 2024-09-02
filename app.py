@@ -118,8 +118,7 @@ from email import encoders
 import math
 import mplfinance as mpl
 import subprocess
-
-
+import smtplib
 #Env variables
 from dotenv import load_dotenv
 load_dotenv()
@@ -190,9 +189,8 @@ prompt = hub.pull("hwchase17/openai-tools-agent")
 llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-'''
 agent_executor.invoke({"input": "what is LangChain?"})
-'''
+
 
 
 
@@ -13097,45 +13095,30 @@ def main():
                             )
     # Right column setup
     with right_column:
+        # Now you can use the key in your code
+        prompt = hub.pull("hwchase17/openai-tools-agent")
+        llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
+        agent = create_tool_calling_agent(llm, tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
         st.markdown("<hr style='border:1px solid gray'>", unsafe_allow_html=True)
         st.markdown("### Frankline & Co. LP Bot !")
 
-        # Specify the path to the existing code file
-        code_file_path = "reference-code.py"  # Replace with the actual path
+        # Create a text input box for the user to ask a question
+        user_query = st.text_input('Input your question about the code or specify a function to run')
 
-        # Check if the file exists
-        if os.path.exists(code_file_path):
-            # Read the contents of the code file
-            with open(code_file_path, "r") as file:
-                code_content = file.read()
-            
-
-            # Create a text input box for the user to ask a question
-            user_query = st.text_input('Input your question about the code or specify a function to run')
-
-            # Check if user submitted input
-            if st.button('Submit'):
-                if user_query.strip() == '':
-                    st.error("Please enter a query or function to run.")
-                else:
-                    try:
-                        # Execute the entire code content first
-                        #exec(code_content)
-                        
-                        # Extract the function or expression from the user query
-                        # Make sure to validate the input to avoid syntax errors
-                        if "(" in user_query and ")" in user_query:
-                            local_scope = {}
-                            exec(f"result = {user_query}", globals(), local_scope)
-                            st.write(f"Result of '{user_query}':")
-                            st.write(local_scope.get('result'))
-                        else:
-                            st.error("Please enter a valid function call like 'function_name()'.")
-
-                    except Exception as e:
-                        st.error(f"An error occurred: {str(e)}")
-        else:
-            st.error("The specified code file does not exist. Please check the path.")
+        # Check if user submitted input
+        if st.button('Submit'):
+            if user_query.strip() == '':
+                st.error("Please enter a query or function to run.")
+            else:
+                try:
+                    # Use the agent_executor to handle the user query
+                    result = agent_executor.invoke({"input": user_query})
+                    st.write(f"Result of '{user_query}':")
+                    st.write(result)
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
 
 
 if __name__ == "__main__":
