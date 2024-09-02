@@ -1,6 +1,5 @@
 #Full stack streamlit import
 import streamlit as st
-
 #Page config
 st.set_page_config(page_title='Trading Terminal', page_icon="📈", layout="wide")  
 
@@ -121,8 +120,11 @@ import mplfinance as mpl
 import subprocess
 
 
+#Env variables
+from dotenv import load_dotenv
+load_dotenv()
 
-#Setting up the Backend and Algo Trading API calls from secrets 
+
 EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
 API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
@@ -143,6 +145,7 @@ from lumibot.backtesting import YahooDataBacktesting #TODO - Move to strategies
 from lumibot.backtesting import CcxtBacktesting
 from lumibot.example_strategies.crypto_important_functions import ImportantFunctions
 from lumibot.entities import TradingFee
+
 
 
 #Testing tools
@@ -182,18 +185,16 @@ from langchain_openai import ChatOpenAI
 # Set your API key here
 api_key = st.secrets["Langsmith_key"]
 os.environ["LANGCHAIN_API_KEY"] = api_key
-<<<<<<< HEAD
-prompt = hub.pull("trading-terminal-prompter")
-=======
 # Now you can use the key in your code
 prompt = hub.pull("hwchase17/openai-tools-agent")
->>>>>>> 222cbed1d74eabe9442a20cbe7c44d4ca9a0f581
 llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 '''
 agent_executor.invoke({"input": "what is LangChain?"})
 '''
+
+
 
 ##Terminal config
 import time 
@@ -230,6 +231,7 @@ def main():
 
     
 
+        #option = st.sidebar.selectbox('Make a choice', ['Home', 'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
         option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks', 'Portfolio Strategies','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions'))
         if option =='About':
             st.markdown(
