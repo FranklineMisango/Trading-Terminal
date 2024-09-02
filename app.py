@@ -13124,12 +13124,12 @@ def main():
             st.markdown("<hr style='border:1px solid gray'>", unsafe_allow_html=True)
 
             # Create a text input box for the user to ask a question
-            user_query = st.text_input('Chat with me about Trading Terminal')
+            user_query = st.text_input('Ask me to run any any finance tool..like `run idb irs rating from august 1 to sep 1`')
 
             # Check if user submitted input
             if st.button('Submit'):
                 if user_query.strip() == '':
-                    st.error("Please enter a query or function to run.")
+                    st.error("Please enter a query or function to run")
                 else:
                     try:
                         st.success("Query running...wait for output")
