@@ -229,7 +229,6 @@ def main():
         if option =='About':
             st.markdown(
                 """
-                # Frankline & Co. LP Trading Terminal Beta
                 **Trading Terminal is a Comprehensive Trading App that allows Analysts to visualize, Research, Predict and carry out algorithmic trading on either stocks/crypto. Beware, this is not an advisory Investment app but just a base tool for investment decisions and you carry further liability when utilizing its CCXT and interactive brokerage aspect**
 
                 ## 🏗️ **How It's Built - Main Features and Framework**
