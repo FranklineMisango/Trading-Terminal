@@ -13101,9 +13101,6 @@ def main():
             st.markdown("### Frankline & Co. LP Bot 🤖")
             st.markdown("<hr style='border:1px solid gray'>", unsafe_allow_html=True)
 
-            # Display the conversation history
-            st.text_area("Conversation", value=st.session_state.conversation, height=300, disabled=True)
-
             # Create a text input box for the user to ask a question
             user_query = st.text_input('Chat with me about Trading Terminal')
 
