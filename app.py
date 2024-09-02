@@ -147,40 +147,11 @@ from lumibot.entities import TradingFee
 
 
 
-#Testing tools
-
+#Main tools
 from langchain_core.tools import tool
+from StockFinder.analyze_idb_rs_rating import analyze_idb_rs_rating
 
-
-#Test tools
-@tool
-def multiply(first_int: int, second_int: int) -> int:
-    """Multiply two integers together."""
-    return first_int * second_int
-
-
-@tool
-def add(first_int: int, second_int: int) -> int:
-    "Add two integers."
-    return first_int + second_int
-
-@tool
-def exponentiate(first_int: int, second_int: int) -> int:
-    "return the exponent."
-    return first_int ** second_int
-
-#Test the analysis tool
-@tool
-def analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
-    '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
-    sp500_tickers = ti.tickers_sp500()
-    sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
-    sp500_df = yf.download(sp500_tickers, start=tool_start_date, end=tool_end_date)
-    percentage_change_df = sp500_df['Adj Close'].pct_change()
-    sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
-    st.write(sp500_df)
-
-tools = [multiply, add, exponentiate, analyze_idb_rs_rating]
+tools = [analyze_idb_rs_rating]
 
 
 #Multimodial agent bot configuration
