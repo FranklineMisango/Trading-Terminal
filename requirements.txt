@@ -18,7 +18,7 @@ pysocks
 qu
 schedule
 selenium
-smptlib
+secure-smtplib
 ta
 textblob
 uvloop
