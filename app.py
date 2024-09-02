@@ -173,8 +173,6 @@ def exponentiate(first_int: int, second_int: int) -> int:
 @tool
 def analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
     '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
-    tool_start_date = st.date_input("idb_rs_start_date")
-    tool_end_date = st.date_input("idb_rs_end_date")
     sp500_tickers = ti.tickers_sp500()
     sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
     sp500_df = yf.download(sp500_tickers, start=tool_start_date, end=tool_end_date)
@@ -13130,10 +13128,12 @@ def main():
 
             # Check if user submitted input
             if st.button('Submit'):
+                st.success("Query running...")
                 if user_query.strip() == '':
                     st.error("Please enter a query or function to run.")
                 else:
                     try:
+                        st.success("Query running...")
                         # Use the agent_executor to handle the user query
                         result = agent_executor.invoke({"input": user_query})
                         # Update the conversation history
