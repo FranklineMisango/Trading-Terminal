@@ -164,15 +164,24 @@ def add(first_int: int, second_int: int) -> int:
     "Add two integers."
     return first_int + second_int
 
-
+#Test the analysis tool
 @tool
-def exponentiate(base: int, exponent: int) -> int:
-    "Exponentiate the base to the exponent power."
-    return base**exponent
+def analyze_idb_rs_rating():
+    '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
+    col1, col2 = st.columns([2, 2])
+    with col1:
+        start_date = st.date_input("Start date:")
+    with col2:
+        end_date = st.date_input("End Date:")
+    if st.button('Start Analysis'):
+        sp500_tickers = ti.tickers_sp500()
+        sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
+        sp500_df = yf.download(sp500_tickers, start=start_date, end=end_date)
+        percentage_change_df = sp500_df['Adj Close'].pct_change()
+        sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
+        st.write(sp500_df)
 
-
-tools = [multiply, add, exponentiate]
-
+tools = [multiply, add, exponentiate, analyze_idb_rs_rating]
 
 
 #Multimodial agent bot configuration
@@ -329,7 +338,7 @@ def main():
                     end_date = st.date_input("End Date:")
                 st.title('Correlation Viewer for Stocks')
                 
-                # Add more stocks to the portfolio
+                #TODO Add more stocks to the portfolio
                 sectors = {
                     "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
                     "Health Care": ['JNJ', 'PFE', 'UNH', 'MRK', 'ABBV', 'TMO', 'MDT', 'DHR', 'AMGN', 'LLY'],
