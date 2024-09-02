@@ -171,19 +171,16 @@ def exponentiate(first_int: int, second_int: int) -> int:
 
 #Test the analysis tool
 @tool
-def analyze_idb_rs_rating():
+def analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
     '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
-    col1, col2 = st.columns([2, 2])
-    with col1:
-        tool_start_date = st.date_input("idb_rs_start_date")
-    with col2:
-        tool_end_date = st.date_input("idb_rs_end_date")
-        sp500_tickers = ti.tickers_sp500()
-        sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
-        sp500_df = yf.download(sp500_tickers, start=tool_start_date, end=tool_end_date)
-        percentage_change_df = sp500_df['Adj Close'].pct_change()
-        sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
-        st.write(sp500_df)
+    tool_start_date = st.date_input("idb_rs_start_date")
+    tool_end_date = st.date_input("idb_rs_end_date")
+    sp500_tickers = ti.tickers_sp500()
+    sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
+    sp500_df = yf.download(sp500_tickers, start=tool_start_date, end=tool_end_date)
+    percentage_change_df = sp500_df['Adj Close'].pct_change()
+    sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
+    st.write(sp500_df)
 
 tools = [multiply, add, exponentiate, analyze_idb_rs_rating]
 
@@ -210,7 +207,7 @@ def main():
     st.title("📈 Frankline and Co. LP Trading Terminal Beta")
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     # Create a two-column layout
-    left_column, right_column = st.columns([3, 1])
+    left_column, right_column = st.columns([2, 2])
 
     with left_column:
         # Main content goes here
