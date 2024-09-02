@@ -13112,7 +13112,6 @@ def main():
                             # Update the conversation history
                             st.session_state.conversation += f"User: {user_query}\nBot: {result}\n"
                             # Display the updated conversation history
-                            st.text_area("Conversation", value=st.session_state.conversation, height=300, disabled=True)
                     except Exception as e:
                         st.error(f"An error occurred: {str(e)}")
 
