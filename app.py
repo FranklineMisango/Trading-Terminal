@@ -13108,7 +13108,6 @@ def main():
                 try:
                     # Use the agent_executor to handle the user query
                     result = agent_executor.invoke({"input": user_query})
-                    st.write(f"Result of '{user_query}':")
                     st.write(result)
                 except Exception as e:
                     st.error(f"An error occurred: {str(e)}")
