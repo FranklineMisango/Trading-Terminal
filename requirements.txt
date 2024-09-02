@@ -28,5 +28,6 @@ yfinance
 yahoo-earnings-calendar
 streamlit
 tensorflow
+langchain
 langchain_core
 langchain_openai 
