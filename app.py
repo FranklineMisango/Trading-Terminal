@@ -331,6 +331,8 @@ def main():
                     corr_matrix = correlated_stocks(start_date, end_date, tickers)
                     print("After computing correlation matrix")
                     visualize_correlation_heatmap(corr_matrix)
+            
+            #TODO - remake the tool
             if options == "Finviz_growth_screener":
                 st.warning("This segment is still under development")
                 # Set display options for pandas DataFrame
@@ -372,6 +374,7 @@ def main():
                 tickers = df.index
                 st.write('\nList of Tickers:')
                 st.write(tickers)
+                
             if options == "Fundamental_screener":
                 st.success("This portion allows you to sp500 for base overview")
                 if st.button("Scan"):
