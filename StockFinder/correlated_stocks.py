@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.figure_factory as ff
 
 @tool
-def correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date):
+def correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date, sector : str):
     '''This tool allows you to find correlated stocks in a sector'''
     sectors = {
                     "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
@@ -24,21 +24,23 @@ def correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date):
                     "Materials": ['LIN', 'APD', 'SHW', 'DD', 'ECL', 'DOW', 'NEM', 'PPG', 'VMC', 'FCX']
                 }
 
-    selected_sector = st.selectbox('Select Sector', list(sectors.keys()))
-    st.write("Before fetching tickers")
-    tickers = sectors[selected_sector]
-    st.write("After fetching tickers")
-    data = yf.download(tickers, start=tool_start_date, end=tool_end_date)["Adj Close"]
-    returns = np.log(data / data.shift(1))
-    correlation = returns.corr()
-    st.write(correlation)
-    st.write("After computing correlation matrix")
-    fig = ff.create_annotated_heatmap(
-        z=correlation.values,
-        x=correlation.columns.tolist(),
-        y=correlation.index.tolist(),
-        colorscale='Viridis',
-        annotation_text=correlation.values.round(2),
-        showscale=True
-    )
-    st.plotly_chart(fig)
+    for i in sectors:
+        if sector in sectors:
+            selected_sector = sector
+            st.write("Before fetching tickers")
+            tickers = sectors[selected_sector]
+            st.write("After fetching tickers")
+            data = yf.download(tickers, start=tool_start_date, end=tool_end_date)["Adj Close"]
+            returns = np.log(data / data.shift(1))
+            correlation = returns.corr()
+            st.write(correlation)
+            st.write("After computing correlation matrix")
+            fig = ff.create_annotated_heatmap(
+                z=correlation.values,
+                x=correlation.columns.tolist(),
+                y=correlation.index.tolist(),
+                colorscale='Viridis',
+                annotation_text=correlation.values.round(2),
+                showscale=True
+            )
+            st.plotly_chart(fig)
