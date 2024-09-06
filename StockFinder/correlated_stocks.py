@@ -43,7 +43,7 @@ def tool_correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date, s
     st.plotly_chart(fig)
 
 
-def correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date, sector : str):
+def correlated_stocks(tool_start_date, tool_end_date, sector : str):
     '''This tool allows you to find correlated stocks in a sector'''
     sectors = {
                     "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
@@ -57,8 +57,6 @@ def correlated_stocks(tool_start_date : dt.date, tool_end_date : dt.date, sector
                     "Real Estate": ['AMT', 'PLD', 'CCI', 'EQIX', 'WY', 'PSA', 'DLR', 'BXP', 'O', 'SBAC'],
                     "Materials": ['LIN', 'APD', 'SHW', 'DD', 'ECL', 'DOW', 'NEM', 'PPG', 'VMC', 'FCX']
                 }
-
-    st.write("Before fetching tickers")
     tickers = sectors[sector]
     st.write("After fetching tickers")
     data = yf.download(tickers, start=tool_start_date, end=tool_end_date)["Adj Close"]

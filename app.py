@@ -154,8 +154,10 @@ from lumibot.entities import TradingFee
 from langchain_core.tools import tool
 from StockFinder.analyze_idb_rs_rating import analyze_idb_rs_rating, tool_analyze_idb_rs_rating
 from StockFinder.correlated_stocks import correlated_stocks, tool_correlated_stocks
+from StockFinder.finviz_growth_screener import tool_growth_screener
+from StockFinder.fundamental_screener import tool_fundamental_screener
 
-tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks]
+tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, tool_fundamental_screener]
 
 
 #Multimodial agent bot configuration
@@ -182,31 +184,6 @@ def main():
     left_column, right_column = st.columns([2, 2])
 
     with left_column:
-        # Main content goes here
-        @st.cache_resource
-        def correlated_stocks(start_date, end_date, tickers):
-            print("Inside correlated_stocks function")
-            data = yf.download(tickers, start=start_date, end=end_date)["Adj Close"]
-            returns = np.log(data / data.shift(1))
-            correlation = returns.corr()
-            return correlation
-
-        # Function to visualize correlations as a heatmap using Plotly
-        def visualize_correlation_heatmap(correlation):
-            print("Inside visualize_correlation_heatmap function")
-            fig = ff.create_annotated_heatmap(
-                z=correlation.values,
-                x=correlation.columns.tolist(),
-                y=correlation.index.tolist(),
-                colorscale='Viridis',
-                annotation_text=correlation.values.round(2),
-                showscale=True
-            )
-            st.plotly_chart(fig)
-
-    
-
-        #option = st.sidebar.selectbox('Make a choice', ['Home', 'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', 'Portfolio Strategies', "Algorithmic Trading"])
         option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks', 'Portfolio Strategies','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions'))
         if option =='About':
             st.markdown(
@@ -304,9 +281,7 @@ def main():
                 with col1:
                     start_date = st.date_input("Start date:")
                 with col2:
-                    end_date = st.date_input("End Date:")
-                st.title('Correlation Viewer for Stocks')
-                
+                    end_date = st.date_input("End Date:")                
                 #TODO Add more stocks to the portfolio
                 sectors = {
                     "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
@@ -323,124 +298,30 @@ def main():
 
                 selected_sector = st.selectbox('Select Sector', list(sectors.keys()))
                 if st.button("Start Analysis"):
-                    print("Before fetching tickers")
-                    tickers = sectors[selected_sector]
-                    print("After fetching tickers")
-                    corr_matrix = correlated_stocks(start_date, end_date, tickers)
-                    print("After computing correlation matrix")
-                    visualize_correlation_heatmap(corr_matrix)
+                    correlated_stocks(start_date, end_date, selected_sector)
             
-            #TODO - remake the tool
             if options == "Finviz_growth_screener":
-                st.warning("This segment is still under development")
-                # Set display options for pandas DataFrame
-                pd.set_option('display.max_columns', None)
-                pd.set_option('display.max_rows', None)
+                if st.button("Scan"):
+                    # Execute the screener and store the result
+                    tool_input = {}  # Replace with actual input required by the tool
 
-                def growth_screener():
-                    try:
-                        frames = []
-                        # Loop through different pages of FinViz growth screener
-                        for i in range(1, 105, 20):
-                            url = (f"https://finviz.com/screener.ashx?v=151&f=fa_epsqoq_o15,fa_epsyoy_pos,fa_epsyoy1_o25,fa_grossmargin_pos,fa_salesqoq_o25,ind_stocksonly,sh_avgvol_o300,sh_insttrans_pos,sh_price_o10,ta_perf_52w50o,ta_sma200_pa,ta_sma50_pa&ft=4&o=-marketcap&r=0{i}")
-                            req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                            webpage = urlopen(req).read()
-                            html = soup(webpage, "html.parser")
+                    # Execute the screener and store the result
+                    df = tool_growth_screener(tool_input)
 
-                            # Extracting stock data from the HTML
-                            stocks = pd.read_html(str(html))[-2]
-                            stocks = stocks.set_index('Ticker')
-                            frames.append(stocks)
+                    # Display the results
+                    st.write('\nGrowth Stocks Screener:')
+                    st.write(df)
 
-                        # Concatenate all DataFrame objects from different pages
-                        df = pd.concat(frames)
-                        df = df.drop_duplicates()
-                        df = df.drop(columns=['No.'])
-                        return df
-                    except Exception as e:
-                        print(f"Error occurred: {e}")
-                        return pd.DataFrame()
-
-                # Execute the screener and store the result
-                df = growth_screener()
-
-                # Display the results
-                st.write('\nGrowth Stocks Screener:')
-                st.write(df)
-
-                # Extract and print list of tickers
-                tickers = df.index
-                st.write('\nList of Tickers:')
-                st.write(tickers)
+                    # Extract and print list of tickers
+                    tickers = df.index
+                    st.write('\nList of Tickers:')
+                    st.write(tickers)
                 
             if options == "Fundamental_screener":
                 st.success("This portion allows you to sp500 for base overview")
                 if st.button("Scan"):
-
-                    # Get the API key
-                    demo = API_FMPCLOUD
-
-
-                    # Define search criteria for the stock screener
-                    marketcap = str(1000000000)
-                    url = f'https://financialmodelingprep.com/api/v3/stock-screener?marketCapMoreThan={marketcap}&betaMoreThan=1&volumeMoreThan=10000&sector=Technology&exchange=NASDAQ&dividendMoreThan=0&limit=1000&apikey={demo}'
-
-                    # Fetch list of companies meeting criteria
-                    screener = requests.get(url).json()
-                    st.write(screener)
-
-                    # Extract symbols of companies
-                    companies = [item['symbol'] for item in screener]
-
-                    # Initialize dictionary for storing financial ratios
-                    value_ratios = {}
-
-                    # Limit the number of companies for ratio extraction
-                    max_companies = 30
-
-                    # Process financial ratios for each company
-                    for count, company in enumerate(companies):
-                        if count >= max_companies:
-                            break
-
-                        try:
-                            # Fetch financial and growth ratios
-                            fin_url = f'https://financialmodelingprep.com/api/v3/ratios/{company}?apikey={demo}'
-                            growth_url = f'https://financialmodelingprep.com/api/v3/financial-growth/{company}?apikey={demo}'
-
-                            fin_ratios = requests.get(fin_url).json()
-                            growth_ratios = requests.get(growth_url).json()
-
-                            # Store required ratios
-                            ratios = { 'ROE': fin_ratios[0]['returnOnEquity'], 
-                                    'ROA': fin_ratios[0]['returnOnAssets'], 
-                                    # Additional ratios can be added here
-                                    }
-
-                            growth = { 'Revenue_Growth': growth_ratios[0]['revenueGrowth'],
-                                    'NetIncome_Growth': growth_ratios[0]['netIncomeGrowth'],
-                                    # Additional growth metrics can be added here
-                                    }
-
-                            value_ratios[company] = {**ratios, **growth}
-                        except Exception as e:
-                            st.write(f"Error processing {company}: {e}")
-
-                    # Convert to DataFrame and display
-                    df = pd.DataFrame.from_dict(value_ratios, orient='index')
-                    st.write(df.head())
-
-                    # Define and apply ranking criteria
-                    criteria = { 'ROE': 1.2, 'ROA': 1.1, 'Debt_Ratio': -1.1, # etc.
-                                'Revenue_Growth': 1.25, 'NetIncome_Growth': 1.10 }
-
-                    # Normalize and rank companies
-                    mean_values = df.mean()
-                    normalized_df = df / mean_values
-                    normalized_df['ranking'] = sum(normalized_df[col] * weight for col, weight in criteria.items())
-
-                    # Print ranked companies
-                    st.write(normalized_df.sort_values(by=['ranking'], ascending=False))
+                    fund_tool_input = {}  # Replace with actual input required by the tool
+                    tool_fundamental_screener(fund_tool_input) 
 
             if options == "RSI_Stock_tickers":
                 st.success("This program allows you to view which tickers are overbrought and which ones are over sold")
