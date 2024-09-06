@@ -180,13 +180,39 @@ from StockPredictions.lstm_predictions import tool_lstm_predictions, normal_lstm
 from StockPredictions.etf_graphical_lasso import tool_etf_graphical_lasso,normal_etf_graphical_lasso
 from StockPredictions.kmeans_clustering import tool_kmeans_clustering, normal_kmeans_clustering
 
+#Main tools for stock data
+from StockData.dividend_history import tool_dividend_history, norm_dividend_history
+from StockData.Fibonacci_retracement import tool_fibonacci_retracement, norm_fibonacci_retracement
+from StockData.finviz_scraper import tool_finviz_scraper
+from StockData.finviz_insider_trading_scraper import tool_finviz_insider_scraper
+from StockData.finviz_stock_data_scraper import tool_finviz_scraper_stock_data
+from StockData.get_dividend_calendar import tool_get_dividend_calendar, norm_get_dividends
+from StockData.greenline_test import tool_greenline_test, norm_greenline_test
+from StockData.high_dividend_yield import tool_high_dividend_yield
+from StockData.main_indicators import tool_main_indicators, norm_main_indicators
+from StockData.pivots_calculator import tool_pivots_calculator, norm_pivots_calculator
+from StockData.email_top_movers import tool_scrape_top_winners
+from StockData.stock_vwap import tool_stock_vwap, norm_stock_vwap
+from StockData.stock_sms import tool_stock_sms, norm_stock_sms
+from StockData.stock_earnings import tool_stock_earnings, norm_stock_earnings
+from StockData.trading_view_intraday import tool_trading_view_intraday
+from StockData.trading_view_recommendations import tool_trading_view_recommendations, norm_trading_view_recommendations
+
+
+
+
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
          tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
          tool_miniverini_screener, tool_price_alerter, tool_trading_view_signals,
          tool_twitter_screener, tool_yahoo_recommendation_pipeline, tool_arima_time_series,
          tool_stock_recommendations_using_moving_averages,tool_stock_regression,
          tool_stock_probability, tool_pca_analysis, tool_technical_indicators_clustering,
-         tool_lstm_predictions, tool_etf_graphical_lasso,tool_kmeans_clustering]
+         tool_lstm_predictions, tool_etf_graphical_lasso,tool_kmeans_clustering,
+         tool_dividend_history, tool_fibonacci_retracement, tool_finviz_scraper, tool_finviz_insider_scraper,
+         tool_finviz_scraper_stock_data, tool_get_dividend_calendar, tool_greenline_test,
+         tool_high_dividend_yield,tool_pivots_calculator,tool_main_indicators,
+         tool_scrape_top_winners, tool_stock_vwap, tool_stock_sms,
+         tool_stock_earnings, tool_trading_view_intraday,tool_trading_view_recommendations ]
 
 
 
@@ -433,8 +459,7 @@ def main():
 
                 if st.button("Check"):
                     norm_pca_analysis(start_date, end_date, ticker)
-                    
-            
+                               
             if pred_option == "Technical Indicators Clustering":
                 #Fix the segmentation of all tickers on the graph
                 col1, col2 = st.columns([2, 2])
@@ -502,82 +527,13 @@ def main():
                     normal_kmeans_clustering(start_date, end_date)
 
         elif option =='Stock Data':
-            pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "High Dividend yield","Dividend History", "Fibonacci Retracement", 
+            pred_option_data = st.selectbox("Choose a Data finding method:", ["High Dividend yield","Dividend History", "Fibonacci Retracement", 
                                                                             "Finviz Home scraper", "Finviz Insider Trading scraper", "Finviz stock scraper", 
                                                                             "Get Dividend calendar", "Green Line Test", "Main Indicators", "Pivots Calculator", 
                                                                             "Email Top Movers", "Stock VWAP", "Data SMS stock", "Stock Earnings", "Trading view Intraday", 
                                                                             "Trading view Recommendations", "Yahoo Finance Intraday Data"])
-            if pred_option_data == "Finviz Autoscraper":
-
-                # Fetches financial data for a list of tickers from Finviz using AutoScraper.
-                def fetch_finviz_data(tickers, scraper_rule_path):
-                    # Create an instance of AutoScraper
-                    scraper = AutoScraper()
-
-                    # Load scraper rules from the specified file path
-                    scraper.load(scraper_rule_path)
-
-                    # Iterate over the tickers and scrape data
-                    for ticker in tickers:
-                        url = f'https://finviz.com/quote.ashx?t={ticker}'
-                        result = scraper.get_result(url)[0]
-
-                        # Extract attributes and values
-                        index = result.index('Index')
-                        attributes, values = result[index:], result[:index]
-
-                        # Create a DataFrame and display data
-                        df = pd.DataFrame(zip(attributes, values), columns=['Attributes', 'Values'])
-                        st.write(f'\n{ticker} Data:')
-                        st.write(df.set_index('Attributes'))
-                st.warning("This segmenent is under construction. The overall idea is building the finviz scraper rule table to allow us to get what we want specifically")
-                num_tickers = st.number_input("Enter the number of stock tickers you want to monitor:", value=1, min_value=1, step=1)
-                monitored_tickers = []
-                for i in range(num_tickers):
-                    ticker = st.text_input(f"Enter the company's stock ticker {i+1}:")
-                    monitored_tickers.append(ticker)
-                #scraper_rule_path = '../finviz_table'
-                #fetch_finviz_data(tickers, scraper_rule_path)
-
-            if pred_option_data == "Dividend History":
-
-                # Function to convert datetime to string format for URL
-                def format_date(date_datetime):
-                    date_mktime = time.mktime(date_datetime.timetuple())
-                    return str(int(date_mktime))
-
-                # Function to construct URL for Yahoo Finance dividend history
-                def subdomain(symbol, start, end):
-                    format_url = f"{symbol}/history?period1={start}&period2={end}"
-                    tail_url = "&interval=div%7Csplit&filter=div&frequency=1d"
-                    return format_url + tail_url
-
-                # Function to define HTTP headers for request
-                def header(subdomain):
-                    hdrs = {"authority": "finance.yahoo.com", "method": "GET", "path": subdomain,
-                            "scheme": "https", "accept": "text/html,application/xhtml+xml",
-                            "accept-encoding": "gzip, deflate, br", "accept-language": "en-US,en;q=0.9",
-                            "cache-control": "no-cache", "cookie": "cookies", "dnt": "1", "pragma": "no-cache",
-                            "sec-fetch-mode": "navigate", "sec-fetch-site": "same-origin", "sec-fetch-user": "?1",
-                            "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0"}
-                    return hdrs
-
-                # Function to scrape dividend history page and return DataFrame
-                def scrape_page(url, header):
-                    page = requests.get(url, headers=header)
-                    element_html = html.fromstring(page.content)
-                    table = element_html.xpath('//table')[0]
-                    table_tree = html.tostring(table, method='xml')
-                    df = pd.read_html(table_tree)
-                    return df[0]
-
-                # Function to clean dividend data
-                def clean_dividends(symbol, dividends):
-                    dividends = dividends.drop(len(dividends) - 1)
-                    dividends['Dividend'] = dividends['Dividend'].str.split().str[0].astype(float)
-                    dividends.name = symbol
-                    return dividends
-                
+        
+            if pred_option_data == "Dividend History": 
                 st.success("This segment allows you to get the dividends of a particular ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
                 if ticker:
@@ -591,18 +547,7 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-                    symbol = ticker
-                    start = start_date - timedelta(days=9125)
-                    sub = subdomain(symbol, start, end_date)
-                    hdrs = header(sub)
-
-                    base_url = "https://finance.yahoo.com/quote/"
-                    url = base_url + sub
-                    dividends_df = scrape_page(url, hdrs)
-                    st.write(dividends_df)
-                    dividends = clean_dividends(symbol, dividends_df)
-
-                    st.write(dividends)
+                    norm_dividend_history(start_date, end_date, ticker)
             
             if pred_option_data == "Fibonacci Retracement":
                 st.success("This segment allows you to do Fibonnacci retracement max price of a particular ticker")
@@ -618,156 +563,22 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Simulate"):
-                    # Fetch stock data from Yahoo Finance
-                    def fetch_stock_data(ticker, start, end):
-                        return yf.download(ticker, start, end)
+                    norm_fibonacci_retracement(ticker, start_date, end_date)
 
-                    # Calculate Fibonacci retracement levels
-                    def fibonacci_levels(price_min, price_max):
-                        diff = price_max - price_min
-                        return {
-                            '0%': price_max,
-                            '23.6%': price_max - 0.236 * diff,
-                            '38.2%': price_max - 0.382 * diff,
-                            '61.8%': price_max - 0.618 * diff,
-                            '100%': price_min
-                        }
-
-                    def plot_fibonacci_retracement(stock_data, fib_levels):
-                        # Create trace for stock close price
-                        trace_stock = go.Scatter(x=stock_data.index, y=stock_data['Close'], mode='lines', name='Close', line=dict(color='black'))
-
-                        # Create traces for Fibonacci levels
-                        fib_traces = []
-                        for level, price in fib_levels.items():
-                            fib_trace = go.Scatter(x=stock_data.index, y=[price] * len(stock_data), mode='lines', name=f'{level} level at {price:.2f}', line=dict(color='blue', dash='dash'))
-                            fib_traces.append(fib_trace)
-
-                        # Combine traces
-                        data = [trace_stock] + fib_traces
-
-                        # Define layout
-                        layout = go.Layout(
-                            title=f'{ticker} Fibonacci Retracement',
-                            yaxis=dict(title='Price'),
-                            xaxis=dict(title='Date'),
-                            legend=dict(x=0, y=1, traceorder='normal')
-                        )
-
-                        # Create figure
-                        fig = go.Figure(data=data, layout=layout)
-
-                        return fig
-                                
-                    stock_data = fetch_stock_data(ticker, start_date, end_date)
-                    price_min = stock_data['Close'].min()
-                    price_max = stock_data['Close'].max()
-                    fib_levels = fibonacci_levels(price_min, price_max)
-                    fig = plot_fibonacci_retracement(stock_data, fib_levels)
-                    st.plotly_chart(fig)
 
             if pred_option_data == "Finviz Home scraper":
                 st.success("This segment allows you to find gainers/losers today and relevant news from Finviz")
                 if st.button("Confirm"):
-
-                    # Set display options for pandas
-                    pd.set_option('display.max_colwidth', 60)
-                    pd.set_option('display.max_columns', None)
-                    pd.set_option('display.max_rows', None)
-
-                    # Define URL and request headers
-                    url = "https://finviz.com/"
-                    headers = {'User-Agent': 'Mozilla/5.0'}
-
-                    # Send request to the website and parse the HTML
-                    req = Request(url, headers=headers)
-                    webpage = urlopen(req).read()
-                    html_content = soup(webpage, "html.parser")
-
-                    # Function to scrape a section of the page
-                    def scrape_section(html, attrs, columns, drop_columns, index_column, idx=0):
-                        try:
-                            data = pd.read_html(str(html), attrs=attrs)[idx]
-                            data.columns = columns
-                            data.drop(columns=drop_columns, inplace=True)
-                            data.set_index(index_column, inplace=True)
-                            return data
-                        except Exception as e:
-                            return pd.DataFrame({'Error': [str(e)]})
-
-                    # Scrape different sections of the page and print the results
-                    st.success('\nPositive Stocks: ')
-                    st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed is-tabular-nums'}, 
-                                        ['Ticker', 'Last', 'Change', 'Volume', '4', 'Signal'], ['4'], 'Ticker'))
-
-                    st.error('\nNegative Stocks: ')
-                    st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed is-tabular-nums'}, 
-                                        ['Ticker', 'Last', 'Change', 'Volume', '4', 'Signal'], ['4'], 'Ticker', idx=1))
-
-                    st.write('\nHeadlines: ')
-                    st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed hp_news-table table-fixed'}, 
-                                        ['0', 'Time', 'Headlines'], ['0'], 'Time'))
-
-                    st.write('\nUpcoming Releases: ')
-                    st.write(scrape_section(html_content, {'class': 'calendar_table'}, 
-                                        ['Date', 'Time', '2', 'Release', 'Impact', 'For', 'Actual', 'Expected', 'Prior'], ['2'], 'Date'))
-
-                    st.write('\nUpcoming Earnings: ')
-                    st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed hp_table-earnings'}, 
-                                        ['Date', 'Ticker', 'Ticker', 'Ticker', 'Ticker', 'Ticker', 'Ticker', 'Ticker', 'Ticker'], [], 'Ticker'))
-
-                    st.write('\nFutures: ')
-                    st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed is-tabular-nums'}, 
-                                        ['Index', 'Last', 'Change', 'Change (%)'], [], 'Index', idx=2))
-
-                    st.write('\nForex Rates: ')
-                    st.write(scrape_section(html_content, {'class': 'styled-table-new is-rounded is-condensed is-tabular-nums'}, 
-                                        ['Index', 'Last', 'Change', 'Change (%)'], [], 'Index', idx=3))
+                    finviz_data_tool = {}  # Replace with actual input required by the tool
+                    tool_finviz_scraper(finviz_data_tool)
+                    
 
             if pred_option_data == "Finviz Insider Trading scraper":
                 st.success("This segment allows you to check the latest insider trades of the market and relevant parties")
                 # Set display options for pandas
                 if st.button("Check"):
-                    pd.set_option('display.max_colwidth', 60)
-                    pd.set_option('display.max_columns', None)
-                    pd.set_option('display.max_rows', None)
-
-                    # Function to fetch HTML content from URL
-                    def fetch_html(url):
-                        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                        webpage = urlopen(req).read()
-                        return soup(webpage, "html.parser")
-
-                    # Function to extract insider trades table
-                    def extract_insider_trades(html_soup):
-                        trades = pd.read_html(str(html_soup), attrs={'class': 'styled-table-new is-rounded is-condensed mt-2 w-full'})[0]
-                        return trades
-
-                    # Process the insider trades data
-                    def process_insider_trades(trades):
-                        # Rename columns and sort by date
-                        trades.columns = ['Ticker', 'Owner', 'Relationship', 'Date', 'Transaction', 'Cost', '#Shares', 'Value ($)', '#Shares Total', 'SEC Form 4']
-                        trades.sort_values('Date', ascending=False, inplace=True)
-
-                        # Set the date column as index and drop unnecessary rows
-                        trades.set_index('Date', inplace=True)
-
-                        return trades
-
-                    # Main function to scrape insider trades
-                    def scrape_insider_trades():
-                        try:
-                            url = "https://finviz.com/insidertrading.ashx"
-                            html_soup = fetch_html(url)
-                            trades = extract_insider_trades(html_soup)
-                            processed_trades = process_insider_trades(trades)
-                            return processed_trades
-                        except Exception as e:
-                            return e
-
-                    # Call the function and print the result
-                    st.write('\nInsider Trades:')
-                    st.write(scrape_insider_trades())
+                    insider_trading_tool = {}  # Replace with actual input required by the tool
+                    tool_finviz_insider_scraper(insider_trading_tool)
 
             if pred_option_data == "Finviz stock scraper":
 
@@ -776,85 +587,8 @@ def main():
                 if stock:
                     st.success(f"Stock ticker captured : {stock}")
                 if st.button("check"):
-                    # Set display options for pandas dataframes
-                    pd.set_option('display.max_colwidth', 25)
-                    pd.set_option('display.max_columns', None)
-                    pd.set_option('display.max_rows', None)
-
-
-                    # Set up scraper
-                    url = f"https://finviz.com/quote.ashx?t={stock.strip().upper()}&p=d"
-                    req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-                    webpage = urlopen(req).read()
-                    html_content = soup(webpage, "html.parser")
-
-                    # Function to get fundamental ratios
-                    def get_fundamentals():
-                        try:
-                            # Get data from finviz and convert to pandas dataframe
-                            df = pd.read_html(str(html_content), attrs = {"class":"js-snapshot-table snapshot-table2 screener_snapshot-table-body"})[0]
-
-                            # Resetting the combined columns lists 
-                            combined_column1 = []
-                            combined_column2 = []
-
-                            # Looping through the DataFrame to combine data with adjustment for odd number of columns
-                            for i in range(0, len(df.columns), 2):
-                                combined_column1.extend(df.iloc[:, i].tolist())
-                                # Check if the next column exists before adding it, otherwise add None
-                                if i + 1 < len(df.columns):
-                                    combined_column2.extend(df.iloc[:, i + 1].tolist())
-                                else:
-                                    combined_column2.extend([None] * len(df))  # Add None for missing values
-
-                            # Creating a new DataFrame with the combined columns
-                            combined_df = pd.DataFrame({'Attributes': combined_column1, 'Values': combined_column2})
-                            combined_df = combined_df.set_index('Attributes')
-                            return combined_df
-                        except Exception as e:
-                            return e
-
-                    # Function to get recent news articles
-                    def get_news():
-                        try:
-                            news = pd.read_html(str(html_content), attrs={"class": "fullview-news-outer"})[0]
-                            news.columns = ['DateTime', 'Headline']
-                            news.set_index('DateTime', inplace=True)
-                            return news
-                        except Exception as e:
-                            return e
-
-                    # Function to get recent insider trades
-                    def get_insider():
-                        try:
-                            insider = pd.read_html(str(html_content), attrs={"class": "body-table"})[0]
-                            insider.set_index('Date', inplace=True)
-                            return insider
-                        except Exception as e:
-                            return e
-
-                    # Function to get analyst price targets
-                    def get_price_targets():
-                        try:
-                            targets = pd.read_html(str(html_content), attrs={"class": "js-table-ratings"})[0]
-                            targets.set_index('Date', inplace=True)
-                            return targets
-                        except Exception as e:
-                            return e
-
-                    # Print out the resulting dataframes for each category
-                    st.write('Fundamental Ratios:')
-                    st.write(get_fundamentals())
-
-                    st.write('\nRecent News:')
-                    st.write(get_news())
-
-                    st.warning('\nRecent Insider Trades:')
-                    st.write(get_insider())
-
-                    st.write('\nAnalyst Price Targets:')
-                    st.write(get_price_targets())
-
+                    tool_finviz_scraper_stock_data(stock)
+            
             if pred_option_data == "Get Dividend calendar":
                 st.success("This segment allows you to observe the Dividend companies of some companies")     
 
@@ -867,70 +601,7 @@ def main():
                     st.success(f"Month captured: Year - {year}, Month - {month}")
 
                 if st.button("Check"):
-                    #Set pandas option to display all columns
-                    pd.set_option('display.max_columns', None)
-
-                    class DividendCalendar:
-                        def __init__(self, year, month):
-                            # Initialize with the year and month for the dividend calendar
-                            self.year = year
-                            self.month = month
-                            self.url = 'https://api.nasdaq.com/api/calendar/dividends'
-                            self.hdrs = {
-                                'Accept': 'text/plain, */*',
-                                'DNT': "1",
-                                'Origin': 'https://www.nasdaq.com/',
-                                'Sec-Fetch-Mode': 'cors',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0)'
-                            }
-                            self.calendars = []  # Store all calendar DataFrames
-
-                        def date_str(self, day):
-                            # Convert a day number into a formatted date string
-                            return dt.date(self.year, self.month, day).strftime('%Y-%m-%d')
-
-                        def scraper(self, date_str):
-                            # Scrape dividend data from NASDAQ API for a given date
-                            response = requests.get(self.url, headers=self.hdrs, params={'date': date_str})
-                            return response.json()
-
-                        def dict_to_df(self, dictionary):
-                            # Convert the JSON data from the API into a pandas DataFrame
-                            rows = dictionary.get('data').get('calendar').get('rows', [])
-                            calendar_df = pd.DataFrame(rows)
-                            self.calendars.append(calendar_df)
-                            return calendar_df
-
-                        def calendar(self, day):
-                            # Fetch dividend data for a specific day and convert it to DataFrame
-                            date_str = self.date_str(day)
-                            dictionary = self.scraper(date_str)
-                            return self.dict_to_df(dictionary)
-
-                    def get_dividends(year, month):
-                        try:
-                            # Create an instance of DividendCalendar for the given year and month
-                            dc = DividendCalendar(year, month)
-                            days_in_month = calendar.monthrange(year, month)[1]
-
-                            # Iterate through each day of the month and scrape dividend data
-                            for day in range(1, days_in_month + 1):
-                                dc.calendar(day)
-
-                            # Combine all the scraped data into a single DataFrame
-                            concat_df = pd.concat(dc.calendars).dropna(how='any')
-                            concat_df = concat_df.set_index('companyName').reset_index()
-                            concat_df = concat_df.drop(columns=['announcement_Date'])
-                            concat_df.columns = ['Company Name', 'Ticker', 'Dividend Date', 'Payment Date', 
-                                                'Record Date', 'Dividend Rate', 'Annual Rate']
-                            concat_df = concat_df.sort_values(['Annual Rate', 'Dividend Date'], ascending=[False, False])
-                            concat_df = concat_df.drop_duplicates()
-                            return concat_df
-                        except Exception as e:
-                            return e
-                        
-
-                    st.write(get_dividends(int(year),int(month)))
+                    norm_get_dividends(year, month)
                 
             if pred_option_data == "Green Line Test":
 
@@ -951,124 +622,17 @@ def main():
                 # Button to trigger the simulation
                 if st.button("Simulate"):
                     st.success("Simulation started...")
-
-                    # Set the start and end dates for historical data retrieval
-                    start = dt.datetime.combine(start_date, dt.datetime.min.time())
-                    end = dt.datetime.combine(end_date, dt.datetime.min.time())
-
-                    # Fetch historical stock data
-                    df = yf.download(ticker, start, end)
-                    price = df['Adj Close'][-1]
-
-                    # Filter out days with very low trading volume
-                    df.drop(df[df["Volume"] < 1000].index, inplace=True)
-
-                    # Get the monthly maximum of the 'High' column
-                    df_month = df.groupby(pd.Grouper(freq="M"))["High"].max()
-
-                    # Initialize variables for the green line analysis
-                    glDate, lastGLV, currentDate, currentGLV, counter = 0, 0, "", 0, 0
-
-                    # Loop through monthly highs to determine the most recent green line value
-                    for index, value in df_month.items():
-                        if value > currentGLV:
-                            currentGLV = value
-                            currentDate = index
-                            counter = 0
-                        if value < currentGLV:
-                            counter += 1
-                            if counter == 3 and ((index.month != end_date.month) or (index.year != end_date.year)):
-                                if currentGLV != lastGLV:
-                                    print(currentGLV)
-                                glDate = currentDate
-                                lastGLV = currentGLV
-                                counter = 0
-
-                    # Determine the message to display based on green line value and current price
-                    if lastGLV == 0:
-                        message = f"{ticker} has not formed a green line yet"
-                    else:
-                        diff = price/lastGLV - 1
-                        diff = round(diff * 100, 3)
-                        if lastGLV > 1.15 * price:
-                            message = f"\n{ticker.upper()}'s current price ({round(price, 2)}) is {diff}% away from its last green line value ({round(lastGLV, 2)})"
-                        else:
-                            if lastGLV < 1.05 * price:
-                                st.write(f"\n{ticker.upper()}'s last green line value ({round(lastGLV, 2)}) is {diff}% greater than its current price ({round(price, 2)})")
-                                message = ("Last Green Line: "+str(round(lastGLV, 2))+" on "+str(glDate.strftime('%Y-%m-%d')))
-                                
-                                # Plot interactive graph with Plotly
-                                fig = go.Figure()
-                                fig.add_trace(go.Scatter(x=df.index[-120:], y=df['Close'].tail(120), mode='lines', name='Close Price'))
-                                fig.add_hline(y=lastGLV, line_dash="dash", line_color="green", name='Last Green Line')
-                                fig.update_layout(title=f"{ticker.upper()}'s Close Price Green Line Test", xaxis_title='Dates', yaxis_title='Close Price')
-                                st.plotly_chart(fig)
-                            else:
-                                message = ("Last Green Line: "+str(round(lastGLV, 2))+" on "+str(glDate.strftime('%Y-%m-%d')))
-                                # Plot interactive graph with Plotly
-                                fig = go.Figure()
-                                fig.add_trace(go.Scatter(x=df.index, y=df['Close'], mode='lines', name='Close Price'))
-                                fig.add_hline(y=lastGLV, line_dash="dash", line_color="green", name='Last Green Line')
-                                fig.update_layout(title=f"{ticker.upper()}'s Close Price Green Line Test", xaxis_title='Dates', yaxis_title='Close Price')
-                                st.plotly_chart(fig)
-                    
-                    st.write(message)
+                    norm_greenline_test(start_date , end_date , ticker)
+                 
 
 
             if pred_option_data == "High Dividend yield":
                 st.success("This program allows you to simulate the Dividends given by a company")
                 if st.button("Check"):
+                    high_dividend_yield_tooler = {}  # Replace with actual input required by the tool
+                    tool_high_dividend_yield(high_dividend_yield_tooler)
 
-                    # Create an instance of the financial model prep class for API access
-                    demo = API_FMPCLOUD
 
-                    # Read ticker symbols from a saved pickle file
-                    symbols = ti.tickers_sp500()
-
-                    # Initialize a dictionary to store dividend yield data for each company
-                    yield_dict = {}
-
-                    # Loop through each ticker symbol in the list
-                    for company in symbols:
-                        try:
-                            # Fetch company data from FinancialModelingPrep API using the ticker symbol
-                            companydata = requests.get(f'https://fmpcloud.io/api/v3/profile/{company}?apikey={demo}')
-                            st.write(companydata)
-                            companydata = companydata.json()  # Convert response to JSON format
-                            
-                            # Extract relevant data for dividend calculation
-                            latest_Annual_Dividend = companydata[0]['lastDiv']
-                            price = companydata[0]['price']
-                            market_Capitalization = companydata[0]['mktCap']
-                            name = companydata[0]['companyName']
-                            exchange = companydata[0]['exchange']
-
-                            # Calculate the dividend yield
-                            dividend_yield = latest_Annual_Dividend / price
-
-                            # Store the extracted data in the yield_dict dictionary
-                            yield_dict[company] = {
-                                'dividend_yield': dividend_yield,
-                                'latest_price': price,
-                                'latest_dividend': latest_Annual_Dividend,
-                                'market_cap': market_Capitalization / 1000000,  # Convert market cap to millions
-                                'company_name': name,
-                                'exchange': exchange
-                            }
-
-                        except Exception as e:
-                            # Skip to the next ticker if there's an error with the current one
-                            print(f"Error processing {company}: {e}")
-                            continue
-
-                    # Convert the yield_dict dictionary to a pandas DataFrame
-                    yield_dataframe = pd.DataFrame.from_dict(yield_dict, orient='index')
-
-                    # Sort the DataFrame by dividend yield in descending order
-                    yield_dataframe = yield_dataframe.sort_values('dividend_yield', ascending=False)
-
-                    # Display the sorted DataFrame
-                    st.write(yield_dataframe)
 
             if pred_option_data == "Main Indicators":
                 st.success("This segment allows you to see if a ticker hit a greenline")
@@ -1085,52 +649,13 @@ def main():
                     start_date = st.date_input("Start date:", min_value=min_date)
                 with col2:
                     end_date = st.date_input("End Date:")
+                
                 # Button to trigger the simulation
                 if st.button("Simulate"):
-
-                    symbol, start, end = ticker, start_date, end_date
-
-                    # Convert string dates to datetime objects
-                    start = pd.to_datetime(start)
-                    end = pd.to_datetime(end)
-
-                    # Download stock data from Yahoo Finance
-                    data = yf.download(symbol, start, end)
-
-                    # Display Adjusted Close Price
-                    st.header(f"Adjusted Close Price\n {symbol}")
-                    st.line_chart(data["Adj Close"])
-
-                    # Calculate and display SMA and EMA
-                    data["SMA"] = ta.SMA(data["Adj Close"], timeperiod=20)
-                    data["EMA"] = ta.EMA(data["Adj Close"], timeperiod=20)
-                    st.header(f"Simple Moving Average vs. Exponential Moving Average\n {symbol}")
-                    st.line_chart(data[["Adj Close", "SMA", "EMA"]])
-
-                    # Calculate and display Bollinger Bands
-                    data["upper_band"], data["middle_band"], data["lower_band"] = ta.BBANDS(data["Adj Close"], timeperiod=20)
-                    st.header(f"Bollinger Bands\n {symbol}")
-                    st.line_chart(data[["Adj Close", "upper_band", "middle_band", "lower_band"]])
-
-                    # Calculate and display MACD
-                    data["macd"], data["macdsignal"], data["macdhist"] = ta.MACD(data["Adj Close"], fastperiod=12, slowperiod=26, signalperiod=9)
-                    st.header(f"Moving Average Convergence Divergence\n {symbol}")
-                    st.line_chart(data[["macd", "macdsignal"]])
-
-                    # Calculate and display CCI
-                    data["CCI"] = ta.CCI(data["High"], data["Low"], data["Close"], timeperiod=14)
-                    st.header(f"Commodity Channel Index\n {symbol}")
-                    st.line_chart(data["CCI"])
-
-                    # Calculate and display RSI
-                    data["RSI"] = ta.RSI(data["Adj Close"], timeperiod=14)
-                    st.header(f"Relative Strength Index\n {symbol}")
-                    st.line_chart(data["RSI"])
-
-                    # Calculate and display OBV
-                    data["OBV"] = ta.OBV(data["Adj Close"], data["Volume"]) / 10**6
-                    st.header(f"On Balance Volume\n {symbol}")
-                    st.line_chart(data["OBV"])
+                    # Convert dates to strings
+                    start_date_str = start_date.strftime('%Y-%m-%d')
+                    end_date_str = end_date.strftime('%Y-%m-%d')
+                    norm_main_indicators(ticker, start_date_str, end_date_str)
 
             if pred_option_data == "Pivots Calculator":
                 st.write("This part calculates the pivot shifts within one day")
@@ -1140,50 +665,7 @@ def main():
                 
                 if st.button("Check") :
                     # Fetch historical data for the specified stock using yfinance
-                    ticker = yf.Ticker(stock)
-                    df = ticker.history(interval)
-
-                    # Extract data for the last trading day and remove unnecessary columns
-                    last_day = df.tail(1).copy().drop(columns=['Dividends', 'Stock Splits'])
-
-                    # Calculate pivot points and support/resistance levels
-                    # Pivot point formula: (High + Low + Close) / 3
-                    last_day['Pivot'] = (last_day['High'] + last_day['Low'] + last_day['Close']) / 3
-                    last_day['R1'] = 2 * last_day['Pivot'] - last_day['Low']  # Resistance 1
-                    last_day['S1'] = 2 * last_day['Pivot'] - last_day['High']  # Support 1
-                    last_day['R2'] = last_day['Pivot'] + (last_day['High'] - last_day['Low'])  # Resistance 2
-                    last_day['S2'] = last_day['Pivot'] - (last_day['High'] - last_day['Low'])  # Support 2
-                    last_day['R3'] = last_day['Pivot'] + 2 * (last_day['High'] - last_day['Low'])  # Resistance 3
-                    last_day['S3'] = last_day['Pivot'] - 2 * (last_day['High'] - last_day['Low'])  # Support 3
-
-                    # Display calculated pivot points and support/resistance levels for the last trading day
-                    st.write(last_day)
-
-                    # Fetch intraday data for the specified stock
-                    data = yf.download(tickers=stock, period="1d", interval="1m")
-
-                    # Extract 'Close' prices from the intraday data for plotting
-                    df = data['Close']
-
-                    # Create Plotly figure
-                    fig = go.Figure()
-
-                    # Plot intraday data
-                    fig.add_trace(go.Scatter(x=df.index, y=df.values, mode='lines', name='Price'))
-
-                    # Plot support and resistance levels
-                    for level, color in zip(['R1', 'S1', 'R2', 'S2', 'R3', 'S3'], ['blue', 'blue', 'green', 'green', 'red', 'red']):
-                        fig.add_trace(go.Scatter(x=df.index, y=[last_day[level].iloc[0]] * len(df.index),
-                                                mode='lines', name=level, line=dict(color=color, dash='dash')))
-
-                    # Customize layout
-                    fig.update_layout(title=f"{stock.upper()} - {dt.date.today()}",
-                                    xaxis_title="Time",
-                                    yaxis_title="Price",
-                                    showlegend=True)
-
-                    # Display Plotly figure
-                    st.plotly_chart(fig)
+                    norm_pivots_calculator(stock, interval)
                                 
             if pred_option_data == "Email Top Movers":
 
@@ -1195,75 +677,8 @@ def main():
 
                 if st.button("Check"):
                     # Function to scrape top winner stocks from Yahoo Finance
-                    def scrape_top_winners():
-                        url = 'https://finance.yahoo.com/gainers/'
-                        response = requests.get(url)
-                        soup = BeautifulSoup(response.text, 'html.parser')
-
-                        # Parse the HTML content and extract data into a DataFrame
-                        df = pd.read_html(str(soup), attrs={'class': 'W(100%)'})[0]
-                        st.write(df)
-                        # Drop irrelevant columns for simplicity
-                        df = df.drop(columns=['52 Week Range'])
-                        return df
-
-                    # Retrieve top gainers data and filter based on a certain percentage change
-                    df = scrape_top_winners()
-                    #df_filtered = df[df['% Change'] >= 5]
-
-                    # Save the filtered DataFrame to a CSV file
-                    today = dt.date.today()
-                    file_name = "Top Gainers " + str(today) + ".csv"
-                    df.to_csv(file_name)
-
-                    # Function to send an email with the top gainers CSV file as an attachment
-                    def send_email():
-                        # Email sender and recipient details (to be filled)
-                        email_sender = EMAIL_ADDRESS  # Sender's email
-                        email_password = EMAIL_PASSWORD  # Sender's email password
-                        email_recipient = email_address  # Recipient's email
-
-                        # Email content setup
-                        msg = MIMEMultipart()
-                        email_message = "Attached are today's market movers"
-                        msg['From'] = email_sender
-                        msg['To'] = email_recipient
-                        msg['Subject'] = "Stock Market Movers"
-                        msg.attach(MIMEText(email_message, 'plain'))
-
-                        # Attaching the CSV file to the email
-                        attachment_location = file_name
-                        if attachment_location != '':
-                            filename = os.path.basename(attachment_location)
-                            attachment = open(attachment_location, 'rb')
-                            part = MIMEBase('application', 'octet-stream')
-                            part.set_payload(attachment.read())
-                            encoders.encode_base64(part)
-                            part.add_header('Content-Disposition', "attachment; filename=%s" % filename)
-                            msg.attach(part)
-
-                        # Send the email using SMTP protocol
-                        try:
-                            server = smtplib.SMTP('smtp.gmail.com', 587)
-                            server.ehlo()
-                            server.starttls()
-                            server.login(email_sender, email_password)
-                            text = msg.as_string()
-                            server.sendmail(email_sender, email_recipient, text)
-                            print('Email sent successfully.')
-                            server.quit()
-                        except Exception as e:
-                            print(f'Failed to send email: {e}')
-                        
-                        return schedule.CancelJob
-
-                    # Schedule the email to be sent every day at a specific time (e.g., 4:00 PM)
-                    schedule.every().day.at("16:00").do(send_email)
-
-                    # Run the scheduled task
-                    while True:
-                        schedule.run_pending()
-                        time.sleep(1)
+                    email_top_movers_tool = {}  # Replace with actual input required by the tool
+                    tool_scrape_top_winners(email_top_movers_tool)
 
             if pred_option_data == "Stock VWAP":
                 st.success("This segment allows us to analyze the Volume Weighted Average Price of a ticker")
@@ -1280,74 +695,7 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                    # Define the stock symbol to analyze
-                    stock = ticker
-
-                    # Function to retrieve stock data for a specified period
-                    def get_symbol(symbol):
-                        # Fetch the stock data
-                        df = yf.download(symbol, start_date, end_date)
-                        return df
-
-                    # Function to calculate VWAP (Volume Weighted Average Price)
-                    def VWAP():
-                        df = get_symbol(stock)
-
-                        # Calculate typical price
-                        df['Typical_Price'] = (df['High'] + df['Low'] + df['Adj Close']) / 3
-                        df['TP_Volume'] = df['Typical_Price'] * df['Volume']
-
-                        # Calculate VWAP
-                        cumulative_TP_V = df['TP_Volume'].sum()
-                        cumulative_V = df['Volume'].sum()
-                        vwap = cumulative_TP_V / cumulative_V
-                        return vwap
-
-                    # Displaying the VWAP for the specified stock
-                    print("VWAP: ", VWAP())
-
-                    # Function to update VWAP with a different method
-                    def update_VWAP():
-                        df = get_symbol(stock)
-
-                        # Calculate weighted prices
-                        df['OpenxVolume'] = df['Open'] * df['Volume']
-                        df['HighxVolume'] = df['High'] * df['Volume']
-                        df['LowxVolume'] = df['Low'] * df['Volume']
-                        df['ClosexVolume'] = df['Adj Close'] * df['Volume']
-
-                        # Calculate VWAP components
-                        sum_volume = df['Volume'].sum()
-                        sum_x_OV = df['OpenxVolume'].sum() / sum_volume
-                        sum_x_HV = df['HighxVolume'].sum() / sum_volume
-                        sum_x_LV = df['LowxVolume'].sum() / sum_volume
-                        sum_x_CV = df['ClosexVolume'].sum() / sum_volume
-                        average_volume_each = (sum_x_OV + sum_x_HV + sum_x_LV + sum_x_OV) / 4
-
-                        # Calculate updated VWAP
-                        new_vwap = ((df['Adj Close'][-1] - average_volume_each) + (df['Adj Close'][-1] + average_volume_each)) / 2
-                        return new_vwap
-
-                    # Display the updated VWAP
-                    st.write("Updated VWAP: ", update_VWAP())
-
-                    # Function to add a VWAP column to the stock data
-                    def add_VWAP_column():
-                        df = get_symbol(stock)
-
-                        # Calculate weighted prices
-                        df['OpenxVolume'] = df['Open'] * df['Volume']
-                        df['HighxVolume'] = df['High'] * df['Volume']
-                        df['LowxVolume'] = df['Low'] * df['Volume']
-                        df['ClosexVolume'] = df['Adj Close'] * df['Volume']
-
-                        # Calculate and add the VWAP column
-                        vwap_column = (df[['OpenxVolume', 'HighxVolume', 'LowxVolume', 'ClosexVolume']].mean(axis=1)) / df['Volume']
-                        df['VWAP'] = vwap_column
-                        return df
-
-                    # Print the stock data with the added VWAP column
-                    st.write(add_VWAP_column())
+                    norm_stock_vwap(ticker, start_date, end_date)
 
             if pred_option_data == "Data SMS stock":
                 st.success("This segment allows us to get the stock data SMS")
@@ -1369,66 +717,11 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                    # Function to send an email message
-                    def send_message(text, sender_email, receiver_email, password):
-                        try:
-                            # Create and configure the email message
-                            msg = MIMEMultipart()
-                            msg['From'] = sender_email
-                            msg['To'] = receiver_email
-                            msg['Subject'] = "Stock Data"
-                            msg.attach(MIMEText(text, 'plain'))
+                   norm_stock_sms(ticker, start_date, end_date, email_address)
 
-                            # Establish SMTP connection and send the email
-                            server = smtplib.SMTP('smtp.gmail.com', 587)
-                            server.starttls()
-                            server.login(sender_email, password)
-                            server.sendmail(sender_email, receiver_email, msg.as_string())
-                            server.quit()
-                            print('Email sent successfully')
-                        except Exception as e:
-                            print(f'Error sending email: {e}')
-
-                    # Function to retrieve and process stock data
-                    def get_data(ticker):
-                        sender_email = EMAIL_ADDRESS  # Sender's email
-                        receiver_email = email_address  # Receiver's email
-                        password = EMAIL_PASSWORD  # Sender's email password
-
-                        try:
-                            # Fetch historical stock data
-                            stock  = ticker
-                            df = yf.download(stock, start_date, end_date)
-                            st.write(f'Retrieving data for {stock}')
-
-                            # Compute current price and other metrics
-                            price = round(df['Adj Close'][-1], 2)
-                            df["rsi"] = ta.RSI(df["Adj Close"])
-                            rsi = round(df["rsi"].tail(14).mean(), 2)
-
-                            # Scrape and analyze news sentiment
-                            finviz_url = 'https://finviz.com/quote.ashx?t='
-                            req = Request(url=finviz_url + stock, headers={'user-agent': 'Mozilla/5.0'})
-                            response = urlopen(req).read()
-                            html = BeautifulSoup(response, "html.parser")
-                            news_df = pd.read_html(str(html), attrs={'id': 'news-table'})[0]
-                            # Process news data
-                            news_df.columns = ['datetime', 'headline']
-                            news_df['date'] = pd.to_datetime(news_df['datetime'].str.split(' ').str[0], errors='coerce')
-                            news_df['date'] = news_df['date'].fillna(method='ffill')
-                            news_df['sentiment'] = news_df['headline'].apply(lambda x: SentimentIntensityAnalyzer().polarity_scores(x)['compound'])
-                            sentiment = round(news_df['sentiment'].mean(), 2)
-
-                            # Prepare and send email message
-                            output = f"\nTicker: {stock}\nCurrent Price: {price}\nNews Sentiment: {sentiment}\nRSI: {rsi}"
-                            send_message(output, sender_email, receiver_email, password)
-
-                        except Exception as e:
-                            st.write(f'Error processing data for {stock}: {e}')
-                            
-                    get_data(ticker)
 
             if pred_option_data == "Stock Earnings":
+
                 #TODO - fix the meta error from earnings df directly
                 st.success("This segment allows us to get the stock data SMS")
                 ticker = st.text_input("Enter the ticker you want to test")
@@ -1449,176 +742,14 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-
-                    # Setting pandas display options
-                    pd.set_option('display.max_columns', None)
-
-                    # Download earnings report for a specific date
-                    report_date = datetime.now().date()
-                    yec = YahooEarningsCalendar()
-
-                    # Fetch earnings data for the specified dates
-                    earnings_df_list = yec.earnings_between(start_date, end_date)
-
-                    # Create a DataFrame from the earnings data and drop unnecessary columns
-                    earnings_day_df = pd.DataFrame(earnings_df_list)
-                    earnings_day_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName'], inplace=True)
-
-                    # Rename columns for clarity and reorganize them
-                    earnings_day_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
-                    earnings_day_df = earnings_day_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
-
-                    # Adjust datetime to local timezone
-                    earnings_day_df['DateTime'] = pd.to_datetime(earnings_day_df['DateTime']).dt.tz_localize(None)
-
-                    # Print the DataFrame
-                    st.write(earnings_day_df)
-
-                    # Download earnings for a range of dates
-                    DAYS_AHEAD = 7
-                    start_date = datetime.now().date()
-                    end_date = (datetime.now().date() + timedelta(days=DAYS_AHEAD))
-
-                    # Fetch earnings data between specified dates
-                    earnings_range_list = yec.earnings_between(start_date, end_date)
-
-                    # Create a DataFrame from the fetched data and drop unnecessary columns
-                    earnings_range_df = pd.DataFrame(earnings_range_list)
-                    earnings_range_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName'], inplace=True)
-
-                    # Rename columns for clarity and reorganize them
-                    earnings_range_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
-                    earnings_range_df = earnings_range_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
-
-                    # Adjust datetime to local timezone
-                    earnings_range_df['DateTime'] = pd.to_datetime(earnings_range_df['DateTime']).dt.tz_localize(None)
-
-                    # Print the DataFrame
-                    print(earnings_range_df)
-
-                    # Download earnings for a specific ticker within a date range
-                    TICKER = 'AAPL'
-                    DAYS_AHEAD = 180
-                    start_date = datetime.now().date()
-                    end_date = (datetime.now().date() + timedelta(days=DAYS_AHEAD))
-
-                    # Fetch earnings data for the specified ticker
-                    earnings_ticker_list = yec.get_earnings_of(TICKER)
-
-                    # Create a DataFrame from the fetched data and filter by date range
-                    earnings_ticker_df = pd.DataFrame(earnings_ticker_list)
-                    earnings_ticker_df['report_date'] = earnings_ticker_df['startdatetime'].apply(lambda x: dateutil.parser.isoparse(x).date())
-                    earnings_ticker_df = earnings_ticker_df[earnings_ticker_df['report_date'].between(start_date, end_date)].sort_values('report_date')
-                    earnings_ticker_df.drop(columns=['gmtOffsetMilliSeconds', 'quoteType', 'timeZoneShortName', 'report_date'], inplace=True)
-
-                    # Rename columns for clarity and reorganize them
-                    earnings_ticker_df.columns = ['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']
-                    earnings_ticker_df = earnings_ticker_df[['Ticker', 'Company Name', 'DateTime', 'Type', 'EPS Estimate', 'EPS Actual', 'EPS Surprise PCT']]
-
-                    # Adjust datetime to local timezone
-                    earnings_ticker_df['DateTime'] = pd.to_datetime(earnings_ticker_df['DateTime']).dt.tz_localize(None)
-
-                    print(earnings_ticker_df)
+                    norm_stock_earnings(start_date, end_date)
 
 
             if pred_option_data == "Trading view Intraday":
                 if st.button("Check"):
-                    # Function to filter relevant data from websocket messages
-                    def filter_raw_message(text):
-                        try:
-                            found = re.search('"m":"(.+?)",', text).group(1)
-                            found2 = re.search('"p":(.+?"}"])}', text).group(1)
-                            print(found)
-                            print(found2)
-                            return found, found2
-                        except AttributeError:
-                            print("Error in filtering message")
-
-                    # Function to generate a random session ID
-                    def generateSession():
-                        stringLength = 12
-                        letters = string.ascii_lowercase
-                        random_string = ''.join(random.choice(letters) for i in range(stringLength))
-                        return "qs_" + random_string
-
-                    # Function to generate a random chart session ID
-                    def generateChartSession():
-                        stringLength = 12
-                        letters = string.ascii_lowercase
-                        random_string = ''.join(random.choice(letters) for i in range(stringLength))
-                        return "cs_" + random_string
-
-                    # Function to prepend header for websocket message
-                    def prependHeader(st):
-                        return "~m~" + str(len(st)) + "~m~" + st
-
-                    # Function to construct JSON message for websocket
-                    def constructMessage(func, paramList):
-                        return json.dumps({"m": func, "p": paramList}, separators=(',', ':'))
-
-                    # Function to create a full message with header and JSON payload
-                    def createMessage(func, paramList):
-                        return prependHeader(constructMessage(func, paramList))
-
-                    # Function to send a raw message over the websocket
-                    def sendRawMessage(ws, message):
-                        ws.send(prependHeader(message))
-
-                    # Function to send a full message with header and JSON payload
-                    def sendMessage(ws, func, args):
-                        ws.send(createMessage(func, args))
-
-                    # Function to extract data from websocket message and save to CSV file
-                    def generate_csv(a):
-                        out = re.search('"s":\[(.+?)\}\]', a).group(1)
-                        x = out.split(',{\"')
-                        
-                        with open('data_file.csv', mode='w', newline='') as data_file:
-                            data_writer = csv.writer(data_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                            data_writer.writerow(['index', 'date', 'open', 'high', 'low', 'close', 'volume'])
-                            
-                            for xi in x:
-                                xi = re.split('\[|:|,|\]', xi)
-                                ind = int(xi[1])
-                                ts = datetime.datetime.fromtimestamp(float(xi[4])).strftime("%Y/%m/%d, %H:%M:%S")
-                                data_writer.writerow([ind, ts, float(xi[5]), float(xi[6]), float(xi[7]), float(xi[8]), float(xi[9])])
-
-                    # Initialize headers for websocket connection
-                    headers = json.dumps({'Origin': 'https://data.tradingview.com'})
-
-                    # Create a connection to the websocket
-                    ws = create_connection('wss://data.tradingview.com/socket.io/websocket', headers=headers)
-
-                    # Generate session and chart session IDs
-                    session = generateSession()
-                    chart_session = generateChartSession()
-
-                    # Send various messages to establish the websocket connection and start streaming data
-                    sendMessage(ws, "set_auth_token", ["unauthorized_user_token"])
-                    sendMessage(ws, "chart_create_session", [chart_session, ""])
-                    sendMessage(ws, "quote_create_session", [session])
-                    sendMessage(ws,"quote_set_fields", [session,"ch","chp","current_session","description","local_description","language","exchange","fractional","is_tradable","lp","lp_time","minmov","minmove2","original_name","pricescale","pro_name","short_name","type","update_mode","volume","currency_code","rchp","rtc"])
-                    sendMessage(ws, "quote_add_symbols",[session, "NASDAQ:AAPL", {"flags":['force_permission']}])
-                    sendMessage(ws, "quote_fast_symbols", [session,"NASDAQ:AAPL"])
-                    sendMessage(ws, "resolve_symbol", [chart_session,"symbol_1","={\"symbol\":\"NASDAQ:AAPL\",\"adjustment\":\"splits\",\"session\":\"extended\"}"])
-                    sendMessage(ws, "create_series", [chart_session, "s1", "s1", "symbol_1", "1", 5000])
-
-
-                    # Receiving and printing data from the websocket
-                    data = ""
-                    while True:
-                        try:
-                            result = ws.recv()
-                            data += result + "\n"
-                            st.write(result)
-                        except Exception as e:
-                            st.write(e)
-                            break
-
-                    # Generating a CSV from the received data
-                    st.write(data)
-                    #generate_csv(data)
-
+                    trading_intraday_test = {}  # Replace with actual input required by the tool
+                    tool_trading_view_intraday(trading_intraday_test)
+                    
             if pred_option_data == "Trading view Recommendations":
                 
                 st.success("This segment allows us to get recommendations fro Trading View")
@@ -1626,10 +757,6 @@ def main():
                 if ticker:
                     message = (f"Ticker captured : {ticker}")
                     st.success(message)
-                email_address = st.text_input("Enter your Email address")
-                if email_address:
-                    message_three = (f"Email address captured is {email_address}")
-                    st.success(message_three)
 
                 min_date = datetime(1980, 1, 1)
                 # Date input widget with custom minimum date
@@ -1640,109 +767,12 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-            
-                    interval = '1D'
+                    norm_trading_view_recommendations(ticker, start_date, end_date)
 
-                    # Getting lists of tickers from NASDAQ, NYSE, and AMEX
-                    nasdaq = ti.tickers_nasdaq()
-                    nyse = ti.tickers_nyse()
-                    amex = ti.tickers_amex()
 
-                    # Define valid time intervals
-                    type_intervals = ['1m', '5m', '15m', '30m', '1h', '2h', '4h', '1D', '1W', '1M']
 
-                    # Set up Selenium WebDriver
-                    options = Options()
-                    options.add_argument("--headless")
-                    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-                    # Helper function to parse recommendation data
-                    def parse_recommendation(recommendation_elements, counter_elements, rec_index, sell_index, buy_index):
-                        rec = recommendation_elements[rec_index].get_attribute('innerHTML')
-                        sell_signals = int(counter_elements[sell_index].get_attribute('innerHTML'))
-                        neutral_signals = int(counter_elements[sell_index + 1].get_attribute('innerHTML'))
-                        buy_signals = int(counter_elements[buy_index].get_attribute('innerHTML'))
-                        return rec, sell_signals, neutral_signals, buy_signals
-
-                    # Helper function to display recommendations
-                    def display_recommendations(analysis):
-                        for key in analysis:
-                            st.write(f"\n{key} Recommendation: ")
-                            rec, sell, neutral, buy = analysis[key]
-                            st.write(f"Recommendation: {rec}")
-                            st.write(f"Sell Signals: {sell}")
-                            st.write(f"Neutral Signals: {neutral}")
-                            st.write(f"Buy Signals: {buy}")
-
-                    # Helper function to scrape tables
-                    def scrape_tables(html):
-                        tables = pd.read_html(html, attrs = {'class': 'table-hvDpy38G'})
-                        return tables[0], tables[1], tables[2]  # Oscillator, Moving Averages, and Pivots tables
-
-                    # Helper function to print tables
-                    def print_tables(oscillator_table, ma_table, pivots_table):
-                        st.write("\nOscillator Table:")
-                        st.write(oscillator_table)
-                        st.write("\nMoving Average Table:")
-                        st.write(ma_table)
-                        st.write("\nPivots Table:")
-                        st.write(pivots_table)
-
-                    # Process each ticker 
-                    try:
-                        # Determine the exchange of the ticker
-                        if ticker in nasdaq:
-                            exchange = 'NASDAQ'
-                        elif ticker in nyse:
-                            exchange = 'NYSE'
-                        elif ticker in amex:
-                            exchange = 'AMEX'
-                        else:
-                            print(f"Could not find the exchange for {ticker}")
-                            
-                        # Get the current price of the ticker
-                        df = yf.download(ticker)
-                        price = round(df["Adj Close"][-1], 2)
-
-                        # Open TradingView page for the ticker
-                        driver.get(f"https://www.tradingview.com/symbols/{exchange}-{ticker}/technicals")
-                        time.sleep(1)
-
-                        # Display ticker, interval, and price information
-                        st.write('\nTicker: ' + ticker)
-                        st.write('Interval: ' + interval)
-                        st.write('Price: ' + str(price))
-
-                        # Switch to the specified interval on TradingView page
-                        for type_interval in type_intervals:
-                            if interval == type_interval:
-                                # n = type_intervals.index(type_interval)
-                                element = driver.find_element(By.XPATH, f'//*[@id="{interval}"]')
-                                # print (len(element))
-                                element.click()
-                                break
-
-                        time.sleep(1)
-
-                        # Scrape and display Overall, Oscillator, and Moving Average Recommendations
-                        recommendation_elements = driver.find_elements(By.CLASS_NAME, "speedometerText-Tat_6ZmA")
-                        counter_elements = driver.find_elements(By.CLASS_NAME, "counterNumber-kg4MJrFB")
-                        analysis = {
-                            'Overall': parse_recommendation(recommendation_elements, counter_elements, 1, 3, 5),
-                            'Oscillator': parse_recommendation(recommendation_elements, counter_elements, 0, 0, 2),
-                            'Moving Average': parse_recommendation(recommendation_elements, counter_elements, 2, 6, 8)
-                        }
-                        display_recommendations(analysis)
-
-                        # Scrape and display tables for Oscillator, Moving Averages, and Pivots
-                        html = driver.page_source
-                        oscillator_table, ma_table, pivots_table = scrape_tables(html)
-                        print_tables(oscillator_table, ma_table, pivots_table)
-
-                    except Exception as e:
-                        st.write(f'Could not retrieve stats for {ticker} due to {e}')
-
-                    driver.close()
+                    
         elif option =='Stock Analysis':
             pred_option_analysis = st.selectbox('Make a choice', ['Backtest All Indicators',
                                                         'CAPM Analysis',
