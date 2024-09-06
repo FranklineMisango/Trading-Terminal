@@ -1,7 +1,12 @@
 #Full stack streamlit import
 import streamlit as st
+
 #Page config
-st.set_page_config(page_title='Trading Terminal', page_icon="📈", layout="wide")  
+st.set_page_config(page_title='Trading Terminal', page_icon="📈", layout="wide") 
+from  project_about import about
+
+
+#Migrate to submodules for readability
 
 import yfinance as yf
 import scipy.optimize as sco
@@ -156,8 +161,11 @@ from StockFinder.analyze_idb_rs_rating import analyze_idb_rs_rating, tool_analyz
 from StockFinder.correlated_stocks import correlated_stocks, tool_correlated_stocks
 from StockFinder.finviz_growth_screener import tool_growth_screener
 from StockFinder.fundamental_screener import tool_fundamental_screener
+from StockFinder.rsi_tickers import tool_rsi_tickers,normal_rsi_tickers
+from StockFinder.green_line_valuation import tool_green_line_valuation
+from StockFinder.Minervini_screener import tool_miniverini_screener, minervini_screener
 
-tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, tool_fundamental_screener]
+tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, tool_miniverini_screener]
 
 
 #Multimodial agent bot configuration
@@ -186,85 +194,7 @@ def main():
     with left_column:
         option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks', 'Portfolio Strategies','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions'))
         if option =='About':
-            st.markdown(
-                """
-                **Trading Terminal is a Comprehensive Trading App that allows Analysts to visualize, Research, Predict and carry out algorithmic trading on either stocks/crypto. Beware, this is not an advisory Investment app but just a base tool for investment decisions and you carry further liability when utilizing its CCXT and interactive brokerage aspect**
-
-                ## 🏗️ **How It's Built - Main Features and Framework**
-
-                - **Streamlit** - To create the web app UI and interactivity 
-                - **YFinance** - To fetch financial data from Yahoo Finance API
-                - **Langchain & Langsmith** - To build the Multimodial agentic bot
-                - **Plotly.express** - To create interactive financial charts
-                - **Alpaca/CCXT** - Main Trading agents
-                - **AWS EC2** - Run the app in cloud
-                - **Docker** -Main container used for ec2 updates
-                - **Open AI** - Powers the Langchain agentic bot
-
-                ## 🎯 **Key Features**
-
-                - **Real-time data** - Fetch latest prices and fundamentals 
-                - **Financial charts** - Interactive historical and forecast charts
-                - **ARIMA forecasting** - Make statistically robust predictions
-                - **Backtesting** - Evaluate model performance
-                - **Responsive design** - Works on all devices
-
-                ## 🗞️ **Project Updates**
-                * Beta is up and running, Thanks to the Cloud Provision by AWS Grant for businesses that allowed me to utilize powerful EC2 instance to run the heavy Backtesting models and test out this proof of concept enabling a transition from streamlit cloud
-                * 80% of the code base is working : Still preparing stable pipelines for Finviz screeners, and snippets that require external API calls that have subscriptions
-                * I am working on the AI Multi-modial Chatbot to utilize relevant code, generate data and report in real-time how the market is doing and the most potential profit trades to do.
-                * On side, I am continously improving the UI/UX by livening the charts and appending sentiment analysis, alongside the bot ux 
-                * I decided to Re-structure the code into individual folders for readability and future updates, everything is still in the app.py and will break the repo down into individual components and start updating and continously testing
-
-                ## 🪛 **Issues**
-                * Since we are running on AWS EC2, I am implementing a secure SSL pipeline to allow website access without warnings of security for some users
-                * remote running best runner R & D : tmux or screen
-                * TensorRT error for running the ML segments : compute optimization
-
-                ## 🚀 **Getting Started**
-
-                ### **Local Installation**
-
-                1. Clone the repo
-
-                ```bash
-                git clone https://github.com/FranklineMisango/Trading-Terminal.git
-                ```
-
-                2. Install requirements
-
-                ```bash
-                pip install -r requirements.txt
-                ```
-
-                3. Change directory
-                ```bash
-                cd streamlit_app
-                ```
-
-                4. Run the app
-
-                ```bash
-                streamlit run app.py
-                ```
-
-                The app will be live at ```http://localhost:8501```
-
-                ## 📈 **Future Roadmap**
-
-                - **AI powered by Multimodial agents to do the analysis**
-                - **More advanced forecasting models**
-                - **More Quantitative trading strategies**
-                - **Robust Portfolio optimization and tracking**
-                - **Additional fundamental data**
-                - **User account system**
-
-
-                ## **⚖️ Disclaimer**
-                **This is not financial advice! Use forecast data to inform your own investment research. No guarantee of trading performance.**
-                """
-
-                )
+            about()
         if option == 'Find stocks':
             options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
             if options == "IDB_RS_Rating":
@@ -282,7 +212,6 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")                
-                #TODO Add more stocks to the portfolio
                 sectors = {
                     "Technology": ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'INTC', 'CSCO', 'ADBE', 'AVGO', 'PYPL'],
                     "Health Care": ['JNJ', 'PFE', 'UNH', 'MRK', 'ABBV', 'TMO', 'MDT', 'DHR', 'AMGN', 'LLY'],
@@ -303,15 +232,10 @@ def main():
             if options == "Finviz_growth_screener":
                 if st.button("Scan"):
                     # Execute the screener and store the result
-                    tool_input = {}  # Replace with actual input required by the tool
-
-                    # Execute the screener and store the result
+                    tool_input = {}  
                     df = tool_growth_screener(tool_input)
-
-                    # Display the results
                     st.write('\nGrowth Stocks Screener:')
                     st.write(df)
-
                     # Extract and print list of tickers
                     tickers = df.index
                     st.write('\nList of Tickers:')
@@ -320,7 +244,7 @@ def main():
             if options == "Fundamental_screener":
                 st.success("This portion allows you to sp500 for base overview")
                 if st.button("Scan"):
-                    fund_tool_input = {}  # Replace with actual input required by the tool
+                    fund_tool_input = {} 
                     tool_fundamental_screener(fund_tool_input) 
 
             if options == "RSI_Stock_tickers":
@@ -333,112 +257,15 @@ def main():
                 # Get dates for the past year
 
                 if st.button("Check"):
-
-                    # Load list of S&P 500 tickers from tickers module
-                    tickers = ti.tickers_sp500()
-
-                    # Initialize lists for overbought and oversold tickers
-                    oversold_tickers = []
-                    overbought_tickers = []
-
-                    # Retrieve adjusted close prices for the tickers
-                    sp500_data = yf.download(tickers, start_date, end_date)['Adj Close']
-
-                    # Analyze each ticker for RSI
-                    for ticker in tickers:
-                        try:
-                            # Create a new DataFrame for the ticker
-                            data = sp500_data[[ticker]].copy()
-
-                            # Calculate the RSI for the ticker
-                            data["rsi"] = ta.RSI(data[ticker], timeperiod=14)
-
-                            # Calculate the mean of the last 14 RSI values
-                            mean_rsi = data["rsi"].tail(14).mean()
-
-                            # Print the RSI value
-                            st.write(f'{ticker} has an RSI value of {round(mean_rsi, 2)}')
-
-                            # Classify the ticker based on its RSI value
-                            if mean_rsi <= 30:
-                                oversold_tickers.append(ticker)
-                            elif mean_rsi >= 70:
-                                overbought_tickers.append(ticker)
-
-                        except Exception as e:
-                            print(f'Error processing {ticker}: {e}')
-
-                    # Output the lists of oversold and overbought tickers
-                    st.write(f'Oversold tickers: {oversold_tickers}')
-                    st.write(f'Overbought tickers: {overbought_tickers}')
+                    normal_rsi_tickers(start_date, end_date)
+                   
                     
             if options=="Green_line Valuations":
                 st.success("This programme analyzes all tickers to help identify the Green Value ones")
-                # Retrieve S&P 500 tickers
-                tickers = ti.tickers_sp500()
-                tickers = [item.replace(".", "-") for item in tickers]
-
-                col1, col2 = st.columns([2, 2])
-                with col1:
-                    start_date = st.date_input("Start date:")
-                with col2:
-                    end_date = st.date_input("End Date:")
-                # Get dates for the past year
-
-                if st.button("Check"):
-
-                    # Initialize lists for tracking tickers and their green line values
-                    diff_5 = []
-                    diff_5_tickers = []
-
-                    # Analyze each ticker
-                    for ticker in tickers:
-                        try:
-                            st.write(f'Analyzing {ticker}:')
-
-                            # Load historical data
-                            df = yf.download(ticker)
-                            df.index = pd.to_datetime(df.index)
-                            price = df['Adj Close'][-1]
-
-                            # Filter out low volume data
-                            df = df[df["Volume"] >= 1000]
-
-                            # Calculate monthly high
-                            monthly_high = df.resample('M')['High'].max()
-
-                            # Initialize variables for tracking Green Line values
-                            last_green_line_value = 0
-                            last_green_line_date = None
-
-                            # Identify Green Line values
-                            for date, high in monthly_high.items():
-                                if high > last_green_line_value:
-                                    last_green_line_value = high
-                                    last_green_line_date = date
-
-                            # Check if a green line value has been established
-                            if last_green_line_value == 0:
-                                message = f"{ticker} has not formed a green line yet"
-                            else:
-                                # Calculate the difference from the current price
-                                diff = (last_green_line_value - price) / price * 100
-                                message = f"{ticker}'s last green line value ({round(last_green_line_value, 2)}) is {round(diff, 1)}% different from its current price ({round(price, 2)})"
-                                if abs(diff) <= 5:
-                                    diff_5_tickers.append(ticker)
-                                    diff_5.append(diff)
-
-                            print(message)
-                            print('-' * 100)
-
-                        except Exception as e:
-                            print(f'Error processing {ticker}: {e}')
-
-                    # Create and display a DataFrame with tickers close to their green line value
-                    df = pd.DataFrame({'Company': diff_5_tickers, 'GLV % Difference': diff_5})
-                    df.sort_values(by='GLV % Difference', inplace=True, key=abs)
-                    st.write('Watchlist:')
-                    st.write(df)
+                if st.button("Scan"):
+                    # Execute the screener and store the result
+                    green_line_tool_input = {}  # Replace with actual input required by the tool
+                    tool_fundamental_screener(green_line_tool_input)
 
             if options == "Minervini_screener":
                 # Setting up variables
@@ -451,75 +278,7 @@ def main():
                 # Get dates for the past year
 
                 if st.button("Check"):
-
-                    tickers = ti.tickers_sp500()
-                    tickers = [ticker.replace(".", "-") for ticker in tickers]
-                    index_name = '^GSPC'
-                    start_date = start_date
-                    end_date = end_date
-                    exportList = pd.DataFrame(columns=['Stock', "RS_Rating", "50 Day MA", "150 Day Ma", "200 Day MA", "52 Week Low", "52 week High"])
-
-                    # Fetching S&P 500 index data
-                    index_df = yf.download(index_name, start_date, end_date)
-                    index_df['Percent Change'] = index_df['Adj Close'].pct_change()
-                    index_return = index_df['Percent Change'].cumprod().iloc[-1]
-
-                    # Identifying top performing stocks
-                    returns_multiples = []
-                    for ticker in tickers:
-                        # Download stock data
-                        df = yf.download(ticker, start_date, end_date)
-                        #df = yf.download(ticker, start_date, end_date)
-                        df['Percent Change'] = df['Adj Close'].pct_change()
-                        stock_return = df['Percent Change'].cumprod().iloc[-1]
-                        returns_multiple = round(stock_return / index_return, 2)
-                        returns_multiples.append(returns_multiple)
-                        time.sleep(1)
-
-                    # Creating a DataFrame for top 30% stocks
-                    rs_df = pd.DataFrame({'Ticker': tickers, 'Returns_multiple': returns_multiples})
-                    rs_df['RS_Rating'] = rs_df['Returns_multiple'].rank(pct=True) * 100
-                    top_stocks = rs_df[rs_df['RS_Rating'] >= rs_df['RS_Rating'].quantile(0.70)]['Ticker']
-
-                    # Applying Minervini's criteria
-                    for stock in top_stocks:
-                        try:
-                            df = pd.read_csv(f'{stock}.csv', index_col=0)
-                            df['SMA_50'] = df['Adj Close'].rolling(window=50).mean()
-                            df['SMA_150'] = df['Adj Close'].rolling(window=150).mean()
-                            df['SMA_200'] = df['Adj Close'].rolling(window=200).mean()
-                            current_close = df['Adj Close'].iloc[-1]
-                            low_52_week = df['Low'].rolling(window=260).min().iloc[-1]
-                            high_52_week = df['High'].rolling(window=260).max().iloc[-1]
-                            rs_rating = rs_df[rs_df['Ticker'] == stock]['RS_Rating'].iloc[0]
-
-                            # Minervini conditions
-                            conditions = [
-                                current_close > df['SMA_150'].iloc[-1] > df['SMA_200'].iloc[-1],
-                                df['SMA_150'].iloc[-1] > df['SMA_200'].iloc[-20],
-                                current_close > df['SMA_50'].iloc[-1],
-                                current_close >= 1.3 * low_52_week,
-                                current_close >= 0.75 * high_52_week
-                            ]
-
-                            if all(conditions):
-                                exportList = exportList.append({
-                                    'Stock': stock, 
-                                    "RS_Rating": rs_rating,
-                                    "50 Day MA": df['SMA_50'].iloc[-1], 
-                                    "150 Day Ma": df['SMA_150'].iloc[-1], 
-                                    "200 Day MA": df['SMA_200'].iloc[-1], 
-                                    "52 Week Low": low_52_week, 
-                                    "52 week High": high_52_week
-                                }, ignore_index=True)
-
-                        except Exception as e:
-                            print(f"Could not gather data on {stock}: {e}")
-
-                    # Exporting the results
-                    exportList.sort_values(by='RS_Rating', ascending=False, inplace=True)
-                    st.write(exportList)
-                    #exportList.to_csv("ScreenOutput.csv")
+                    minervini_screener(start_date, end_date)
 
             if options == "Pricing Alert Email":
                 # Email credentials from environment variables
