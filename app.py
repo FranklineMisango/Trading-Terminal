@@ -200,6 +200,23 @@ from StockData.trading_view_recommendations import tool_trading_view_recommendat
 #Main tools for stock Analysis
 from StockAnalysis.backtest_all_indicators import tool_backtest_all_indicators, norm_backtest_all_indicators
 from StockAnalysis.capm_analysis import tool_capm_analysis, norm_capm_analysis
+from StockAnalysis.earnings_sentiment_analysis import tool_sentiment_analysis, norm_sentiment_analysis
+from StockAnalysis.estimating_returns import tool_get_stock_returns, norm_get_stock_returns
+from StockAnalysis.kelly_criterion import tool_kelly_criterion, norm_kelly_criterion
+from StockAnalysis.intrinsic_analysis import tool_intrinsic_analysis, norm_intrinsic_analysis
+from StockAnalysis.ma_backtesting import tool_ma_backtesting, norm_ma_backtesting
+from StockAnalysis.ols_regression import tool_ols_regression, norm_ols_regression
+from StockAnalysis.perfomance_risk_analysis import tool_perfomance_risk_analysis, norm_perfomance_risk_analysis
+from StockAnalysis.risk_return_analysis import tool_risk_return_analysis, norm_risk_return_analysis
+from StockAnalysis.seasonal_stock_analysis import tool_seasonal_stock_analysis
+from StockAnalysis.sma_histogram import tool_sma_histogram, norm_sma_histogram
+from StockAnalysis.sp500_cot_analysis import tool_sp_cot_analysis, norm_sp_cot_analysis
+from StockAnalysis.sp500_valuation import tool_sp_500_valuation
+from StockAnalysis.stock_pivot_resistance import tool_plot_stock_pivot_resistance, norm_plot_stock_pivot_resistance
+from StockAnalysis.stock_profit_loss_analysis import tool_alculate_stock_profit_loss, norm_alculate_stock_profit_loss
+from StockAnalysis.stock_return_stastical_analysis import tool_analyze_stock_returns, norm_analyze_stock_returns
+from StockAnalysis.stock_returns import tool_view_stock_returns, norm_view_stock_returns
+from StockAnalysis.var_analysis import tool_calculate_var, norm_calculate_var
 
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
          tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
@@ -213,7 +230,14 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_high_dividend_yield,tool_pivots_calculator,tool_main_indicators,
          tool_scrape_top_winners, tool_stock_vwap, tool_stock_sms,
          tool_stock_earnings, tool_trading_view_intraday,tool_trading_view_recommendations,
-         tool_backtest_all_indicators, tool_capm_analysis]
+         tool_backtest_all_indicators, tool_capm_analysis, tool_sentiment_analysis,
+         tool_get_stock_returns,tool_kelly_criterion,tool_intrinsic_analysis,
+         tool_ma_backtesting, tool_ols_regression, tool_perfomance_risk_analysis,
+         tool_risk_return_analysis, tool_seasonal_stock_analysis,tool_sma_histogram,
+         tool_sp_cot_analysis,tool_sp_500_valuation,tool_plot_stock_pivot_resistance,
+         tool_alculate_stock_profit_loss,tool_alculate_stock_profit_loss,tool_view_stock_returns,
+         tool_calculate_var,tool_analyze_stock_returns
+         ]
 
 
 
@@ -365,14 +389,6 @@ def main():
                 if st.button("Analyze"):
                     twitter_tool = {}  # Replace with actual input required by the tool
                     tool_twitter_screener(twitter_tool)
-
-            if options=="Yahoo Recommendations":
-
-                st.success("This segment returns the stocks recommended by Yahoo Finance")
-                if st.button("Check Recommendations"):
-                    yahoo_tool = {}  # Replace with actual input required by the tool
-                    tool_yahoo_recommendation_pipeline(yahoo_tool)
-        
                     
         elif option == 'Stock Predictions':
 
@@ -830,36 +846,7 @@ def main():
                     norm_capm_analysis(ticker, start_date, end_date)
 
 
-
             if pred_option_analysis == "Earnings Sentiment Analysis":
-                # Retrieves earnings call transcript from API
-                # TODO identify the error with the API with key error 0
-                def get_earnings_call_transcript(api_key, company, quarter, year):
-                    url = f'https://financialmodelingprep.com/api/v3/earning_call_transcript/{company}?quarter={quarter}&year={year}&apikey={api_key}'
-                    response = requests.get(url)
-                    return response.json()[0]['content']
-
-                # Performs sentiment analysis on the transcript.
-                def analyze_sentiment(transcript):
-                    sentiment_call = TextBlob(transcript)
-                    return sentiment_call
-
-                # Counts the number of positive, negative, and neutral sentences.
-                def count_sentiments(sentiment_call):
-                    positive, negative, neutral = 0, 0, 0
-                    all_sentences = []
-
-                    for sentence in sentiment_call.sentences:
-                        polarity = sentence.sentiment.polarity
-                        if polarity < 0:
-                            negative += 1
-                        elif polarity > 0:
-                            positive += 1
-                        else:
-                            neutral += 1
-                        all_sentences.append(polarity)
-
-                    return positive, negative, neutral, np.array(all_sentences)
 
                 st.success("This segment allows us to get The sentiments of a company's earnings")
                 ticker = st.text_input("Enter the ticker you want to test")
@@ -876,65 +863,10 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                    api_key = API_FMPCLOUD
-                    company = ticker
-
-                    # Get transcript and perform sentiment analysis
-                    transcript = get_earnings_call_transcript(api_key, company, 3, 2020)
-                    sentiment_call = analyze_sentiment(transcript)
-
-                    # Count sentiments and calculate mean polarity
-                    positive, negative, neutral, all_sentences = count_sentiments(sentiment_call)
-                    mean_polarity = all_sentences.mean()
-
-                    # Print results
-                    st.write(f"Earnings Call Transcript for {company}:\n{transcript}\n")
-                    st.write(f"Overall Sentiment: {sentiment_call.sentiment}")
-                    st.write(f"Positive Sentences: {positive}, Negative Sentences: {negative}, Neutral Sentences: {neutral}")
-                    st.write(f"Average Sentence Polarity: {mean_polarity}")
-
-                    # Print very positive sentences
-                    print("\nHighly Positive Sentences:")
-                    for sentence in sentiment_call.sentences:
-                        if sentence.sentiment.polarity > 0.8:
-                            st.write(sentence)
+                    norm_sentiment_analysis(ticker, start_date, end_date)
 
             if pred_option_analysis == "Estimating Returns":
 
-                # Fetches stock data and calculates annual returns.
-                def get_stock_returns(ticker, start_date, end_date):
-                    stock_data = yf.download(ticker,start_date, end_date)
-                    stock_data = stock_data.reset_index()
-                    open_prices = stock_data['Open'].tolist()
-                    open_prices = open_prices[::253]  # Annual data, assuming 253 trading days per year
-                    df_returns = pd.DataFrame({'Open': open_prices})
-                    df_returns['Return'] = df_returns['Open'].pct_change()
-                    return df_returns.dropna()
-
-                # Plots the normal distribution of returns.
-                def plot_return_distribution(returns, ticker):
-                    # Calculate mean and standard deviation
-                    mean, std = np.mean(returns), np.std(returns)
-                    
-                    # Create x values
-                    x = np.linspace(min(returns), max(returns), 100)
-                    
-                    # Calculate probability density function values
-                    y = norm.pdf(x, mean, std)
-                    
-                    # Create interactive plot with Plotly
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Normal Distribution'))
-                    fig.update_layout(title=f'Normal Distribution of Returns for {ticker.upper()}',
-                                    xaxis_title='Returns',
-                                    yaxis_title='Frequency')
-                    st.plotly_chart(fig)
-
-                # Estimates the probability of returns falling within specified bounds.
-                def estimate_return_probability(returns, lower_bound, higher_bound):
-                    mean, std = np.mean(returns), np.std(returns)
-                    prob = round(norm(mean, std).cdf(higher_bound) - norm(mean, std).cdf(lower_bound), 4)
-                    return prob
                 st.success("This segment allows us to get The returns of a company and see whether it would be between 2 and 3 for a specified period")
                 ticker = st.text_input("Enter the ticker you want to test")
                 if ticker:
@@ -950,17 +882,7 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                    stock_ticker = ticker
-                    higher_bound, lower_bound = 0.3, 0.2
-
-
-                    # Retrieve and process stock data
-                    df_returns = get_stock_returns(stock_ticker, start_date, end_date)
-                    plot_return_distribution(df_returns['Return'], stock_ticker)
-
-                    # Estimate probability
-                    prob = estimate_return_probability(df_returns['Return'], lower_bound, higher_bound)
-                    st.write(f'The probability of returns falling between {lower_bound} and {higher_bound} for {stock_ticker.upper()} is: {prob}')
+                   norm_get_stock_returns(ticker, start_date, end_date)
                     
             if pred_option_analysis == "Kelly Criterion":
                 st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
@@ -978,33 +900,7 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                    # Define stock symbol and time frame for analysis
-                    symbol = ticker
-
-                    # Download stock data using yfinance package
-                    stock_data = yf.download(symbol, start=start_date, end=end_date)
-
-                    # Calculate daily returns and drop rows with missing data
-                    stock_data['Returns'] = stock_data['Adj Close'].pct_change()
-                    stock_data.dropna(inplace=True)
-
-                    # Display the first few rows of the data for verification
-                    st.write(stock_data.head())
-
-                    # Calculate Kelly Criterion
-                    # Extract positive (wins) and negative (losses) returns
-                    wins = stock_data['Returns'][stock_data['Returns'] > 0]
-                    losses = stock_data['Returns'][stock_data['Returns'] <= 0]
-
-                    # Calculate win ratio and win-loss ratio
-                    win_ratio = len(wins) / len(stock_data['Returns'])
-                    win_loss_ratio = np.mean(wins) / np.abs(np.mean(losses))
-
-                    # Apply Kelly Criterion formula
-                    kelly_criterion = win_ratio - ((1 - win_ratio) / win_loss_ratio)
-
-                    # Print the Kelly Criterion percentage
-                    st.write('Kelly Criterion: {:.3f}%'.format(kelly_criterion * 100))
+                    norm_kelly_criterion(ticker, start_date, end_date)
 
             if pred_option_analysis == "Intrinsic Value analysis":
                 st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
@@ -1022,105 +918,7 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                # Set options for pandas display
-                    pd.set_option('float_format', '{:f}'.format)
-
-                    # API and stock configuration
-                    base_url = "https://financialmodelingprep.com/api/v3/"
-                    apiKey = "demo"  # Note: Demo API only works for AAPL stock
-                    ticker = 'AAPL'
-                    current_price = yf.download(ticker)['Adj Close'][-1]
-
-                    # Function to retrieve JSON data from URL
-                    def json_data(url):
-                        response = urlopen(url)
-                        data = response.read().decode("utf-8")
-                        return json.loads(data)
-
-                    # Retrieve financial statements
-                    def get_financial_statements():
-                        # Income statement
-                        income = pd.DataFrame(json_data(f'{base_url}income-statement/{ticker}?apikey={apiKey}'))
-                        income = income.set_index('date').apply(pd.to_numeric, errors='coerce')
-
-                        # Cash flow statement
-                        cash_flow = pd.DataFrame(json_data(f'{base_url}cash-flow-statement/{ticker}?apikey={apiKey}'))
-                        cash_flow = cash_flow.set_index('date').apply(pd.to_numeric, errors='coerce')
-
-                        # Balance sheet
-                        balance_sheet = pd.DataFrame(json_data(f'{base_url}balance-sheet-statement/{ticker}?apikey={apiKey}'))
-                        balance_sheet = balance_sheet.set_index('date').apply(pd.to_numeric, errors='coerce')
-
-                        return income, cash_flow, balance_sheet
-
-                    income, cash_flow, balance_sheet = get_financial_statements()
-
-                    # Retrieve and process metrics from finviz
-                    def get_finviz_data(ticker):
-                        url = f"http://finviz.com/quote.ashx?t={ticker}"
-                        headers = {'User-Agent': 'Mozilla/5.0'}
-                        soup = BeautifulSoup(requests.get(url, headers=headers).content, features="lxml")
-
-                        metrics = ['Beta', 'EPS next 5Y', 'Shs Outstand']
-                        finviz_dict = {}
-                        for m in metrics:   
-                            finviz_dict[m] = soup.find(text=m).find_next(class_='snapshot-td2').text
-
-                        # Process and convert metrics to appropriate formats
-                        for key, value in finviz_dict.items():
-                            if value[-1] in ['%', 'B', 'M']:
-                                value = float(value[:-1])
-                                if value[-1] == 'B':
-                                    value *= 1e9
-                                elif value[-1] == 'M':
-                                    value *= 1e6
-                            finviz_dict[key] = float(value)
-                        return finviz_dict
-
-                    finviz_data = get_finviz_data(ticker)
-                    beta = finviz_data['Beta']
-
-                    # Determine the discount rate based on beta
-                    discount = 7 + beta * 2.5
-                    if beta < 1:
-                        discount = 6
-
-                    # Calculate intrinsic value
-                    def calc_intrinsic_value(cash_flow, total_debt, liquid_assets, eps_growth_5Y, eps_growth_6Y_to_10Y, eps_growth_11Y_to_20Y, shs_outstanding, discount):   
-                        eps_growth_5Y /= 100
-                        eps_growth_6Y_to_10Y /= 100
-                        eps_growth_11Y_to_20Y /= 100
-                        discount /= 100
-
-                        cf_list = []
-                        for year in range(1, 21):
-                            growth_rate = eps_growth_5Y if year <= 5 else eps_growth_6Y_to_10Y if year <= 10 else eps_growth_11Y_to_20Y
-                            cash_flow *= (1 + growth_rate)
-                            discounted_cf = cash_flow / ((1 + discount)**year)
-                            cf_list.append(discounted_cf)
-
-                        intrinsic_value = (sum(cf_list) - total_debt + liquid_assets) / shs_outstanding
-                        return intrinsic_value
-
-                    intrinsic_value = calc_intrinsic_value(cash_flow.iloc[-1]['freeCashFlow'],
-                                                        balance_sheet.iloc[-1]['totalDebt'],
-                                                        balance_sheet.iloc[-1]['cashAndShortTermInvestments'],
-                                                        finviz_data['EPS next 5Y'],
-                                                        finviz_data['EPS next 5Y'] / 2,
-                                                        np.minimum(finviz_data['EPS next 5Y'] / 2, 4),
-                                                        finviz_data['Shs Outstand'],
-                                                        discount)
-
-                    # Calculate deviation from intrinsic value
-                    percent_from_intrinsic_value = round((1 - current_price / intrinsic_value) * 100, 2)
-
-                    # Display data in a DataFrame
-                    data = {
-                        'Attributes': ['Intrinsic Value', 'Current Price', 'Intrinsic Value % from Price', 'Free Cash Flow', 'Total Debt', 'Cash and ST Investments', 'EPS Growth 5Y', 'EPS Growth 6Y to 10Y', 'EPS Growth 11Y to 20Y', 'Discount Rate', 'Shares Outstanding'],
-                        'Values': [intrinsic_value, current_price, percent_from_intrinsic_value, cash_flow.iloc[-1]['freeCashFlow'], balance_sheet.iloc[-1]['totalDebt'], balance_sheet.iloc[-1]['cashAndShortTermInvestments'], finviz_data['EPS next 5Y'], finviz_data['EPS next 5Y'] / 2, np.minimum(finviz_data['EPS next 5Y'] / 2, 4), discount, finviz_data['Shs Outstand']]
-                    }
-                    df = pd.DataFrame(data).set_index('Attributes')
-                    st.write(df)
+                    norm_intrinsic_analysis(ticker, start_date, end_date)
 
             if pred_option_analysis == "MA Backtesting":
                 st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
@@ -1141,100 +939,7 @@ def main():
                     end_date = st.date_input("End Date:")
                 
                 if st.button("Check"):
-                # Configure the stock symbol, moving average windows, initial capital, and date range
-                    symbol = ticker
-                    short_window = 20
-                    long_window = 50
-                    initial_capital = 10000  # Starting capital
-
-                    # Download stock data
-                    stock_data = yf.download(symbol, start=start_date, end=end_date)
-
-                    # Calculate short and long moving averages
-                    stock_data['Short_MA'] = stock_data['Adj Close'].rolling(window=short_window).mean()
-                    stock_data['Long_MA'] = stock_data['Adj Close'].rolling(window=long_window).mean()
-
-                    # Generate trading signals (1 = buy, 0 = hold/sell)
-                    stock_data['Signal'] = np.where(stock_data['Short_MA'] > stock_data['Long_MA'], 1, 0)
-                    stock_data['Positions'] = stock_data['Signal'].diff()
-
-                    # Calculate daily and cumulative portfolio returns
-                    stock_data['Daily P&L'] = stock_data['Adj Close'].diff() * stock_data['Signal']
-                    stock_data['Total P&L'] = stock_data['Daily P&L'].cumsum()
-                    stock_data['Positions'] *= 100  # Position size for each trade
-
-                    # Construct a portfolio to keep track of holdings and cash
-                    portfolio = pd.DataFrame(index=stock_data.index)
-                    portfolio['Holdings'] = stock_data['Positions'] * stock_data['Adj Close']       
-                    portfolio['Cash'] = initial_capital - portfolio['Holdings'].cumsum()
-                    portfolio['Total'] = portfolio['Cash'] + stock_data['Positions'].cumsum() * stock_data['Adj Close']
-                    portfolio['Returns'] = portfolio['Total'].pct_change()
-
-                    # Create matplotlib plot
-                    fig = plt.figure(figsize=(14, 10))
-                    ax1 = fig.add_subplot(2, 1, 1)
-                    stock_data[['Short_MA', 'Long_MA', 'Adj Close']].plot(ax=ax1, lw=2.)
-                    ax1.plot(stock_data.loc[stock_data['Positions'] == 1.0].index, stock_data['Short_MA'][stock_data['Positions'] == 1.0],'^', markersize=10, color='g', label='Buy Signal')
-                    ax1.plot(stock_data.loc[stock_data['Positions'] == -1.0].index, stock_data['Short_MA'][stock_data['Positions'] == -1.0],'v', markersize=10, color='r', label='Sell Signal')
-                    ax1.set_title(f'{symbol} Moving Average Crossover Strategy')
-                    ax1.set_ylabel('Price in $')
-                    ax1.grid()
-                    ax1.legend()
-
-                    # Convert matplotlib figure to Plotly figure
-                    plotly_fig = go.Figure()
-
-                    # Adding stock data to Plotly figure
-                    for column in ['Short_MA', 'Long_MA', 'Adj Close']:
-                        plotly_fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[column], mode='lines', name=column))
-                        buy_signals = stock_data.loc[stock_data['Positions'] == 1.0]
-                        sell_signals = stock_data.loc[stock_data['Positions'] == -1.0]
-                        plotly_fig.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Short_MA'], mode='markers', marker=dict(symbol='triangle-up', size=10, color='green'), name='Buy Signal'))
-                        plotly_fig.add_trace(go.Scatter(x=sell_signals.index, y=sell_signals['Short_MA'], mode='markers', marker=dict(symbol='triangle-down', size=10, color='red'), name='Sell Signal'))
-
-                    # Set layout
-                    plotly_fig.update_layout(
-                        title=f'{symbol} Moving Average Crossover Strategy',
-                        xaxis_title='Date',
-                        yaxis_title='Price in $',
-                        legend=dict(x=0, y=1, traceorder='normal', font=dict(family='sans-serif', size=12, color='black')),
-                        height=600  # Adjust the height as needed
-                    )
-
-                    # Display Plotly figure using st.pyplot()
-                    st.plotly_chart(plotly_fig)
-
-                    # Subplot 1: Moving Average Crossover Strategy
-                    ax1 = fig.add_subplot(2, 1, 1)
-                    stock_data[['Short_MA', 'Long_MA', 'Adj Close']].plot(ax=ax1, lw=2.)
-                    ax1.plot(stock_data.loc[stock_data['Positions'] == 1.0].index, stock_data['Short_MA'][stock_data['Positions'] == 1.0],'^', markersize=10, color='g', label='Buy Signal')
-                    ax1.plot(stock_data.loc[stock_data['Positions'] == -1.0].index, stock_data['Short_MA'][stock_data['Positions'] == -1.0],'v', markersize=10, color='r', label='Sell Signal')
-                    ax1.set_title(f'{symbol} Moving Average Crossover Strategy')
-                    ax1.set_ylabel('Price in $')
-                    ax1.grid()
-                    ax1.legend()
-
-                    # Subplot 2: Portfolio Value
-                    ax2 = fig.add_subplot(2, 1, 2)
-                    portfolio['Total'].plot(ax=ax2, lw=2.)
-                    ax2.set_ylabel('Portfolio Value in $')
-                    ax2.set_xlabel('Date')
-                    ax2.grid()
-
-                    plotly_fig = go.Figure()
-                    line = ax2.get_lines()[0]  # Assuming there's only one line in the plot
-                    x = line.get_xdata()
-                    y = line.get_ydata()
-                    plotly_fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Portfolio Value Fluctuation in USD'))
-                    plotly_fig.update_layout(
-                        title=f'Portfolio Value in USD',
-                        xaxis_title='Date',
-                        yaxis_title=f'{ticker} Daily Returns',
-                        legend=dict(x=0, y=1, traceorder='normal', font=dict(family='sans-serif', size=12, color='black'))
-                    )
-                    
-                    # Display Plotly figure using st.pyplot()
-                    st.plotly_chart(plotly_fig)
+                    norm_ma_backtesting(ticker, start_date, end_date)
 
             if pred_option_analysis == "Ols Regression":
                 st.success("This segment allows us to determine the optimal size of our investment based on a series of bets or investments in order to maximize long-term growth of capital")
@@ -1252,60 +957,7 @@ def main():
                 
                 if st.button("Check"):
                     # Configure the stock symbol, start, and end dates for data
-                    stock = ticker
-
-                    # Fetch stock and S&P 500 data
-                    stock_data = yf.download(stock, start_date, end_date)['Close']
-                    sp500_data = yf.download('^GSPC',start_date, end_date)['Close']
-
-                    # Combine data into a single DataFrame and calculate monthly returns
-                    combined_data = pd.concat([stock_data, sp500_data], axis=1)
-                    combined_data.columns = [stock, 'S&P500']
-                    monthly_returns = combined_data.pct_change().dropna()
-
-                    # Define dependent and independent variables for regression
-                    X = monthly_returns['S&P500']  # Independent variable (S&P500 returns)
-                    y = monthly_returns[stock]  # Dependent variable (Stock returns)
-
-                    # Ordinary Least Squares (OLS) Regression using statsmodels
-                    X_sm = sm.add_constant(X)  # Adding a constant
-                    model = sm.OLS(y, X_sm)  # Model definition
-                    results = model.fit()  # Fit the model
-                    print(results.summary())  # Print the results summary
-
-                    # Linear Regression using scipy
-                    slope, intercept, r_value, p_value, std_err = stats.linregress(X, y)
-
-                    # Create matplotlib plot
-                    plt.figure(figsize=(14, 7))
-                    plt.scatter(X, y, alpha=0.5, label='Daily Returns')
-                    plt.plot(X, intercept + slope * X, color='red', label='Regression Line')
-                    plt.title(f'Regression Analysis: {stock} vs S&P 500')
-                    plt.xlabel('S&P 500 Daily Returns')
-                    plt.ylabel(f'{stock} Daily Returns')
-                    plt.legend()
-                    plt.grid(True)
-
-                    # Convert matplotlib figure to Plotly figure
-                    plotly_fig = go.Figure()
-                    plotly_fig.add_trace(go.Scatter(x=X, y=y, mode='markers', name='Daily Returns'))
-                    plotly_fig.add_trace(go.Scatter(x=X, y=intercept + slope * pd.Series(X), mode='lines', name='Regression Line'))
-
-                    plotly_fig.update_layout(
-                        title=f'Regression Analysis: {stock} vs S&P 500',
-                        xaxis_title='S&P 500 Daily Returns',
-                        yaxis_title=f'{stock} Daily Returns',
-                        legend=dict(x=0, y=1, traceorder='normal', font=dict(family='sans-serif', size=12, color='black'))
-                    )
-
-                    # Display Plotly figure using st.pyplot()
-                    st.plotly_chart(plotly_fig)
-
-                    # Calculate beta and alpha
-                    beta = slope
-                    alpha = intercept
-                    st.write(f'alpha (intercept) = {alpha:.4f}')
-                    st.write(f'beta (slope) = {beta:.4f}')
+                    norm_ols_regression(ticker, start_date, end_date)
 
             if pred_option_analysis == "Perfomance Risk Analysis":
                 st.success("This segment allows us to determine the perfomance risk of a ticker against S&P 500 using Alpha, beta and R squared")
@@ -1321,45 +973,9 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):
-                    index = '^GSPC'
-                    stock = ticker
-                    # Fetching data for the stock and S&P 500 index
-                    df_stock =yf.download(stock,start_date, end_date)
-                    df_index =yf.download(index,start_date, end_date)
-
-                    # Resampling the data to a monthly time series
-                    df_stock_monthly = df_stock['Adj Close'].resample('M').last()
-                    df_index_monthly = df_index['Adj Close'].resample('M').last()
-
-                    # Calculating monthly returns
-                    stock_returns = df_stock_monthly.pct_change().dropna()
-                    index_returns = df_index_monthly.pct_change().dropna()
-
-                    # Computing Beta, Alpha, and R-squared
-                    cov_matrix = np.cov(stock_returns, index_returns)
-                    beta = cov_matrix[0, 1] / cov_matrix[1, 1]
-                    alpha = np.mean(stock_returns) - beta * np.mean(index_returns)
-
-                    y_pred = alpha + beta * index_returns
-                    r_squared = 1 - np.sum((y_pred - stock_returns) ** 2) / np.sum((stock_returns - np.mean(stock_returns)) ** 2)
-
-                    # Calculating Volatility and Momentum
-                    volatility = np.std(stock_returns) * np.sqrt(12)  # Annualized volatility
-                    momentum = np.prod(1 + stock_returns.tail(12)) - 1  # 1-year momentum
-
-                    # Printing the results
-                    st.write(f'Beta: {beta:.4f}')
-                    st.write(f'Alpha: {alpha:.4f} (annualized)')
-                    st.write(f'R-squared: {r_squared:.4f}')
-                    st.write(f'Volatility: {volatility:.4f}')
-                    st.write(f'1-Year Momentum: {momentum:.4f}')
-
-                    # Calculating the average volume over the last 60 days
-                    average_volume = df_stock['Volume'].tail(60).mean()
-                    st.write(f'Average Volume (last 60 days): {average_volume:.2f}')
+                    norm_perfomance_risk_analysis(ticker, start_date, end_date)
                 
             if pred_option_analysis == "Risk/Returns Analysis":
-
                 st.success("This code allows us to see the contextual risk of related tickers")
                 col1, col2 = st.columns([2, 2])
                 with col1:
@@ -1384,416 +1000,15 @@ def main():
                 pred_option_analysis = st.selectbox("Select Analysis", ["Risk/Returns Analysis"])
                 selected_sector = st.selectbox('Select Sector', list(sectors.keys()))
                 if st.button("Start Analysis"):
-                    # Downloading and processing stock data
-                    df = pd.DataFrame()
-                    for symbol in sectors[selected_sector]:
-                        df[symbol] = yf.download(symbol, start_date, end_date)['Adj Close']
-                    # Dropping rows with missing values
-                    df = df.dropna()
-                    # Calculating percentage change in stock prices
-                    rets = df.pct_change(periods=3)
+                    norm_risk_return_analysis(sectors, selected_sector, start_date, end_date)
 
-                    # Creating correlation matrix heatmap
-                    corr = rets.corr()
-                    fig = go.Figure(data=go.Heatmap(
-                        z=corr.values,
-                        x=corr.index,
-                        y=corr.columns,
-                        colorscale='Blues'
-                    ))
-                    fig.update_layout(
-                        title="Correlation Matrix Heatmap",
-                        xaxis_title="Stock Symbols",
-                        yaxis_title="Stock Symbols"
-                    )
-                    st.plotly_chart(fig)
-
-                    # Plotting bar charts for risk and average returns
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(x=rets.columns, y=rets.std(), name='Risk (Std. Dev.)', marker_color='red'))
-                    fig.add_trace(go.Bar(x=rets.columns, y=rets.mean(), name='Average Returns', marker_color='blue'))
-                    fig.update_layout(
-                        title="Risk and Average Returns",
-                        xaxis_title="Stock Symbols",
-                        yaxis_title="Value",
-                        barmode='group'
-                    )
-                    st.plotly_chart(fig)
-
-                    # Stacked bar chart for risk vs return
-                    fig = go.Figure()
-                    for i, symbol in enumerate(sectors[selected_sector]):
-                        fig.add_trace(go.Bar(x=[symbol], y=[rets.mean()[i]], name='Average of Returns', marker_color='blue'))
-                        fig.add_trace(go.Bar(x=[symbol], y=[rets.std()[i]], name='Risk of Returns', marker_color='red'))
-                    fig.update_layout(
-                        title='Risk vs Average Returns',
-                        xaxis_title='Stock Symbols',
-                        yaxis_title='Value',
-                        barmode='stack'
-                    )
-                    st.plotly_chart(fig)
-
-                    # Scatter plot for expected returns vs risk
-                    fig = go.Figure()
-                    for i in range(len(rets.columns)):
-                        fig.add_trace(go.Scatter(x=rets.mean(), y=rets.std(), mode='markers', text=rets.columns))
-                        fig.update_layout(
-                            title='Risk vs Expected Returns',
-                            xaxis_title='Expected Returns',
-                            yaxis_title='Risk'
-                        )
-                        st.plotly_chart(fig)
-
-                    # Display table with risk vs expected returns
-                    risk_returns_table = pd.DataFrame({'Risk': rets.std(), 'Expected Returns': rets.mean()})
-                    st.write("Table: Risk vs Expected Returns")
-                    st.write(risk_returns_table)
             if pred_option_analysis == "Seasonal Stock Analysis":
                 st.write("This segment allows us to analyze the seasonal returns of s&p 500")
                 if st.button("Analyze"):
                     # Scrape a list of the S&P 500 components using your ticker function
-                    sp500_tickers = ti.tickers_sp500()
-                    threshold = 0.80
-                    # Upload a list of the S&P 500 components downloaded from Wikipedia using your ticker function
-                    df_sp500_tickers = pd.DataFrame(sp500_tickers, columns=["Symbol"])
-
-                    # Loops through the S&P 500 tickers, downloads the data from Yahoo and creates a DataFrame for each ticker.
-                    dfs = []
-                    for ticker in ti.tickers_sp500():
-                        yf_ticker = yf.Ticker(ticker)
-                        data = yf_ticker.history(period="max")
-                        data.reset_index(inplace=True)
-                        data.drop_duplicates(subset="Date", keep="first", inplace=True)
-                        data['Symbol'] = ticker
-                        dfs.append(data)
-
-                    # Concatenate all DataFrames into a single DataFrame
-                    df_combined = pd.concat(dfs, ignore_index=True)
-
-                    # Creates the dataframe container for the stats data.
-                    df_tradelist = pd.DataFrame(
-                        index=[],
-                        columns=[
-                            "my_ticker",
-                            "hold_per",
-                            "pct_uprows",
-                            "max_up_return",
-                            "min_up_return",
-                            "avg_up_return",
-                            "avg_down_return",
-                            "exp_return",
-                            "stdev_returns",
-                            "pct_downside",
-                            "worst_return",
-                            "least_pain_pt",
-                            "total_years",
-                            "max_consec_beat",
-                            "best_buy_date",
-                            "best_sell_date",
-                            "analyzed_years",
-                        ],
-                    )
-                    df_tradelist.head()
-
-                    # Separate out the date column into separate month, year and day values.
-                    def separate_date_column():
-                        global dfr
-                        dfr["Month"] = pd.DatetimeIndex(dfr["Date"]).month
-                        dfr["Day"] = pd.DatetimeIndex(dfr["Date"]).day
-                        dfr["Year"] = pd.DatetimeIndex(dfr["Date"]).year
-                        dfr["M-D"] = dfr["Month"].astype(str) + "-" + dfr["Day"].astype(str)
-                        pd.set_option("display.max_rows", len(dfr))
-
-                    # Pivot the table to show years across the top and Month-Day values in the first column on the left.
-                    def pivot_the_table():
-                        global dfr_pivot
-                        dfr_pivot = dfr.pivot(index="M-D", columns="Year", values="Returns")
-                        dfr_pivot.reset_index(level=0, inplace=True)
-                        dfr_pivot = pd.DataFrame(dfr_pivot)
-                        dfr_pivot.columns.name = "Index"
-                        dfr_pivot.fillna(method="ffill", inplace=True)
-
-                    # Add additional calculated columns to facilitate statistic calculations for each stock.
-                    def add_calculated_items():
-                        global dfr_pivot
-                        global lookback
-                        global start
-
-                        # The lookback figure is the number (must be an integer) of years back from last year that you want to include
-                        lookback = 20
-                        start = 1
-                        if lookback > len(dfr_pivot.columns) - 1:
-                            start = 1
-                        else:
-                            start = len(dfr_pivot.columns) - lookback
-                        dfr_pivot["YearCount"] = dfr_pivot.count(axis=1, numeric_only=True)
-                        dfr_pivot["Lookback"] = lookback
-                        dfr_pivot["UpCount"] = dfr_pivot[
-                            dfr_pivot.iloc[:, start: len(dfr_pivot.columns) - 2] > 0
-                        ].count(axis=1)
-                        dfr_pivot["DownCount"] = dfr_pivot[
-                            dfr_pivot.iloc[:, start: len(dfr_pivot.columns)] < 0
-                        ].count(axis=1)
-                        dfr_pivot["PctUp"] = dfr_pivot["UpCount"] / dfr_pivot["Lookback"]
-                        dfr_pivot["PctDown"] = dfr_pivot["DownCount"] / dfr_pivot["Lookback"]
-                        dfr_pivot["AvgReturn"] = dfr_pivot.iloc[:, start: len(dfr_pivot.columns) - 6].mean(
-                            axis=1
-                        )
-                        dfr_pivot["StDevReturns"] = dfr_pivot.iloc[
-                            :, start: len(dfr_pivot.columns) - 7
-                        ].std(axis=1)
-                        dfr_pivot["67PctDownside"] = dfr_pivot["AvgReturn"] - dfr_pivot["StDevReturns"]
-                        dfr_pivot["MaxReturn"] = dfr_pivot.iloc[:, start: len(dfr_pivot.columns) - 9].max(
-                            axis=1
-                        )
-                        dfr_pivot["MinReturn"] = dfr_pivot.iloc[:, start: len(dfr_pivot.columns) - 10].min(
-                            axis=1
-                        )
-
-                    # Calculate the trading statistics for the rolling holding periods for the stock.
-                    def calc_trading_stats():
-                        global interval
-                        global dfr_pivot
-                        global pct_uprows
-                        global max_up_return
-                        global min_up_return
-                        global avg_up_return
-                        global avg_down_return
-                        global exp_return
-                        global stdev_returns
-                        global pct_downside
-                        global worst_return
-                        global least_pain_pt
-                        global total_years
-                        global n_consec
-                        global max_n_consec
-                        global max_consec_beat
-                        global best_sell_date
-                        global best_buy_date
-                        global analyzed_years
-                        global lookback
-
-                        pct_uprows = (
-                            (
-                                dfr_pivot.loc[dfr_pivot["PctUp"] > threshold, "PctUp"].count()
-                                / dfr_pivot.loc[:, "PctUp"].count()
-                            )
-                            .astype(float)
-                            .round(4)
-                        )
-                        max_up_return = dfr_pivot.loc[dfr_pivot["PctUp"] > threshold, "MaxReturn"].max()
-                        min_up_return = dfr_pivot.loc[dfr_pivot["PctUp"] > threshold, "MinReturn"].min()
-                        avg_up_return = dfr_pivot.loc[dfr_pivot["PctUp"] > 0.5, "AvgReturn"].mean()
-                        avg_up_return = np.float64(avg_up_return).round(4)
-                        avg_down_return = dfr_pivot.loc[dfr_pivot["PctDown"] > 0.5, "AvgReturn"].mean()
-                        avg_down_return = np.float64(avg_down_return).round(4)
-                        exp_return = round(dfr_pivot["AvgReturn"].mean(), 4)
-                        stdev_returns = dfr_pivot["StDevReturns"].mean()
-                        stdev_returns = np.float64(stdev_returns).round(4)
-                        worst_return = dfr_pivot["MinReturn"].min()
-                        pct_downside = exp_return - stdev_returns
-                        pct_downside = np.float64(pct_downside).round(4)
-                        least_pain_pt = dfr_pivot.loc[dfr_pivot["PctUp"] > threshold, "67PctDownside"].max()
-                        total_years = dfr_pivot["YearCount"].max()
-                        analyzed_years = lookback
-                        n_consec = 0
-                        max_n_consec = 0
-
-                        for x in dfr_pivot["PctUp"]:
-                            if x > threshold:
-                                n_consec += 1
-                            else:  # check for new max, then start again from 1
-                                max_n_consec = max(n_consec, max_n_consec)
-                                n_consec = 1
-                        max_consec_beat = max_n_consec
-                        try:
-                            best_sell_date = dfr_pivot.loc[
-                                dfr_pivot["67PctDownside"] == least_pain_pt, "M-D"
-                            ].iloc[0]
-                        except:
-                            best_sell_date = "nan"
-                        try:
-                            row = (
-                                dfr_pivot.loc[dfr_pivot["M-D"] == best_sell_date, "M-D"].index[0] - interval
-                            )
-                            col = dfr_pivot.columns.get_loc("M-D")
-                            best_buy_date = dfr_pivot.iloc[row, col]
-                        except:
-                            best_buy_date = "nan"
-
-                    # Convert prices to holding period returns based on a specified number of trading days.
-                    def convert_prices_to_periods():
-                        global dfr
-                        global dperiods
-                        dfr = df.pct_change(periods=dperiods)
-                        dfr.reset_index(level=0, inplace=True)
-                        dfr.rename(columns={"Close": "Returns"}, inplace=True)
-                        dfr = dfr.round(4)
-                    # Reset the index and round the float values to 4 decimals.
-                    def sortbydate_resetindex_export():
-                        global dfr_pivot
-                        dfr_pivot["Date"] = "2000-" + dfr_pivot["M-D"].astype(str)
-                        dfr_pivot["Date"] = pd.to_datetime(dfr_pivot["Date"], infer_datetime_format=True)
-                        dfr_pivot.sort_values(by="Date", ascending=True, inplace=True)
-                        dfr_pivot.reset_index(inplace=True)
-                        dfr_pivot = dfr_pivot.round(4)
-                    # This module grabs each ticker file, transforms it, and calculates the statistics needed for a 90-day holding period.
-                    def calc_3month_returns():
-                        global dfr
-                        global dfr_pivot
-                        global df_tradelist
-                        global dfr_3mo
-                        global df_statsdata_3mo
-                        global threshold
-                        global hold_per
-                        global dperiods
-                        global interval
-                        dperiods = 60
-                        hold_per = "3 Mos"
-                        interval = 90
-                        convert_prices_to_periods()
-                        separate_date_column()
-                        pivot_the_table()
-                        add_calculated_items()
-                        sortbydate_resetindex_export()
-
-                        dfr_3mo = pd.DataFrame(dfr_pivot)
-                        calc_trading_stats()
-                        filter_and_append_stats()
-
-                        df_statsdata_3mo = df_statsdata.copy()
-
-
-                    # This module grabs each ticker file, transforms it, and calculates the statistics needed for a 60-day holding period.
-                    def calc_2month_returns():
-                        global dfr
-                        global dfr_pivot
-                        global df_tradelist
-                        global dfr_2mo
-                        global df_statsdata_2mo
-                        global threshold
-                        global hold_per
-                        global dperiods
-                        global interval
-                        dperiods = 40
-                        hold_per = "2 Mos"
-                        interval = 60
-                        convert_prices_to_periods()
-                        separate_date_column()
-                        pivot_the_table()
-                        add_calculated_items()
-                        sortbydate_resetindex_export()
-
-                        dfr_2mo = pd.DataFrame(dfr_pivot)
-                        calc_trading_stats()
-                        filter_and_append_stats()
-
-                        df_statsdata_2mo = df_statsdata.copy()
-
-
-                    # This module grabs each ticker file, transforms it, and calculates the statistics needed for a 30-day holding period.
-                    def calc_1month_returns():
-                        global dfr
-                        global dfr_pivot
-                        global df_tradelist
-                        global dfr_1mo
-                        global df_statsdata_1mo
-                        global threshold
-                        global hold_per
-                        global dperiods
-                        global interval
-                        dperiods = 20
-                        hold_per = "1 Mo"
-                        interval = 30
-                        convert_prices_to_periods(df)
-                        separate_date_column()
-                        pivot_the_table()
-                        add_calculated_items()
-                        sortbydate_resetindex_export()
-
-                        dfr_1mo = pd.DataFrame(dfr_pivot)
-                        calc_trading_stats()
-                        filter_and_append_stats()
-
-                        df_statsdata_1mo = df_statsdata.copy()
-
-                    # If the pct_uprows and history conditions are met, then create the array of stat values and append it to the recommended trade list.
-                    def filter_and_append_stats():
-                        global statsdata
-                        global df_statsdata
-                        global df_tradelist
-
-                        # Save the stats data separately to export to Excel for further research on each ticker if desired.
-                        statsdata = np.array(
-                            [
-                                my_ticker,
-                                hold_per,
-                                pct_uprows,
-                                max_up_return,
-                                min_up_return,
-                                avg_up_return,
-                                avg_down_return,
-                                exp_return,
-                                stdev_returns,
-                                pct_downside,
-                                worst_return,
-                                least_pain_pt,
-                                total_years,
-                                max_consec_beat,
-                                best_buy_date,
-                                best_sell_date,
-                                analyzed_years,
-                            ]
-                        )
-                        df_statsdata = pd.DataFrame(
-                            statsdata.reshape(-1, len(statsdata)),
-                            columns=[
-                                "my_ticker",
-                                "hold_per",
-                                "pct_uprows",
-                                "max_up_return",
-                                "min_up_return",
-                                "avg_up_return",
-                                "avg_down_return",
-                                "exp_return",
-                                "stdev_returns",
-                                "pct_downside",
-                                "worst_return",
-                                "least_pain_pt",
-                                "total_years",
-                                "max_consec_beat",
-                                "best_buy_date",
-                                "best_sell_date",
-                                "analyzed_years",
-                            ],
-                        )
-                        if pct_uprows > 0.1:
-                            if total_years > 9:
-                                df_tradelist = df_tradelist.append(
-                                    dict(zip(df_tradelist.columns, statsdata)), ignore_index=True
-                                )
-
-                    for index, ticker in df_sp500_tickers.iterrows():
-                        my_ticker = ticker["Symbol"]
-                        calc_1month_returns()
-                        calc_2month_returns()
-                        calc_3month_returns()
-                        filter_and_append_stats()
-
-                    # Make a copy and convert the trade list to a Pandas dataframe.
-                    df_tradelist = pd.DataFrame(df_tradelist)
-
-                    # Clean it up by removing rows with NaN's and infinity values and dropping duplicates.
-                    df_tradelist.replace("inf", np.nan, inplace=True)
-                    df_tradelist.dropna(inplace=True)
-                    df_tradelist = df_tradelist[~df_tradelist.max_up_return.str.contains("nan")]
-                    df_tradelist = df_tradelist[~df_tradelist.avg_down_return.str.contains("nan")]
-                    df_tradelist.sort_values(by=["pct_uprows"], ascending=False)
-                    df_tradelist.drop_duplicates(subset="my_ticker", keep="first", inplace=True)
-                    df_tradelist.tail(10)
-                    df_tradelist.head()
-
-
+                    seasonal_stock_analysis_tool = {}  # Replace with actual input required by the tool
+                    tool_seasonal_stock_analysis(seasonal_stock_analysis_tool)
+                   
         
             if pred_option_analysis == "SMA Histogram":
 
@@ -1810,301 +1025,26 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-                    stock = ticker
-                    # Fetch stock data
-                    df = yf.download(stock, start_date, end_date)
-
-                    # Calculate Simple Moving Average (SMA)
-                    sma = 50
-                    df['SMA' + str(sma)] = df['Adj Close'].rolling(window=sma).mean()
-                    
-                    # Calculate percentage change from SMA
-                    df['PC'] = ((df["Adj Close"] / df['SMA' + str(sma)]) - 1) * 100
-
-                    # Calculating statistics
-                    mean = df["PC"].mean()
-                    stdev = df["PC"].std()
-                    current = df["PC"].iloc[-1]
-                    yday = df["PC"].iloc[-2]
-
-                    # Histogram settings
-                    bins = np.arange(-100, 100, 1)
-
-                    # Plotting histogram
-                    fig = go.Figure()
-
-                    # Add histogram trace
-                    fig.add_trace(go.Histogram(x=df["PC"], histnorm='percent', nbinsx=len(bins), name='Count'))
-
-                    # Adding vertical lines for mean, std deviation, current and yesterday's percentage change
-                    for i in range(-3, 4):
-                        fig.add_shape(
-                            dict(type="line", x0=mean + i * stdev, y0=0, x1=mean + i * stdev, y1=100, line=dict(color="gray", dash="dash"),
-                                opacity=0.5 + abs(i)/6)
-                        )
-                    fig.add_shape(
-                        dict(type="line", x0=current, y0=0, x1=current, y1=100, line=dict(color="red"), name='Today')
-                    )
-                    fig.add_shape(
-                        dict(type="line", x0=yday, y0=0, x1=yday, y1=100, line=dict(color="blue"), name='Yesterday')
-                    )
-
-                    # Update layout
-                    fig.update_layout(
-                        title=f"{stock} - % From {sma} SMA Histogram since {start_date.year}",
-                        xaxis_title=f'Percent from {sma} SMA (bin size = 1)',
-                        yaxis_title='Percentage of Total',
-                        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-                    )
-
-                    st.plotly_chart(fig)
+                   tool_sma_histogram(start_date, end_date, ticker)
 
             if pred_option_analysis == "SP500 COT Sentiment Analysis":
-                st.success("This segment allows us to look at COT Sentiment analysis of tickers for the past 1 or more years")
-                    # Function to download and extract COT file
-                def download_and_extract_cot_file(url, file_name):
-                    # Download and extract COT file
-                    with urllib.request.urlopen(url) as response, open(file_name, 'wb') as out_file:
-                        shutil.copyfileobj(response, out_file)
-                    with zipfile.ZipFile(file_name) as zf:
-                        zf.extractall()
-
-                    # Download and process COT data for the last 5 years
+                st.success("This segment allows us to look at COT Sentiment analysis of tickers for the past 1 or more years")                
                 col1, col2 = st.columns([2, 2])
                 with col1:
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):
-                    this_year = end_date.year
-                    start_year = start_date.year
-                    frames = []
-                    for year in range(start_year, this_year):
-                        #TODO - fix the link CFTC link
-                        url = f'https://www.cftc.gov/files/dea/history/fut_fin_xls_{year}.zip'
-                        download_and_extract_cot_file(url, f'{year}.zip')
-                        os.rename('FinFutYY.xls', f'{year}.xls')
-
-                        data = pd.read_excel(f'{year}.xls')
-                        data = data.set_index('Report_Date_as_MM_DD_YYYY')
-                        data.index = pd.to_datetime(data.index)
-                        data = data[data['Market_and_Exchange_Names'] == 'E-MINI S&P 500 - CHICAGO MERCANTILE EXCHANGE']
-                        frames.append(data)
-
-                    # Concatenate yearly data frames
-                    df = pd.concat(frames)
-                    df.to_csv('COT_sp500_data.csv')
-
-                    # Read data for plotting
-                    df = pd.read_csv('COT_sp500_data.csv', index_col=0)
-                    df.index = pd.to_datetime(df.index)
-
-                    # Plotting Line Chart
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df['Pct_of_OI_Dealer_Long_All'], mode='lines', name='Dealer Long'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df['Pct_of_OI_Lev_Money_Long_All'], mode='lines', name='Leveraged Long'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df['Pct_of_OI_Dealer_Short_All'], mode='lines', name='Dealer Short'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df['Pct_of_OI_Lev_Money_Short_All'], mode='lines', name='Leveraged Short'))
-                    fig1.update_layout(title='Net Positions - Line Chart', xaxis_title='Date', yaxis_title='Percentage')
-                    st.plotly_chart(fig1)
-
-                    # Box Plot
-                    fig2 = go.Figure()
-                    fig2.add_trace(go.Box(y=df['Pct_of_OI_Dealer_Long_All'], name='Dealer Long'))
-                    fig2.add_trace(go.Box(y=df['Pct_of_OI_Dealer_Short_All'], name='Dealer Short'))
-                    fig2.add_trace(go.Box(y=df['Pct_of_OI_Lev_Money_Long_All'], name='Leveraged Money Long'))
-                    fig2.add_trace(go.Box(y=df['Pct_of_OI_Lev_Money_Short_All'], name='Leveraged Money Short'))
-                    fig2.update_layout(title='Distribution of Open Interest by Category', yaxis_title='Percentage')
-                    st.plotly_chart(fig2)
-
-                    filtered_df = df.loc[start_date:end_date]
-                    # Plotting Line Chart
-                    fig3 = go.Figure()
-                    fig3.add_trace(go.Scatter(x=filtered_df.index, y=filtered_df['Pct_of_OI_Dealer_Long_All'], mode='lines', name='Dealer Long'))
-                    fig3.add_trace(go.Scatter(x=filtered_df.index, y=filtered_df['Pct_of_OI_Lev_Money_Long_All'], mode='lines', name='Leveraged Long'))
-                    fig3.add_trace(go.Scatter(x=filtered_df.index, y=filtered_df['Pct_of_OI_Dealer_Short_All'], mode='lines', name='Dealer Short'))
-                    fig3.add_trace(go.Scatter(x=filtered_df.index, y=filtered_df['Pct_of_OI_Lev_Money_Short_All'], mode='lines', name='Leveraged Short'))
-                    fig3.update_layout(title='Net Positions - Line Chart', xaxis_title='Date', yaxis_title='Percentage')
-                    st.plotly_chart(fig3)
+                    tool_sp_cot_analysis(start_date,end_date)
 
             if pred_option_analysis == "SP500 Valuation":
                 if st.button("Check"):
                     # Load the S&P 500 data
                     #sp_df = pd.read_excel("http://www.stern.nyu.edu/~adamodar/pc/datasets/spearn.xls", sheet_name="Sheet1")
-                    sp_df = []
-                    for ticker in ti.tickers_sp500():
-                        yf_ticker = yf.Ticker(ticker)
-                        data = yf_ticker.history(period="max")
-                        data.reset_index(inplace=True)
-                        data.drop_duplicates(subset="Date", keep="first", inplace=True)
-                        data['Symbol'] = ticker
-                        sp_df.append(data)
-
-                    clean_df = sp_df
-                    # Clean the data
-                    '''
-                    clean_df = sp_df.drop([i for i in range(6)], axis=0)
-                    rename_dict = {}
-                    for i in sp_df.columns:
-                        rename_dict[i] = sp_df.loc[6, i]
-                    clean_df = clean_df.rename(rename_dict, axis=1)
-                    clean_df = clean_df.drop(6, axis=0)
-                    clean_df = clean_df.drop(clean_df.index[-1], axis=0)
-                    clean_df = clean_df.set_index("Year")
-                    '''
-                    # Calculate earnings and dividend growth rates
-                    clean_df["earnings_growth"] = clean_df["Earnings"] / clean_df["Earnings"].shift(1) - 1
-                    clean_df["dividend_growth"] = clean_df["Dividends"] / clean_df["Dividends"].shift(1) - 1
-
-                    # Calculate 10-year mean growth rates for earnings and dividends
-                    clean_df["earnings_10yr_mean_growth"] = clean_df["earnings_growth"].expanding(10).mean()
-                    clean_df["dividends_10yr_mean_growth"] = clean_df["dividend_growth"].expanding(10).mean()
-
-                    # Plot earnings growth rates and 10-year mean growth rates
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=clean_df.index, y=clean_df["earnings_growth"], mode='lines', name='Year over Year Earnings Growth'))
-                    fig.add_trace(go.Scatter(x=clean_df.index, y=clean_df["earnings_10yr_mean_growth"], mode='lines', name='Rolling 10 Year Mean'))
-                    fig.update_layout(title="Earnings Growth Rates", xaxis_title="Year", yaxis_title="Earnings Growth")
-                    st.plotly_chart(fig)
-
-                    # Base case valuation of S&P 500
-                    valuations = []
-
-                    # Slower recovery
-                    eps_growth_2020 = (11.88 + 17.76 + 25 + 25) / (34.95 + 35.08 + 33.99 + 35.72) - 1
-                    bad_eps_2020 = clean_df.iloc[-1]["Earnings"] * (1 + eps_growth_2020)
-                    eps_next = 24 * 4
-                    eps_growth = [0, 0.15, 0.22, 0.20, 0.16, 0.13, 0.11, 0.09, 0.08, 0.08]
-
-                    bad_df = pd.DataFrame()
-                    bad_df["earnings"] = (np.array(eps_growth) + 1).cumprod() * eps_next
-                    bad_df["dividends"] = 0.50 * bad_df["earnings"]
-                    bad_df["year"] = [i for i in range(2021, 2031)]
-                    bad_df.set_index("year", inplace=True)
-
-                    pv_dividends = 0
-                    for i in range(bad_df.shape[0]):
-                        pv_dividends += bad_df["dividends"].iloc[i] / (1 + 0.08) ** i
-
-                    terminal_value = (bad_df["dividends"].iloc[-1] * (1 + 0.04) / (0.08 - 0.04))
-                    valuations.append(pv_dividends + terminal_value / (1 + 0.08) ** 10)
-
-                    # Double dip
-                    eps_growth_2020 = (11.88 + 17.76 + 25 + 25) / (34.95 + 35.08 + 33.99 + 35.72) - 1
-                    worst_eps_2020 = clean_df.iloc[-1]["Earnings"] * (1 + eps_growth_2020)
-                    eps_next = 24 * 4
-                    eps_growth = [0, -0.1, 0, 0.25, 0.25, 0.15, 0.12, 0.10, 0.08, 0.08]
-
-                    worst_df = pd.DataFrame()
-                    worst_df["earnings"] = (np.array(eps_growth) + 1).cumprod() * eps_next
-                    worst_df["dividends"] = 0.50 * worst_df["earnings"]
-                    worst_df["year"] = [i for i in range(2021, 2031)]
-                    worst_df.set_index("year", inplace=True)
-
-                    pv_dividends = 0
-                    for i in range(worst_df.shape[0]):
-                        pv_dividends += worst_df["dividends"].iloc[i] / (1 + 0.08) ** i
-
-                    terminal_value = (worst_df["dividends"].iloc[-1] * (1 + 0.04) / (0.08 - 0.04))
-                    valuations.append(pv_dividends + terminal_value / (1 + 0.08) ** 10)
-
-                    # V-shaped EPS growth
-                    eps_growth_2020 = (11.88 + 17.76 + 28.27 + 31.78) / (34.95 + 35.08 + 33.99 + 35.72) - 1
-                    eps_2020 = clean_df.iloc[-1]["Earnings"] * (1 + eps_growth_2020)
-                    eps_next = 28.27 + 31.78 + 32.85 + 36.77
-                    eps_growth = [
-                        0,
-                        (clean_df.iloc[-1]["Earnings"]) / eps_next - 1,
-                        0.18,
-                        0.14,
-                        0.10,
-                        0.08,
-                        0.08,
-                        0.08,
-                        0.08,
-                        0.08,
-                    ]
-
-                    value_df = pd.DataFrame()
-                    value_df["earnings"] = (np.array(eps_growth) + 1).cumprod() * eps_next
-                    value_df["dividends"] = 0.50 * value_df["earnings"]
-                    value_df["year"] = [i for i in range(2021, 2031)]
-                    value_df.set_index("year", inplace=True)
-
-                    pv_dividends = 0
-                    for i in range(value_df.shape[0]):
-                        pv_dividends += value_df["dividends"].iloc[i] / (1 + 0.08) ** i
-
-                    terminal_value = (value_df["dividends"].iloc[-1] * (1 + 0.04) / (0.08 - 0.04))
-                    valuations.append(pv_dividends + terminal_value / (1 + 0.08) ** 10)
-
-                    # Interactive visualization of earnings scenarios
-                    earnings_scenarios = pd.DataFrame()
-                    earnings_scenarios["Actual"] = pd.concat([clean_df.tail(15)["Earnings"], pd.Series([eps_2020], index=[2020]), value_df["earnings"]], axis=0)
-                    earnings_scenarios["Base Estimate"] = pd.concat([clean_df.tail(15)["Earnings"] * 0, pd.Series([eps_2020], index=[2020]) * 0, value_df["earnings"]], axis=0)
-                    earnings_scenarios["Bad Estimate"] = pd.concat([clean_df.tail(15)["Earnings"] * 0, pd.Series([bad_eps_2020], index=[2020]) * 0, bad_df["earnings"]], axis=0)
-                    earnings_scenarios["Worst Estimate"] = pd.concat([clean_df.tail(15)["Earnings"] * 0, pd.Series([worst_eps_2020], index=[2020]) * 0, worst_df["earnings"]], axis=0)
-
-                    fig = go.Figure()
-                    for column in earnings_scenarios.columns:
-                        fig.add_trace(go.Bar(x=earnings_scenarios.index, y=earnings_scenarios[column], name=column))
-
-                    fig.update_layout(title="S&P 500 Earnings Per Share Scenarios", xaxis_title="Year", yaxis_title="Earnings Per Share")
-                    st.plotly_chart(fig)
-
-                    # Interactive visualization of valuations
-                    valuation_data = pd.DataFrame(valuations, columns=["Valuation"], index=["Slower Recovery", "Double Dip", "V-shaped"])
-
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(x=valuation_data.index, y=valuation_data["Valuation"], name="Valuation", marker_color="blue"))
-
-                    fig.update_layout(title="S&P 500 Valuations", xaxis_title="Scenario", yaxis_title="Valuation")
-                    st.plotly_chart(fig)
+                    sp_500_valuation_tool = {}  # Replace with actual input required by the tool
+                    tool_sp_500_valuation(sp_500_valuation_tool)
 
             if pred_option_analysis == "Stock Pivot Resistance":
-                # Function to fetch and plot stock data with pivot points
-                def plot_stock_pivot_resistance(stock_symbol, start_date, end_date):
-                    df = yf.download(stock_symbol, start_date, end_date)
-                    # Plot high prices
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["High"], mode='lines', name='High'))
-                    
-                    # Initialize variables to find and store pivot points
-                    pivots = []
-                    dates = []
-                    counter = 0
-                    last_pivot = 0
-                    window_size = 10
-                    window = [0] * window_size
-                    date_window = [0] * window_size
-
-                    # Identify pivot points
-                    for i, high_price in enumerate(df["High"]):
-                        window = window[1:] + [high_price]
-                        date_window = date_window[1:] + [df.index[i]]
-
-                        current_max = max(window)
-                        if current_max == last_pivot:
-                            counter += 1
-                        else:
-                            counter = 0
-
-                        if counter == 5:
-                            last_pivot = current_max
-                            last_date = date_window[window.index(last_pivot)]
-                            pivots.append(last_pivot)
-                            dates.append(last_date)
-                    # Plot resistance levels for each pivot point
-                    for i in range(len(pivots)):
-                        time_delta = dt.timedelta(days=30)
-                        fig.add_shape(type="line",
-                                    x0=dates[i], y0=pivots[i],
-                                    x1=dates[i] + time_delta, y1=pivots[i],
-                                    line=dict(color="red", width=4, dash="solid")
-                                    )
-                    # Configure plot settings
-                    fig.update_layout(title=stock_symbol.upper() + ' Resistance Points', xaxis_title='Date', yaxis_title='Price')
-                    st.plotly_chart(fig)
             
                 st.write ("This segment allows us to analyze the pivot resistance points of a ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -2119,44 +1059,10 @@ def main():
                 years = end_date.year - start_date.year
                 st.success(f"years captured : {years}")
                 if st.button("Check"):
-                    plot_stock_pivot_resistance(ticker,start_date, end_date)
+                    norm_plot_stock_pivot_resistance(ticker, start_date, end_date)
 
 
             if pred_option_analysis == "Stock Profit/Loss Analysis":
-
-                def calculate_stock_profit_loss(symbol, start_date, end_date, initial_investment):
-                    # Download stock data
-                    dataset = yf.download(symbol, start_date, end_date)
-
-                    # Calculate the number of shares and investment values
-                    shares = initial_investment / dataset['Adj Close'][0]
-                    current_value = shares * dataset['Adj Close'][-1]
-
-                    # Calculate profit or loss and related metrics
-                    profit_or_loss = current_value - initial_investment
-                    percentage_gain_or_loss = (profit_or_loss / current_value) * 100
-                    percentage_returns = (current_value - initial_investment) / initial_investment * 100
-                    net_gains_or_losses = (dataset['Adj Close'][-1] - dataset['Adj Close'][0]) / dataset['Adj Close'][0] * 100
-                    total_return = ((current_value / initial_investment) - 1) * 100
-
-                    # Calculate profit and loss for each day
-                    dataset['PnL'] = shares * (dataset['Adj Close'].diff())
-
-                    # Visualize the profit and loss
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=dataset.index, y=dataset['PnL'], mode='lines', name='Profit/Loss'))
-                    fig.update_layout(title=f'Profit and Loss for {symbol} Each Day', xaxis_title='Date', yaxis_title='Profit/Loss')
-                    st.plotly_chart(fig)
-
-                    # Display financial analysis
-                    st.write(f"Financial Analysis for {symbol}")
-                    st.write('-' * 50)
-                    st.write(f"Profit or Loss: ${profit_or_loss:.2f}")
-                    st.write(f"Percentage Gain or Loss: {percentage_gain_or_loss:.2f}%")
-                    st.write(f"Percentage of Returns: {percentage_returns:.2f}%")
-                    st.write(f"Net Gains or Losses: {net_gains_or_losses:.2f}%")
-                    st.write(f"Total Returns: {total_return:.2f}%")
-
                 st.write ("This segment allows us to analyze the stock profit/loss returns")
                 ticker = st.text_input("Enter the ticker you want to monitor")
                 if ticker:
@@ -2171,45 +1077,9 @@ def main():
                 years = end_date.year - start_date.year
                 st.success(f"years captured : {years}")
                 if st.button("Check"):
-
-                    calculate_stock_profit_loss(ticker, start_date, end_date, portfolio_one)
+                    norm_alculate_stock_profit_loss(ticker, start_date, end_date, portfolio_one)
                 
             if pred_option_analysis == "Stock Return Statistical Analysis":
-                def analyze_stock_returns(symbol, start, end):
-                    # Download stock data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate daily returns
-                    returns = df['Adj Close'].pct_change().dropna()
-                    # Calculate and print various statistics
-                    mean_return = np.mean(returns)
-                    median_return = np.median(returns)
-                    mode_return = stats.mode(returns)[0] #work on the mean more [0][0]
-                    arithmetic_mean_return = returns.mean()
-                    geometric_mean_return = stats.gmean(returns)
-                    std_deviation = returns.std()
-                    harmonic_mean_return = len(returns) / np.sum(1.0/returns)
-                    skewness = stats.skew(returns)
-                    kurtosis = stats.kurtosis(returns)
-                    jarque_bera_results = stats.jarque_bera(returns)
-                    is_normal = jarque_bera_results[1] > 0.05
-
-                    st.write('Mean of returns:', mean_return)
-                    st.write('Median of returns:', median_return)
-                    st.write('Mode of returns:', mode_return)
-                    st.write('Arithmetic average of returns:', arithmetic_mean_return)
-                    st.write('Geometric mean of returns:', geometric_mean_return)
-                    st.write('Standard deviation of returns:', std_deviation)
-                    st.write('Harmonic mean of returns:', harmonic_mean_return)
-                    st.write('Skewness:', skewness)
-                    st.write('Kurtosis:', kurtosis)
-                    st.write("Jarque-Bera p-value:", jarque_bera_results[1])
-                    st.write('Are the returns normal?', is_normal)
-
-                    # Histogram of returns
-                    hist_fig = px.histogram(returns, nbins=30, title=f'Histogram of Returns for {symbol.upper()}')
-                    st.plotly_chart(hist_fig)
-
                 st.write ("This segment allows you to view stock returns using some statistcal methods")
                 ticker = st.text_input("Enter the ticker you want to monitor")
                 if ticker:
@@ -2223,33 +1093,10 @@ def main():
                 years = end_date.year - start_date.year
                 st.success(f"years captured : {years}")
                 if st.button("Check"):
-
-                    analyze_stock_returns(ticker, start_date, end_date)
+                    norm_analyze_stock_returns(ticker, start_date, end_date)
 
             if pred_option_analysis == "VAR Analysis":
-                def calculate_var(stock, start, end):
-                # Download data from Yahoo Finance
-                    df = yf.download(stock, start, end)
-                    
-                    # Calculate daily returns
-                    returns = df['Adj Close'].pct_change().dropna()
-
-                    # VaR using historical bootstrap method
-                    hist_fig = px.histogram(returns, nbins=40, title="Histogram of stock daily returns")
-                    st.plotly_chart(hist_fig)
-
-                    # VaR using variance-covariance method
-                    tdf, tmean, tsigma = stats.t.fit(returns)
-                    support = np.linspace(returns.min(), returns.max(), 100)
-                    pdf = stats.t.pdf(support, loc=tmean, scale=tsigma, df=tdf)
-                    cov_fig = go.Figure(go.Scatter(x=support, y=pdf, mode='lines', line=dict(color='red')))
-                    cov_fig.update_layout(title="VaR using variance-covariance method")
-                    st.plotly_chart(cov_fig)
-
-                    # Calculate VaR using normal distribution at 95% confidence level
-                    mean, sigma = returns.mean(), returns.std()
-                    VaR = stats.norm.ppf(0.05, mean, sigma)
-                    st.write("VaR using normal distribution at 95% confidence level:", VaR)
+               
 
                 st.write ("This segment allows you to view the average stock returns monthly")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -2268,41 +1115,7 @@ def main():
 
 
             if pred_option_analysis == "Stock Returns":
-                def view_stock_returns(symbol, num_years):
-                    # Fetch stock data for the given number of years
-                    start_date = dt.date.today() - dt.timedelta(days=365 * num_years)
-                    end_date = dt.date.today()
-                    dataset = yf.download(symbol, start_date, end_date)
-                    
-                    # Plot Adjusted Close Price over time
-                    fig_adj_close = go.Figure()
-                    fig_adj_close.add_trace(go.Scatter(x=dataset.index, y=dataset['Adj Close'], mode='lines', name='Adj Close'))
-                    fig_adj_close.update_layout(title=f'{symbol} Closing Price Chart', xaxis_title='Date', yaxis_title='Price', showlegend=True)
-
-                    # Monthly Returns Analysis
-                    monthly_dataset = dataset.asfreq('BM')
-                    monthly_dataset['Returns'] = dataset['Adj Close'].pct_change().dropna()
-                    monthly_dataset['Month_Name'] = monthly_dataset.index.strftime('%b-%Y')
-                    monthly_dataset['ReturnsPositive'] = monthly_dataset['Returns'] > 0
-                    colors = monthly_dataset['ReturnsPositive'].map({True: 'g', False: 'r'})
-                    
-                    fig_monthly_returns = px.bar(monthly_dataset, x=monthly_dataset.index, y='Returns', color=colors,
-                                                labels={'x': 'Month', 'y': 'Returns'}, title='Monthly Returns')
-                    fig_monthly_returns.update_xaxes(tickvals=monthly_dataset.index, ticktext=monthly_dataset['Month_Name'], tickangle=45)
-
-                    # Yearly Returns Analysis
-                    yearly_dataset = dataset.asfreq('BY')
-                    yearly_dataset['Returns'] = dataset['Adj Close'].pct_change().dropna()
-                    yearly_dataset['ReturnsPositive'] = yearly_dataset['Returns'] > 0
-                    colors_year = yearly_dataset['ReturnsPositive'].map({True: 'g', False: 'r'})
-                    
-                    fig_yearly_returns = px.bar(yearly_dataset, x=yearly_dataset.index.year, y='Returns', color=colors_year,
-                                                labels={'x': 'Year', 'y': 'Returns'}, title='Yearly Returns')
-
-                    # Show the interactive plots
-                    st.plotly_chart(fig_adj_close)
-                    st.plotly_chart(fig_monthly_returns)
-                    st.plotly_chart(fig_yearly_returns)
+                
 
                 st.write ("This segment allows you to view the average stock returns yearly")
                 ticker = st.text_input("Enter the ticker you want to monitor")
