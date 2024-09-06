@@ -171,16 +171,26 @@ from StockFinder.Yahoo_recommendations import tool_yahoo_recommendation_pipeline
 
 #Main tools for stock predictions
 from StockPredictions.time_series_arima import tool_arima_time_series, arima_time_series
-
+from StockPredictions.stock_recommendations import tool_stock_recommendations_using_moving_averages, normal_stock_recommendations_using_moving_averages
+from StockPredictions.stock_regression import tool_stock_regression, normal_stock_regression
+from StockPredictions.stock_probabilty import tool_stock_probability, norm_stock_probability
+from StockPredictions.stock_pca_analysis import tool_pca_analysis,norm_pca_analysis
+from StockPredictions.Technical_indicators_clustering import tool_technical_indicators_clustering, norm_technical_indicators_clustering
+from StockPredictions.lstm_predictions import tool_lstm_predictions, normal_lstm_predictions
+from StockPredictions.etf_graphical_lasso import tool_etf_graphical_lasso,normal_etf_graphical_lasso
+from StockPredictions.kmeans_clustering import tool_kmeans_clustering, normal_kmeans_clustering
 
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
          tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
          tool_miniverini_screener, tool_price_alerter, tool_trading_view_signals,
          tool_twitter_screener, tool_yahoo_recommendation_pipeline, tool_arima_time_series,
-        ]
+         tool_stock_recommendations_using_moving_averages,tool_stock_regression,
+         tool_stock_probability, tool_pca_analysis, tool_technical_indicators_clustering,
+         tool_lstm_predictions, tool_etf_graphical_lasso,tool_kmeans_clustering]
 
 
-#Multimodial agent bot configuration
+
+# Multimodial agent bot configuration
 from openai import OpenAI
 from langchain import hub
 from langchain.agents import AgentExecutor, create_tool_calling_agent
@@ -342,6 +352,7 @@ def main():
             pred_option = st.selectbox('Make a choice', ['sp500 PCA Analysis','Arima_Time_Series','Stock Probability Analysis','Stock regression Analysis',
                                                         'Stock price predictions','Technical Indicators Clustering', 'LSTM Predictions', 'ETF Graphical Lasso', 'Kmeans Clustering', 
                                                         'ETF Graphical Lasso', 'Kmeans Clustering'])
+            
             if pred_option == "Arima_Time_Series":
                 st.success("This segment allows you to Backtest using Arima")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -372,90 +383,8 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-                    # Set plot size
-                    rcParams['figure.figsize'] = 20, 10
+                    normal_stock_recommendations_using_moving_averages(ticker, start_date, end_date)
 
-                    # Download historical data for Google stock
-                    data = yf.download(ticker, start_date, end_date)
-
-                    # Moving Average and other calculations
-                    data['MA50'] = data['Close'].rolling(50).mean()
-                    data['MA200'] = data['Close'].rolling(200).mean()
-
-                    # Create a Plotly figure
-                    fig = go.Figure()
-
-                    # Add traces for close price, 50-day MA, and 200-day MA
-                    fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name=f'{ticker} Close Price'))
-                    fig.add_trace(go.Scatter(x=data.index, y=data['MA50'], mode='lines', name='50 Day MA'))
-                    fig.add_trace(go.Scatter(x=data.index, y=data['MA200'], mode='lines', name='200 Day MA'))
-
-                    # Update layout
-                    fig.update_layout(
-                        title=f'{ticker} Stock Prices with Moving Averages',
-                        xaxis_title='Date',
-                        yaxis_title='Price',
-                        legend=dict(x=0, y=1),
-                        margin=dict(l=0, r=0, t=30, b=0),
-                    )
-
-                    # Display the interactive chart using Streamlit
-                    st.plotly_chart(fig)        
-
-                    # Preprocessing for Linear Regression and k-Nearest Neighbors
-                    data.reset_index(inplace=True)
-                    data['Date'] = pd.to_datetime(data['Date'])
-                    data = add_datepart(data, 'Date')
-                    data.drop('Elapsed', axis=1, inplace=True)  # Remove Elapsed column
-
-                    # Scaling data to fit in graph
-                    scaler = MinMaxScaler(feature_range=(0, 1))
-                    data_scaled = scaler.fit_transform(data.drop(['Close'], axis=1))
-
-                    # Train-test split
-                    train_size = int(len(data) * 0.8)
-                    train_data = data_scaled[:train_size]
-                    test_data = data_scaled[train_size:]
-
-                    # Separate features and target variable
-                    X_train, y_train = train_data[:, 1:], train_data[:, 0]
-                    X_test, y_test = test_data[:, 1:], test_data[:, 0]
-
-                    # Initialize SimpleImputer to handle missing values
-                    imputer = SimpleImputer(strategy='mean')
-
-                    # Fit and transform the imputer on the training data
-                    X_train_imputed = imputer.fit_transform(X_train)
-
-                    # Transform the testing data using the fitted imputer
-                    X_test_imputed = imputer.transform(X_test)
-
-                    # Initialize and fit Linear Regression model on the imputed data
-                    lr_model = LinearRegression()
-                    lr_model.fit(X_train_imputed, y_train)
-                    lr_score = lr_model.score(X_test_imputed, y_test)
-                    lr_predictions = lr_model.predict(X_test_imputed)
-                    lr_printing_score = f"Linear Regression Score: {lr_score}"
-                    st.write(lr_printing_score)
-
-                # Create a Plotly figure
-                    fig = go.Figure()
-
-                    # Add traces for actual and predicted values
-                    fig.add_trace(go.Scatter(x=data.index[train_size:], y=y_test, mode='lines', name='Actual'))
-                    fig.add_trace(go.Scatter(x=data.index[train_size:], y=lr_predictions, mode='lines', name='Linear Regression Predictions'))
-
-                    # Update layout
-                    fig.update_layout(
-                        title='Actual vs. Predicted Prices (Linear Regression)',
-                        xaxis_title='Date',
-                        yaxis_title='Price',
-                        legend=dict(x=0, y=1),
-                        margin=dict(l=0, r=0, t=30, b=0),
-                    )
-
-                    # Display the interactive chart using Streamlit
-                    st.plotly_chart(fig)
             if pred_option == "Stock regression Analysis":
 
                 st.success("This segment allows you to predict the next day price of a stock")
@@ -471,37 +400,7 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-
-                    # Set parameters for stock data
-                    stock = ticker
-
-                    # Download historical data for the specified stock
-                    data = yf.download(stock, start_date, end_date)
-
-                    
-                    # Prepare the features (X) and target (y)
-                    X = data.drop(['Close'], axis=1)
-                    y = data['Adj Close']
-
-                    # Split the data into training and testing sets
-                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
-
-                    # Initialize and train a Linear Regression model
-                    regression_model = LinearRegression()
-                    regression_model.fit(X_train, y_train)
-
-                    # Output the intercept of the model
-                    intercept = regression_model.intercept_
-                    st.write(f"The intercept for our model is: {intercept}")
-
-                    # Evaluate the model's performance
-                    score = regression_model.score(X_test, y_test)
-                    st.write(f"The score for our model is: {score}")
-
-                    # Predict the next day's closing price using the latest data
-                    latest_data = data.tail(1).drop(['Close'], axis=1)
-                    next_day_price = regression_model.predict(latest_data)[0]
-                    st.write(f"The predicted price for the next trading day is: {next_day_price}")
+                    normal_stock_regression(start_date, end_date, ticker)
 
             if pred_option == "Stock Probability Analysis":
 
@@ -518,63 +417,7 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-
-                    # Download historical data for AMD stock
-                    data = yf.download(ticker, start_date, end_date)
-                    def calculate_prereq(values):
-                        # Calculate standard deviation and mean
-                        std = np.std(values)
-                        mean = np.mean(values)
-                        return std, mean
-
-                    def calculate_distribution(mean, std):
-                        # Create normal distribution with given mean and std
-                        return stats.norm(mean, std)
-
-                    def extrapolate(norm, x):
-                        # Probability density function
-                        return norm.pdf(x)
-
-                    def values_to_norm(dicts):
-                        # Convert lists of values to normal distributions
-                        for dictionary in dicts:
-                            for term in dictionary:
-                                std, mean = calculate_prereq(dictionary[term])
-                                dictionary[term] = calculate_distribution(mean, std)
-                        return dicts
-
-                    def compare_possibilities(dicts, x):
-                        # Compare normal distributions and return index of higher probability
-                        probabilities = []
-                        for dictionary in dicts:
-                            dict_probs = [extrapolate(dictionary[i], x[i]) for i in range(len(x))]
-                            probabilities.append(np.prod(dict_probs))
-                        return probabilities.index(max(probabilities))
-
-                    # Prepare data for increase and drop scenarios
-                    drop = {}
-                    increase = {}
-                    for day in range(10, len(data) - 1):
-                        previous_close = data['Close'][day - 10:day]
-                        ratios = [previous_close[i] / previous_close[i - 1] for i in range(1, len(previous_close))]
-                        if data['Close'][day + 1] > data['Close'][day]:
-                            for i, ratio in enumerate(ratios):
-                                increase[i] = increase.get(i, ()) + (ratio,)
-                        elif data['Close'][day + 1] < data['Close'][day]:
-                            for i, ratio in enumerate(ratios):
-                                drop[i] = drop.get(i, ()) + (ratio,)
-
-                    # Add new ratios for prediction
-                    new_close = data['Close'][-11:-1]
-                    new_ratios = [new_close[i] / new_close[i - 1] for i in range(1, len(new_close))]
-                    for i, ratio in enumerate(new_ratios):
-                        increase[i] = increase.get(i, ()) + (ratio,)
-
-                    # Convert ratio lists to normal distributions and make prediction
-                    dicts = [increase, drop]
-                    dicts = values_to_norm(dicts)
-                    prediction = compare_possibilities(dicts, new_ratios)
-                    st.write("Predicted Movement: ", "Increase" if prediction == 0 else "Drop")
+                    norm_stock_probability(start_date, end_date, ticker)
                     
             if pred_option == "sp500 PCA Analysis":
                 st.write("This segment analyzes the s&p 500 stocks and identifies those with high/low PCA weights")
@@ -583,82 +426,14 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
+                ticker = st.text_input("Enter the ticker you want to monitor")
+                if ticker:
+                    message = (f"Ticker captured : {ticker}")
+                    st.success(message)
 
                 if st.button("Check"):
-
-                    # Get tickers of S&P 500 stocks
-                    PCA_tickers =  ti.tickers_sp500()
-                    sp500_tickers = yf.download(PCA_tickers, start=start_date, end=end_date)
-                    tickers = ' '.join(PCA_tickers)
-
-                    # Set parameters and retrieve stock tickers
-                    num_years = 1
-                    start_date = datetime.date.today() - datetime.timedelta(days=365.25 * num_years)
-                    end_date = datetime.date.today()
-
-                    # Calculate log differences of prices for market index and stocks
-                    market_prices = yf.download(tickers='^GSPC', start=start_date, end=end_date)['Adj Close']
-                    market_log_returns = np.log(market_prices).diff()
-                    stock_prices = yf.download(tickers=tickers, start=start_date, end=end_date)['Adj Close']
-                    stock_log_returns = np.log(stock_prices).diff()
-
-                    # Check if DataFrame is empty
-                    # Check if DataFrame is empty
-                    if stock_log_returns.empty:
-                        st.error("No data found for selected tickers. Please try again with different dates or tickers.")
-                    else:
-                        # Plot daily returns of S&P 500 stocks
-                        st.write("## Daily Returns of S&P 500 Stocks")
-                        fig = go.Figure()
-                        for column in stock_log_returns.columns:
-                            fig.add_trace(go.Scatter(x=stock_log_returns.index, y=stock_log_returns[column], mode='lines', name=column))
-                        fig.update_layout(title='Daily Returns of S&P 500 Stocks', xaxis_title='Date', yaxis_title='Returns')
-                        st.plotly_chart(fig)
-
-                        # Plot cumulative returns of S&P 500 stocks
-                        st.write("## Cumulative Returns of S&P 500 Stocks")
-                        cumulative_returns = stock_log_returns.cumsum().apply(np.exp)
-                        fig = go.Figure()
-                        for column in cumulative_returns.columns:
-                            fig.add_trace(go.Scatter(x=cumulative_returns.index, y=cumulative_returns[column], mode='lines', name=column))
-                        fig.update_layout(title='Cumulative Returns of S&P 500 Stocks', xaxis_title='Date', yaxis_title='Cumulative Returns')
-                        st.plotly_chart(fig)
-
-                        # Perform PCA on stock returns
-                        pca = PCA(n_components=1)
-                        pca.fit(stock_log_returns.fillna(0))
-                        pc1 = pd.Series(index=stock_log_returns.columns, data=pca.components_[0])
-
-                        # Plot the first principal component
-                        st.write("## First Principal Component of S&P 500 Stocks")
-                        fig = go.Figure()
-                        fig.add_trace(go.Scatter(x=pc1.index, y=pc1.values, mode='lines', name='First Principal Component'))
-                        fig.update_layout(title='First Principal Component of S&P 500 Stocks', xaxis_title='Stocks', yaxis_title='PC1')
-                        st.plotly_chart(fig)
-
-                        # Calculate weights for PCA portfolio and compare with market index
-                        weights = abs(pc1) / sum(abs(pc1))
-                        pca_portfolio_returns = (weights * stock_log_returns).sum(axis=1)
-                        combined_returns = pd.concat([pca_portfolio_returns, market_log_returns], axis=1)
-                        combined_returns.columns = ['PCA Portfolio', 'S&P 500']
-                        cumulative_combined_returns = combined_returns.cumsum().apply(np.exp)
-
-                        # Plot PCA portfolio vs S&P 500
-                        st.write("## PCA Portfolio vs S&P 500")
-                        fig = go.Figure()
-                        for column in cumulative_combined_returns.columns:
-                            fig.add_trace(go.Scatter(x=cumulative_combined_returns.index, y=cumulative_combined_returns[column], mode='lines', name=column))
-                        fig.update_layout(title='PCA Portfolio vs S&P 500', xaxis_title='Date', yaxis_title='Cumulative Returns')
-                        st.plotly_chart(fig)
-
-                        # Plot stocks with most and least significant PCA weights
-                        st.write("## Stocks with Most and Least Significant PCA Weights")
-                        fig = go.Figure(data=[
-                            go.Bar(x=pc1.nsmallest(10).index, y=pc1.nsmallest(10), name='Most Negative PCA Weights', marker_color='red'),
-                            go.Bar(x=pc1.nlargest(10).index, y=pc1.nlargest(10), name='Most Positive PCA Weights', marker_color='green')
-                        ])
-                        fig.update_layout(title='Stocks with Most and Least Significant PCA Weights', xaxis_title='Stocks', yaxis_title='PCA Weights')
-                        st.plotly_chart(fig)
+                    norm_pca_analysis(start_date, end_date, ticker)
+                    
             
             if pred_option == "Technical Indicators Clustering":
                 #Fix the segmentation of all tickers on the graph
@@ -667,113 +442,15 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
+                
+                ticker = st.text_input("Enter the ticker you want to monitor")
+                if ticker:
+                    message = (f"Ticker captured : {ticker}")
+                    st.success(message)
 
                 if st.button("Check"):
-                    # Function to fetch S&P 100 tickers from Wikipedia
-                    def fetch_sp100_tickers():
-                        response = requests.get("https://en.wikipedia.org/wiki/S%26P_100")
-                        soup = BeautifulSoup(response.text, "lxml")
-                        table = soup.find("table", {"class": "wikitable sortable"})
-                        tickers = [row.findAll("td")[0].text.strip() for row in table.findAll("tr")[1:]]
-                        return tickers
+                    norm_technical_indicators_clustering(start_date, end_date, ticker)
 
-                    # Download historical data for each ticker
-                    def download_stock_data(tickers):
-                        all_data = pd.DataFrame()
-                        for ticker in tickers:
-                            try:
-                                data = yf.download(ticker, start=start_date, end=end_date)
-                                data['Symbol'] = ticker
-                                all_data = all_data.append(data)
-                            except Exception as e:
-                                print(f"Error downloading {ticker}: {e}")
-                        
-                        return all_data
-
-                    # Add technical indicators to the data
-                    def add_technical_indicators(data):
-                        # Example implementation for Simple Moving Average (SMA)
-                        data['SMA_5'] = data['Close'].rolling(window=5).mean()
-                        data['SMA_15'] = data['Close'].rolling(window=15).mean()
-                        # Additional technical indicators can be added here
-                        return data
-
-                    # Get list of S&P 100 tickers
-                    sp100_tickers = fetch_sp100_tickers()
-
-                    # Download stock data
-                    stock_data = download_stock_data(sp100_tickers)
-
-                    # Add technical indicators to the data
-                    stock_data_with_indicators = add_technical_indicators(stock_data)
-
-                    # Clustering based on technical indicators
-                    # This part of the script would involve applying clustering algorithms
-                    # such as KMeans or Gaussian Mixture Models to the technical indicators
-                    # Clustering based on technical indicators
-                    def perform_clustering(data, n_clusters=10):
-                        # Selecting only the columns with technical indicators
-                        indicators = data[['SMA_5', 'SMA_15']].copy()  # Add other indicators as needed
-                        
-                        # Impute missing values
-                        imputer = SimpleImputer(strategy='mean')  # You can choose another strategy if needed
-                        indicators = imputer.fit_transform(indicators)
-                        
-                        # KMeans Clustering
-                        kmeans = KMeans(n_clusters=n_clusters)
-                        kmeans.fit(indicators)
-                        data['Cluster'] = kmeans.labels_
-
-                        # Gaussian Mixture Model Clustering
-                        gmm = GaussianMixture(n_components=n_clusters)
-                        gmm.fit(indicators)
-                        data['GMM_Cluster'] = gmm.predict(indicators)
-
-                        return data
-
-                    # Perform clustering on the stock data
-                    clustered_data = perform_clustering(stock_data_with_indicators)
-                    st.write(clustered_data)
-
-                    # Create the figure
-                    fig = go.Figure()
-                    for cluster_num in clustered_data['Cluster'].unique():
-                        cluster = clustered_data[clustered_data['Cluster'] == cluster_num]
-                        for _, row in cluster.iterrows():
-                            fig.add_trace(go.Scatter(x=[row['SMA_5']], y=[row['SMA_15']], mode='markers', name=f'{row["Symbol"]} - Cluster {cluster_num}'))
-
-                    # Update the layout
-                    fig.update_layout(title='Stock Data Clusters', xaxis_title='SMA 5', yaxis_title='SMA 15')
-
-                    # Display the Plotly chart inline
-                    st.plotly_chart(fig)
-                
-                    # Analyze and interpret the clusters
-                    # This step involves understanding the characteristics of each cluster
-                    # and how they differ from each other based on the stock movement patterns they represent
-                    # Analyzing Clusters
-                    def analyze_clusters(data):
-                        # Group data by clusters
-                        grouped = data.groupby('Cluster')
-
-                        # Analyze clusters
-                        cluster_analysis = pd.DataFrame()
-                        for name, group in grouped:
-                            analysis = {
-                                'Cluster': name,
-                                'Average_SMA_5': group['SMA_5'].mean(),
-                                'Average_SMA_15': group['SMA_15'].mean(),
-                                # Add more analysis as needed
-                            }
-                            cluster_analysis = cluster_analysis.append(analysis, ignore_index=True)
-                        
-                        return cluster_analysis
-
-                    # Perform cluster analysis
-                    cluster_analysis = analyze_clusters(clustered_data)
-
-                    # Display analysis results
-                    st.write(cluster_analysis)
             if pred_option == "LSTM Predictions":
 
                 st.success("This segment allows you to predict the movement of a stock ticker")
@@ -790,81 +467,8 @@ def main():
 
                 if st.button("Check"):
                 # Prompt user to enter a stock ticker
-                    # Fetch stock data
-                    df = yf.download(ticker, start=start_date, end=end_date)
-                    data = df.filter(['Close'])
-                    dataset = data.values
-                    train_data_len = math.ceil(len(dataset) * .8)
-                    st.write(train_data_len)
+                    normal_lstm_predictions(start_date, end_date, ticker)
 
-                    # Scale data
-                    scaler = MinMaxScaler(feature_range=(0,1))
-                    scaled_data = scaler.fit_transform(dataset)
-
-                    # Create training data
-                    x_train, y_train = [], []
-                    for i in range(60, len(scaled_data)):
-                        x_train.append(scaled_data[i-60:i, 0])
-                        y_train.append(scaled_data[i, 0])
-                    x_train, y_train = np.array(x_train), np.array(y_train)
-
-                    st.write("Values of x_train:", x_train)
-
-                    # LSTM network
-                    model = Sequential([
-                        LSTM(50, return_sequences=True, input_shape=(x_train.shape[1], 1)),
-                        LSTM(50, return_sequences=False),
-                        Dense(25),
-                        Dense(1)
-                    ])
-                    model.compile(optimizer="adam", loss='mean_squared_error')
-
-                    # Train the model
-                    model.fit(x_train, y_train, batch_size=1, epochs=5)
-
-                    # Create testing dataset
-                    test_data = scaled_data[train_data_len - 60:, :]
-                    x_test = [test_data[i-60:i, 0] for i in range(60, len(test_data))]
-                    x_test = np.array(x_test)
-                    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
-
-                    # Predictions
-                    predictions = model.predict(x_test)
-                    predictions = scaler.inverse_transform(predictions)
-                    rmse = np.sqrt(mean_squared_error(data[train_data_len:].values, predictions))
-
-                    #The interactive graph
-                    fig = make_subplots()
-
-                    # Add traces for the training data
-                    fig.add_trace(go.Scatter(x=train.index, y=train['Close'], mode='lines', name='Train'))
-
-                    # Add traces for the validation data
-                    fig.add_trace(go.Scatter(x=valid.index, y=valid['Close'], mode='lines', name='Valid'))
-
-                    # Add traces for the predictions
-                    fig.add_trace(go.Scatter(x=valid.index, y=valid['Predictions'], mode='lines', name='Prediction'))
-
-                    # Update the layout
-                    fig.update_layout(
-                        title=f"{stock.upper()} Close Price",
-                        xaxis_title='Date',
-                        yaxis_title='Close Price (USD)',
-                        legend=dict(x=0, y=1, traceorder='normal'),
-                        hovermode='x'
-                    )
-
-                    # Show the figure
-                    st.plotly_chart(fig)
-
-                    # Predict next day price
-                    last_60_days = data[-60:].values
-                    last_60_days_scaled = scaler.transform(last_60_days)
-                    X_test_next = np.array([last_60_days_scaled])
-                    X_test_next = np.reshape(X_test_next, (X_test_next.shape[0], X_test_next.shape[1], 1))
-                    predicted_price_next_day = scaler.inverse_transform(model.predict(X_test_next))[0][0]
-                    print(f"The predicted price for the next trading day is: {predicted_price_next_day:.2f}")
-            
             if pred_option == "ETF Graphical Lasso":
                 st.success("This segment allows you to predict the relations of various ETFS")
                 number_of_years = st.text_input("How many years do you want to investigate the ETF correlations(min 10)")
@@ -878,65 +482,8 @@ def main():
                     num_years = int(number_of_years)
                     start_date = dt.datetime.now() - dt.timedelta(days=num_years * 365.25)
                     end_date = dt.datetime.now()
-
-                    # ETF symbols and their respective countries
-                    etfs = {"EWJ": "Japan", "EWZ": "Brazil", "FXI": "China",
-                            "EWY": "South Korea", "EWT": "Taiwan", "EWH": "Hong Kong",
-                            "EWC": "Canada", "EWG": "Germany", "EWU": "United Kingdom",
-                            "EWA": "Australia", "EWW": "Mexico", "EWL": "Switzerland",
-                            "EWP": "Spain", "EWQ": "France", "EIDO": "Indonesia",
-                            "ERUS": "Russia", "EWS": "Singapore", "EWM": "Malaysia",
-                            "EZA": "South Africa", "THD": "Thailand", "ECH": "Chile",
-                            "EWI": "Italy", "TUR": "Turkey", "EPOL": "Poland",
-                            "EPHE": "Philippines", "EWD": "Sweden", "EWN": "Netherlands",
-                            "EPU": "Peru", "ENZL": "New Zealand", "EIS": "Israel",
-                            "EWO": "Austria", "EIRL": "Ireland", "EWK": "Belgium"}
-
-                    # Retrieve adjusted close prices for ETFs
-                    symbols = list(etfs.keys())
-                    etf_data = yf.download(symbols, start=start_date, end=end_date)['Adj Close']
-
-                    # Convert prices to log returns
-                    log_returns = np.log1p(etf_data.pct_change()).dropna()
-
-                    # Replace NaN values with the mean of each column
-                    imputer = SimpleImputer(strategy='mean')
-                    log_returns_normalized = log_returns / log_returns.std(axis=0)
-                    log_returns_normalized_imputed = imputer.fit_transform(log_returns_normalized)
-                    edge_model = GraphicalLassoCV(cv=10)
-                    edge_model.fit(log_returns_normalized_imputed)
-
-                    # Ensure the shape of the precision matrix matches the number of ETF symbols
-                    precision_matrix = edge_model.precision_
-                    # Compare the number of ETF symbols with the precision matrix dimensions
-                    if precision_matrix.shape[0] != len(etfs):
-                        # If there's a mismatch, print additional information for debugging
-                        st.write("Mismatch between the number of ETF symbols and precision matrix dimensions")
-
-                    # Create DataFrame with appropriate indices and columns
-                    precision_df = pd.DataFrame(precision_matrix, index=etfs.keys(), columns=etfs.keys())
-
-                    fig = go.Figure(data=go.Heatmap(
-                        z=precision_df.values,
-                        x=list(etfs.values()),
-                        y=list(etfs.values()),
-                        colorscale='Viridis'))
-
-                    fig.update_layout(title="Precision Matrix Heatmap")
-                    st.plotly_chart(fig)
-
-                    # Prepare data for network graph
-                    links = precision_df.stack().reset_index()
-                    links.columns = ['ETF1', 'ETF2', 'Value']
-                    links_filtered = links[(abs(links['Value']) > 0.17) & (links['ETF1'] != links['ETF2'])]
-
-                    # Build and display the network graph
-                    st.set_option('deprecation.showPyplotGlobalUse', False)
-                    G = nx.from_pandas_edgelist(links_filtered, 'ETF1', 'ETF2')
-                    pos = nx.spring_layout(G, k=0.2 * 1 / np.sqrt(len(G.nodes())), iterations=20)
-                    nx.draw(G, pos=pos, with_labels=True, node_color='lightblue', edge_color='grey')
-                    st.pyplot()
-
+                    normal_etf_graphical_lasso(start_date, end_date,number_of_years)
+                    
             if pred_option == "Kmeans Clustering":
                 
                 st.success("This segment allows you to predict the price of a stock ticker using Kmeans clustering")
@@ -952,48 +499,7 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-                    # Load stock data from Dow Jones Index
-                    stocks = ti.tickers_dow()
-
-
-                    # Retrieve adjusted closing prices
-                    data = yf.download(stocks, start=start_date, end=end_date)['Close']
-
-                    # Calculate annual mean returns and variances
-                    annual_returns = data.pct_change().mean() * 252
-                    annual_variances = data.pct_change().std() * sqrt(252)
-
-                    # Combine returns and variances into a DataFrame
-                    ret_var = pd.concat([annual_returns, annual_variances], axis=1).dropna()
-                    ret_var.columns = ["Returns", "Variance"]
-
-                    # KMeans clustering
-                    X = ret_var.values
-                    sse = [KMeans(n_clusters=k).fit(X).inertia_ for k in range(2, 15)]
-
-                    # Convert range to list
-                    k_values = list(range(2, 15))
-
-                    # Plotting the elbow curve using Plotly
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=k_values, y=sse, mode='lines+markers'))
-                    fig1.update_layout(title="Elbow Curve", xaxis_title="Number of Clusters", yaxis_title="SSE")
-                    st.plotly_chart(fig1)
-
-                    # Apply KMeans with chosen number of clusters
-                    kmeans = KMeans(n_clusters=5).fit(X)
-
-                    # Plotting the clustering result using Plotly
-                    fig2 = go.Figure()
-                    fig2.add_trace(go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', marker=dict(color=kmeans.labels_, colorscale="Rainbow")))
-                    fig2.update_layout(title="KMeans Clustering of Stocks", xaxis_title="Annual Return", yaxis_title="Annual Variance")
-                    st.plotly_chart(fig2)
-
-                    # Creating a DataFrame with tickers and their cluster labels
-                    df = pd.DataFrame({'Stock': ret_var.index, 'Cluster': kmeans.labels_})
-                    df.set_index('Stock', inplace=True)
-
-                    st.write(df)
+                    normal_kmeans_clustering(start_date, end_date)
 
         elif option =='Stock Data':
             pred_option_data = st.selectbox("Choose a Data finding method:", ["Finviz Autoscraper", "High Dividend yield","Dividend History", "Fibonacci Retracement", 
