@@ -119,20 +119,23 @@ import math
 import mplfinance as mpl
 import subprocess
 import smtplib
+import alpaca_trade_api as alpaca
+
 #Env variables
 from dotenv import load_dotenv
 load_dotenv()
 
 
-EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
-API_FMPCLOUD = st.secrets["API_FMPCLOUD"]
-EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
-BASE_URL = st.secrets["BASE_URL"]
-API_KEY_ALPACA = st.secrets["API_KEY_ALPACA"]
-SECRET_KEY_ALPACA = st.secrets["SECRET_KEY_ALPACA"]
-ALPACA_CONFIG = st.secrets["ALPACA_CONFIG"]  #TODO 
-KRAKEN_CONFIG =     st.secrets["KRAKEN_CONFIG"]
+#secrets the application
+EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')
+API_FMPCLOUD = os.environ.get("API_FMPCLOUD")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+BASE_URL = os.environ.get("BASE_URL")
+API_KEY_ALPACA = os.environ.get("API_KEY_ALPACA")
+SECRET_KEY_ALPACA =os.environ.get("SECRET_KEY_ALPACA")
 
+KRAKEN_CONFIG =  "PASS"
+ALPACA_CONFIG = alpaca.REST(API_KEY_ALPACA, SECRET_KEY_ALPACA, base_url= BASE_URL, api_version = 'v2')
 
 
 #Al Trading recs
@@ -149,10 +152,10 @@ from lumibot.entities import TradingFee
 
 #Main tools
 from langchain_core.tools import tool
-from StockFinder.analyze_idb_rs_rating import analyze_idb_rs_rating
-from StockFinder.correlated_stocks import correlated_stocks
+from StockFinder.analyze_idb_rs_rating import analyze_idb_rs_rating, tool_analyze_idb_rs_rating
+from StockFinder.correlated_stocks import correlated_stocks, tool_correlated_stocks
 
-tools = [analyze_idb_rs_rating,correlated_stocks]
+tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks]
 
 
 #Multimodial agent bot configuration
@@ -162,8 +165,7 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 import getpass
 from langchain_openai import ChatOpenAI
 # Set your API key here
-api_key = st.secrets["Langsmith_key"]
-os.environ["LANGCHAIN_API_KEY"] = api_key
+api_key = os.environ.get("LANGSMITH_KEY")
 if 'conversation' not in st.session_state:
     st.session_state.conversation = ""
 
@@ -295,12 +297,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button('Start Analysis'):
-                    sp500_tickers = ti.tickers_sp500()
-                    sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
-                    sp500_df = yf.download(sp500_tickers, start=start_date, end=end_date)
-                    percentage_change_df = sp500_df['Adj Close'].pct_change()
-                    sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
-                    st.write(sp500_df)
+                    analyze_idb_rs_rating(start_date, end_date)
+
             if options == "Correlated Stocks":
                 col1, col2 = st.columns([2, 2])
                 with col1:
@@ -13091,7 +13089,7 @@ def main():
         with right_column:
             # Now you can use the key in your code
             prompt = hub.pull("hwchase17/openai-tools-agent")
-            llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=st.secrets["OPENAI_API"])
+            llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=os.environ.get("OPEN_AI_API"))
             agent = create_tool_calling_agent(llm, tools, prompt)
             agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
