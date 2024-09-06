@@ -7,8 +7,9 @@ import tickers as ti
 import pandas as pd
 
 
+#Tool for langchain_core : had problems parsing the date
 @tool
-def analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
+def tool_analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
     '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
     sp500_tickers = ti.tickers_sp500()
     sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
@@ -16,3 +17,14 @@ def analyze_idb_rs_rating(tool_start_date : dt.date, tool_end_date : dt.date):
     percentage_change_df = sp500_df['Adj Close'].pct_change()
     sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
     st.write(sp500_df)
+
+
+def analyze_idb_rs_rating(tool_start_date, tool_end_date):
+    '''This tool allows you to analyze the IDB RS Rating of the S&P 500 stocks'''
+    sp500_tickers = ti.tickers_sp500()
+    sp500_tickers = [ticker.replace(".", "-") for ticker in sp500_tickers]
+    sp500_df = yf.download(sp500_tickers, start=tool_start_date, end=tool_end_date)
+    percentage_change_df = sp500_df['Adj Close'].pct_change()
+    sp500_df = pd.concat([sp500_df, percentage_change_df.add_suffix('_PercentChange')], axis=1)
+    st.write(sp500_df)
+
