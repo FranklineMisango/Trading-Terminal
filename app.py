@@ -167,7 +167,6 @@ from StockFinder.Minervini_screener import tool_miniverini_screener, minervini_s
 from StockFinder.pricing_email_alerter import tool_price_alerter, normal_price_alerter
 from StockFinder.trading_view_signals import tool_trading_view_signals, norm_trading_view_signals
 from StockFinder.Twitter_Screener import tool_twitter_screener
-from StockFinder.Yahoo_recommendations import tool_yahoo_recommendation_pipeline
 
 #Main tools for stock predictions
 from StockPredictions.time_series_arima import tool_arima_time_series, arima_time_series
@@ -205,7 +204,7 @@ from StockAnalysis.capm_analysis import tool_capm_analysis, norm_capm_analysis
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
          tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
          tool_miniverini_screener, tool_price_alerter, tool_trading_view_signals,
-         tool_twitter_screener, tool_yahoo_recommendation_pipeline, tool_arima_time_series,
+         tool_twitter_screener, tool_arima_time_series,
          tool_stock_recommendations_using_moving_averages,tool_stock_regression,
          tool_stock_probability, tool_pca_analysis, tool_technical_indicators_clustering,
          tool_lstm_predictions, tool_etf_graphical_lasso,tool_kmeans_clustering,
