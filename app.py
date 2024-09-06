@@ -164,8 +164,11 @@ from StockFinder.fundamental_screener import tool_fundamental_screener
 from StockFinder.rsi_tickers import tool_rsi_tickers,normal_rsi_tickers
 from StockFinder.green_line_valuation import tool_green_line_valuation
 from StockFinder.Minervini_screener import tool_miniverini_screener, minervini_screener
+from StockFinder.pricing_email_alerter import tool_price_alerter, normal_price_alerter
 
-tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, tool_miniverini_screener]
+tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
+         tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
+         tool_miniverini_screener, tool_price_alerter]
 
 
 #Multimodial agent bot configuration
@@ -296,41 +299,10 @@ def main():
                 if email_address:
                     message_three = (f"Email address captured is {email_address}")
                     st.success(message_three)
-                # Email setup
-                msg = EmailMessage()
-                msg['Subject'] = f'Alert on {stock} from Frank & Co. Trading Terminal!'
-                msg['From'] = EMAIL_ADDRESS
-                msg['To'] = email_address # Set the recipient email address (this is mine for testing )
-
-                col1, col2 = st.columns([2, 2])
-                with col1:
-                    start_date = st.date_input("Start date:")
-                with col2:
-                    end_date = st.date_input("End Date:")
-                # Initialize alerted flag
-                alerted = False
 
                 if st.button("Check"):
-                    # Fetch stock data
-                    df = yf.download(stock, start_date, end_date)
-                    current_close = df["Adj Close"][-1]
-                    # Check if the target price is reached
-                    if current_close > target_price and not alerted:
-                        alerted = True
-                        message_three = f"Your Monitored {stock} has reached the alert price of {target_price}\nCurrent Price: {current_close}\nContact Our Trading Partners to Buy\n Automated Message by Trading Terminal"
-                        st.write(message_three)
-                        msg.set_content(message_three)
+                    normal_price_alerter(start_date, end_date, stock, email_address, target_price)
 
-                        # Send email
-                        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-                            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-                            smtp.send_message(msg)
-                            st.write("Email sent successfully, User Alerted.")
-                    else:
-                        print("No new alerts.")
-
-                    # Wait for 60 seconds before the next check
-                    time.sleep(60)
             if options=="Trading View Signals":
                 st.success("This program allows you to view the Trading view signals of a particular ticker")
                 col1, col2 = st.columns([2, 2])
