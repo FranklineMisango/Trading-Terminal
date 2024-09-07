@@ -218,6 +218,29 @@ from StockAnalysis.stock_return_stastical_analysis import tool_analyze_stock_ret
 from StockAnalysis.stock_returns import tool_view_stock_returns, norm_view_stock_returns
 from StockAnalysis.var_analysis import tool_calculate_var, norm_calculate_var
 
+#Main tools for Technical Indicators
+from TechnicalIndicators.exponential_weighted_moving_averages import tool_exponential_weighted_moving_averages, norm_exponential_weighted_moving_averages
+from TechnicalIndicators.ema_volume import tool_ema_volume, norm_ema_volume
+from TechnicalIndicators.ema import tool_ema, norm_ema
+from TechnicalIndicators.gann_lines_angles import tool_gann_lines_angles, norm_gann_lines_tracker
+from TechnicalIndicators.gmma import tool_gmma, norm_gmma
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
          tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
          tool_miniverini_screener, tool_price_alerter, tool_trading_view_signals,
@@ -236,7 +259,8 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_risk_return_analysis, tool_seasonal_stock_analysis,tool_sma_histogram,
          tool_sp_cot_analysis,tool_sp_500_valuation,tool_plot_stock_pivot_resistance,
          tool_alculate_stock_profit_loss,tool_alculate_stock_profit_loss,tool_view_stock_returns,
-         tool_calculate_var,tool_analyze_stock_returns
+         tool_calculate_var,tool_analyze_stock_returns, tool_exponential_weighted_moving_averages,
+         tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          ]
 
 
@@ -1111,7 +1135,7 @@ def main():
                 years = end_date.year - start_date.year
                 if st.button("Check"):
                     st.write(years)
-                    calculate_var(ticker, start_date, end_date)
+                    norm_calculate_var(ticker, start_date, end_date)
 
 
             if pred_option_analysis == "Stock Returns":
@@ -1130,7 +1154,7 @@ def main():
                 years = end_date.year - start_date.year
                 if st.button("Check"):
                     st.write(years)
-                    view_stock_returns(ticker, years)
+                    norm_view_stock_returns(ticker, years)
         
 
 
@@ -1230,61 +1254,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):
-                        symbol = ticker
-                        start = start_date
-                        end = end_date
-
-                        # Read data
-                        df = yf.download(symbol, start, end)
-
-                        n = 15
-                        df["EMA"] = (
-                            df["Adj Close"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
-                        )
-
-                        dfc = df.copy()
-                        dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-                        # dfc = dfc.dropna()
-                        dfc = dfc.reset_index()
-                        dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
-                        dfc["Date"] = pd.to_datetime(dfc["Date"])  # Convert Date column to datetime
-                        dfc["Date"] = dfc["Date"].apply(mdates.date2num)
-
-                        # Plotting Moving Average using Plotly
-                        trace_adj_close = go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close')
-                        trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA')
-                        layout_ma = go.Layout(title="Stock Closing Price of " + str(n) + "-Day Exponential Moving Average",
-                                            xaxis=dict(title="Date"), yaxis=dict(title="Price"))
-                        fig_ma = go.Figure(data=[trace_adj_close, trace_ema], layout=layout_ma)
-
-                        # Plotting Candlestick with EMA using Plotly
-                        dfc = df.copy()
-                        dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-
-                        trace_candlestick = go.Candlestick(x=dfc.index,
-                                                        open=dfc['Open'],
-                                                        high=dfc['High'],
-                                                        low=dfc['Low'],
-                                                        close=dfc['Close'],
-                                                        name='Candlestick')
-
-                        trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA')
-
-
-                        trace_volume = go.Bar(x=dfc.index, y=dfc['Volume'], marker=dict(color=dfc['VolumePositive'].map({True: 'green', False: 'red'})),
-                                            name='Volume')
-
-                        layout_candlestick = go.Layout(title="Stock " + symbol + " Closing Price",
-                                                    xaxis=dict(title="Date", type='date', tickformat='%d-%m-%Y'),
-                                                    yaxis=dict(title="Price"),
-                                                    yaxis2=dict(title="Volume", overlaying='y', side='right'))
-                        fig_candlestick = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout_candlestick)
-
-
-                        # Display Plotly figures in Streamlit
-                        st.plotly_chart(fig_ma)
-                        st.warning("Click candlestick, EMA or Volume to tinker with the graph")
-                        st.plotly_chart(fig_candlestick)                
+                           norm_ema(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "EMA Volume":
                 st.success("This program allows you to view EMA But focusing on Volume of a stock ")
@@ -1298,46 +1268,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):
-                        symbol = ticker
-                        start = start_date
-                        end = end_date
-
-                        # Read data
-                        df = yf.download(symbol, start, end)
-
-                        n = 15
-                        df["EMA"] = (
-                            df["Adj Close"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
-                        )
-
-                        df["EMA"] = df["Adj Close"].ewm(span=n, adjust=False).mean()  # Recalculate EMA
-                        df["VolumePositive"] = df["Open"] < df["Adj Close"]
-
-                        # Create traces
-                        trace_candlestick = go.Candlestick(x=df.index,
-                                                        open=df['Open'],
-                                                        high=df['High'],
-                                                        low=df['Low'],
-                                                        close=df['Close'],
-                                                        name='Candlestick')
-
-                        trace_volume = go.Bar(x=df.index, y=df['Volume'],
-                                            marker=dict(color=df['VolumePositive'].map({True: 'green', False: 'red'})),
-                                            name='Volume')
-
-                        trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA', line=dict(color='green'))
-
-                        # Create layout
-                        layout = go.Layout(title="Stock " + symbol + " Closing Price",
-                                        xaxis=dict(title="Date", type='date', tickformat='%d-%m-%Y'),
-                                        yaxis=dict(title="Price"),
-                                        yaxis2=dict(title="Volume", overlaying='y', side='right'))
-
-                        # Create figure
-                        fig = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout)
-
-                        # Display Plotly figure in Streamlit
-                        st.plotly_chart(fig)
+                        norm_ema_volume(start_date, end_date, ticker)
 
             if pred_option_Technical_Indicators == "Exponential Weighted Moving Average (EWMA)":
 
@@ -1352,47 +1283,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):
-                        symbol = ticker
-                        start = start_date
-                        end = end_date
-                        df = yf.download(symbol, start, end)
-
-                        n = 7
-                        df["EWMA"] = df["Adj Close"].ewm(ignore_na=False, min_periods=n - 1, span=n).mean()
-                        # Plotting Candlestick with EWMA
-                        fig_candlestick = go.Figure()
-
-                        # Plot candlestick
-                        fig_candlestick.add_trace(go.Candlestick(x=df.index,
-                                                                open=df['Open'],
-                                                                high=df['High'],
-                                                                low=df['Low'],
-                                                                close=df['Close'],
-                                                                name='Candlestick'))
-                        # Plot volume
-                        volume_color = df['Open'] < df['Close']  # Color based on close > open
-                        volume_color = volume_color.map({True: 'green', False: 'red'}) 
-                        fig_candlestick.add_trace(go.Bar(x=df.index,
-                                                        y=df['Volume'],
-                                                        marker_color=volume_color,  
-                                                        name='Volume'))
-
-                        # Plot EWMA
-                        fig_candlestick.add_trace(go.Scatter(x=df.index,
-                                                            y=df['EWMA'],
-                                                            mode='lines',
-                                                            name='EWMA',
-                                                            line=dict(color='red')))
-
-                        # Update layout
-                        fig_candlestick.update_layout(title="Stock " + symbol + " Closing Price",
-                                                    xaxis=dict(title="Date"),
-                                                    yaxis=dict(title="Price"),
-                                                    yaxis2=dict(title="Volume", overlaying='y', side='right'),
-                                                    legend=dict(yanchor="top", y=1, xanchor="left", x=0))
-
-                        # Display Plotly figure in Streamlit
-                        st.plotly_chart(fig_candlestick)
+                       norm_exponential_weighted_moving_averages(ticker, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "GANN lines angles":
 
@@ -1407,62 +1298,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Line Chart
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-
-                    # Add diagonal line
-                    x_lim = [df.index[0], df.index[-1]]
-                    y_lim = [df["Adj Close"].iloc[0], df["Adj Close"].iloc[-1]]
-                    fig_line.add_trace(go.Scatter(x=x_lim, y=y_lim, mode='lines', line=dict(color='red'), name='45 degree'))
-
-                    fig_line.update_layout(title="Stock of GANN Angles", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig_line)
-
-                    # GANN Angles
-                    angles = [82.5, 75, 71.25, 63.75, 45, 26.25, 18.75, 15, 7.5]
-
-                    fig_gann = go.Figure()
-                    fig_gann.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-
-                    for angle in angles:
-                        angle_radians = np.radians(angle)
-                        y_values = np.tan(angle_radians) * np.arange(len(df))
-                        fig_gann.add_trace(go.Scatter(x=df.index, y=y_values, mode='markers', name=str(angle)))
-
-                    fig_gann.update_layout(title="Stock of GANN Angles", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig_gann)
-
-                    # Candlestick with GANN Lines Angles
-                    fig_candlestick = go.Figure()
-
-                    # Candlestick
-                    fig_candlestick.add_trace(go.Candlestick(x=df.index,
-                                                            open=df['Open'],
-                                                            high=df['High'],
-                                                            low=df['Low'],
-                                                            close=df['Close'],
-                                                            name='Candlestick'))
-
-                    # GANN Angles
-                    for angle in angles:
-                        angle_radians = np.radians(angle)
-                        y_values = np.tan(angle_radians) * np.arange(len(df))
-                        fig_candlestick.add_trace(go.Scatter(x=df.index, y=y_values, mode='markers', name=str(angle)))
-
-                    # Volume
-                    fig_candlestick.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=np.where(df['Open'] < df['Close'], 'green', 'red')))
-
-                    fig_candlestick.update_layout(title="Stock Closing Price", xaxis_title="Date", yaxis_title="Price", 
-                                                yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))
-                    st.plotly_chart(fig_candlestick)
+                    norm_gann_lines_tracker(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "GMMA":
 
@@ -1477,91 +1313,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Short-term for EMA
-                    df["EMA3"] = df["Adj Close"].ewm(span=3, adjust=False).mean()
-                    df["EMA5"] = df["Adj Close"].ewm(span=5, adjust=False).mean()
-                    df["EMA8"] = df["Adj Close"].ewm(span=8, adjust=False).mean()
-                    df["EMA10"] = df["Adj Close"].ewm(span=10, adjust=False).mean()
-                    df["EMA12"] = df["Adj Close"].ewm(span=12, adjust=False).mean()
-                    df["EMA15"] = df["Adj Close"].ewm(span=15, adjust=False).mean()
-
-                    # Long-term for EMA
-                    df["EMA30"] = df["Adj Close"].ewm(span=30, adjust=False).mean()
-                    df["EMA35"] = df["Adj Close"].ewm(span=35, adjust=False).mean()
-                    df["EMA40"] = df["Adj Close"].ewm(span=40, adjust=False).mean()
-                    df["EMA45"] = df["Adj Close"].ewm(span=45, adjust=False).mean()
-                    df["EMA50"] = df["Adj Close"].ewm(span=50, adjust=False).mean()
-                    df["EMA60"] = df["Adj Close"].ewm(span=60, adjust=False).mean()
-
-                    EMA_Short = df[["EMA3", "EMA5", "EMA8", "EMA10", "EMA12", "EMA15"]]
-                    EMA_Long = df[["EMA30", "EMA35", "EMA40", "EMA45", "EMA50", "EMA60"]]
-
-                    # Short-term for SMA
-                    df["SMA3"] = df["Adj Close"].rolling(window=3).mean()
-                    df["SMA5"] = df["Adj Close"].rolling(window=5).mean()
-                    df["SMA8"] = df["Adj Close"].rolling(window=8).mean()
-                    df["SMA10"] = df["Adj Close"].rolling(window=10).mean()
-                    df["SMA12"] = df["Adj Close"].rolling(window=12).mean()
-                    df["SMA15"] = df["Adj Close"].rolling(window=15).mean()
-
-                    # Long-term for SMA
-                    df["SMA30"] = df["Adj Close"].rolling(window=30).mean()
-                    df["SMA35"] = df["Adj Close"].rolling(window=35).mean()
-                    df["SMA40"] = df["Adj Close"].rolling(window=40).mean()
-                    df["SMA45"] = df["Adj Close"].rolling(window=45).mean()
-                    df["SMA50"] = df["Adj Close"].rolling(window=50).mean()
-                    df["SMA60"] = df["Adj Close"].rolling(window=60).mean()
-
-                    SMA_Short = df[["SMA3", "SMA5", "SMA8", "SMA10", "SMA12", "SMA15"]]
-                    SMA_Long = df[["SMA30", "SMA35", "SMA40", "SMA45", "SMA50", "SMA60"]]
-
-                    # Plot EMA
-                    fig_ema = go.Figure()
-                    fig_ema.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    for col in EMA_Short.columns:
-                        fig_ema.add_trace(go.Scatter(x=df.index, y=EMA_Short[col], mode='lines', name=col, line=dict(color='blue')))
-                    for col in EMA_Long.columns:
-                        fig_ema.add_trace(go.Scatter(x=df.index, y=EMA_Long[col], mode='lines', name=col, line=dict(color='orange')))
-                    fig_ema.update_layout(title="Guppy Multiple Moving Averages of EMA", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig_ema)
-
-                    # Plot SMA
-                    fig_sma = go.Figure()
-                    fig_sma.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    for col in SMA_Short.columns:
-                        fig_sma.add_trace(go.Scatter(x=df.index, y=SMA_Short[col], mode='lines', name=col, line=dict(color='blue')))
-                    for col in SMA_Long.columns:
-                        fig_sma.add_trace(go.Scatter(x=df.index, y=SMA_Long[col], mode='lines', name=col, line=dict(color='orange')))
-                    fig_sma.update_layout(title="Guppy Multiple Moving Averages of SMA", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig_sma)
-
-                    st.warning("Untick the volume to view the candlesticks and the movement lines")
-
-                    # Candlestick with GMMA
-                    fig_candlestick = go.Figure()
-
-                    # Candlestick
-                    fig_candlestick.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name='Candlestick'))
-
-                    # Plot EMA on Candlestick
-                    for col in EMA_Short.columns:
-                        fig_candlestick.add_trace(go.Scatter(x=df.index, y=EMA_Short[col], mode='lines', name=col, line=dict(color='orange')))
-                    for col in EMA_Long.columns:
-                        fig_candlestick.add_trace(go.Scatter(x=df.index, y=EMA_Long[col], mode='lines', name=col, line=dict(color='blue')))
-
-                    # Volume
-                    fig_candlestick.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=np.where(df['Open'] < df['Close'], 'green', 'red')))
-
-                    fig_candlestick.update_layout(title="Stock Closing Price", xaxis_title="Date", yaxis_title="Price",
-                                                yaxis2=dict(title="Volume", overlaying='y', side='right', tickformat=',.0f'))  # Set tick format to not show in millions
-                    st.plotly_chart(fig_candlestick)
-
+                    norm_gmma(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Moving Average Convergence Divergence (MACD)":
                 st.success("This program allows you to view the GANN lines of a ticker")
