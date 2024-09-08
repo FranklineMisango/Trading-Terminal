@@ -8,6 +8,7 @@ import matplotlib.dates as mdates
 import numpy as np
 
 
+@tool
 def tool_gmma(start_date: dt.time, end_date: dt.time, ticker: str):
     ''' This tool plots the candlestick chart of a stock along with the Guppy Multiple Moving Averages (GMMA) of the stock's closing price.'''
     symbol = ticker

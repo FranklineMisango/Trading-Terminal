@@ -224,16 +224,13 @@ from TechnicalIndicators.ema_volume import tool_ema_volume, norm_ema_volume
 from TechnicalIndicators.ema import tool_ema, norm_ema
 from TechnicalIndicators.gann_lines_angles import tool_gann_lines_angles, norm_gann_lines_tracker
 from TechnicalIndicators.gmma import tool_gmma, norm_gmma
-
-
-
-
-
-
-
-
-
-
+from TechnicalIndicators.macd import tool_macd, norm_macd
+from TechnicalIndicators.mfi import tool_mfi, norm_mfi
+from TechnicalIndicators.ma_high_low import tool_ma_high_low, norm_ma_high_low
+from TechnicalIndicators.pvi import tool_pvi, norm_pvi
+from TechnicalIndicators.pvt import tool_pvt, norm_pvt
+from TechnicalIndicators.roc import tool_roc,norm_roc
+from TechnicalIndicators.roi import tool_roi, norm_roi
 
 
 
@@ -261,6 +258,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_alculate_stock_profit_loss,tool_alculate_stock_profit_loss,tool_view_stock_returns,
          tool_calculate_var,tool_analyze_stock_returns, tool_exponential_weighted_moving_averages,
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
+         tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi
          ]
 
 
@@ -1327,37 +1325,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                    norm_macd(start_date, end_date, ticker)
 
-                    df["macd"], df["macdsignal"], df["macdhist"] = ta.MACD(
-                        df["Adj Close"], fastperiod=12, slowperiod=26, signalperiod=9
-                    )
-                    df = df.dropna()
-                    df = add_all_ta_features(df, open="Open", high="High", low="Low", close="Close", volume="Volume")
-
-                    # Line Chart
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_hline(y=df["Adj Close"].mean(), line_dash="dash", line_color="red", name='Mean')
-
-                    # Volume
-                    fig_volume = go.Figure()
-                    fig_volume.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color=df['Volume'].map(lambda x: 'green' if x > 0 else 'red')))
-                    # MACD
-                    fig_macd = go.Figure()
-                    fig_macd.add_trace(go.Scatter(x=df.index, y=df["macd"], mode='lines', name='MACD'))
-                    fig_macd.add_trace(go.Scatter(x=df.index, y=df["macdsignal"], mode='lines', name='Signal'))
-                    fig_macd.add_trace(go.Bar(x=df.index, y=df["macdhist"], name='Histogram', marker_color=df['macdhist'].map(lambda x: 'green' if x > 0 else 'red')))
-
-                    st.plotly_chart(fig_line)
-                    st.plotly_chart(fig_volume)
-                    st.plotly_chart(fig_macd)
                 
             if pred_option_Technical_Indicators == "Money Flow Index (MFI)":
                 st.success("This program allows you to view the GANN lines of a ticker")
@@ -1371,88 +1340,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Money Flow Index (MFI)
-                    def calculate_mfi(high, low, close, volume, period=14):
-                        typical_price = (high + low + close) / 3
-                        raw_money_flow = typical_price * volume
-                        positive_flow = (raw_money_flow * (close > close.shift(1))).rolling(window=period).sum()
-                        negative_flow = (raw_money_flow * (close < close.shift(1))).rolling(window=period).sum()
-                        money_ratio = positive_flow / negative_flow
-                        mfi = 100 - (100 / (1 + money_ratio))
-                        return mfi
-
-                    df["MFI"] = calculate_mfi(df["High"], df["Low"], df["Close"], df["Volume"])    
-            
-                    # Plot interactive chart for closing price
-                    fig_close = go.Figure()
-                    fig_close.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", name="Close"))
-                    fig_close.update_layout(
-                        title="Interactive Chart for Closing Price",
-                        xaxis=dict(title="Date"),
-                        yaxis=dict(title="Price"),
-                        legend=dict(x=0, y=1),
-                    )
-
-                    # Find min and max price
-                    min_price = df["Close"].min()
-                    max_price = df["Close"].max()
-
-                    # Plot interactive chart for MFI
-                    fig_mfi = go.Figure()
-                    fig_mfi.add_trace(go.Scatter(x=df.index, y=df["MFI"], mode="lines", name="MFI"))
-                    fig_mfi.update_layout(
-                        title="Interactive Chart for Money Flow Index (MFI)",
-                        xaxis=dict(title="Date"),
-                        yaxis=dict(title="MFI"),
-                        legend=dict(x=0, y=1),
-                        shapes=[
-                            dict(
-                                type="line",
-                                x0=df.index[0],
-                                y0=min_price,
-                                x1=df.index[-1],
-                                y1=min_price,
-                                line=dict(color="blue", width=1, dash="dash"),
-                            ),
-                            dict(
-                                type="line",
-                                x0=df.index[0],
-                                y0=max_price,
-                                x1=df.index[-1],
-                                y1=max_price,
-                                line=dict(color="red", width=1, dash="dash"),
-                            ),
-                        ],
-                    )
-                    
-                    # Plot interactive chart
-                    fig_main = go.Figure()
-
-                    # Add closing price trace
-                    fig_main.add_trace(go.Scatter(x=df.index, y=df["Close"], mode="lines", name="Close"))
-
-                    # Add MFI trace
-                    fig_main.add_trace(go.Scatter(x=df.index, y=df["MFI"], mode="lines", name="MFI"))
-
-                    # Update layout
-                    fig_main.update_layout(
-                        title="Interactive Chart with Money Flow Index (MFI)",
-                        xaxis=dict(title="Date"),
-                        yaxis=dict(title="Price"),
-                        yaxis2=dict(title="MFI", overlaying="y", side="right"),
-                        legend=dict(x=0, y=1),
-                    )
-
-                    # Show interactive chart
-                    st.plotly_chart(fig_close)
-                    st.plotly_chart(fig_mfi)
-                    st.plotly_chart(fig_main) 
+                    norm_mfi(ticker, start_date, end_date)
 
 
             if pred_option_Technical_Indicators == "MA high low":
@@ -1467,38 +1355,10 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                   norm_ma_high_low(ticker, start_date, end_date)
 
-                    df["MA_High"] = df["High"].rolling(10).mean()
-                    df["MA_Low"] = df["Low"].rolling(10).mean()
-                    df = df.dropna()
 
-                    # Moving Average Line Chart
-                    fig1 = px.line(df, x=df.index, y=["Adj Close", "MA_High", "MA_Low"], title="Moving Average of High and Low for Stock")
-                    fig1.update_xaxes(title_text="Date")
-                    fig1.update_yaxes(title_text="Price")
-                    st.plotly_chart(fig1)
 
-                    # Candlestick with Moving Averages High and Low
-                    fig2 = go.Figure(data=[go.Candlestick(x=df.index,
-                                                        open=df['Open'],
-                                                        high=df['High'],
-                                                        low=df['Low'],
-                                                        close=df['Adj Close'])])
-
-                    fig2.add_trace(go.Scatter(x=df.index, y=df['MA_High'], mode='lines', name='MA High'))
-                    fig2.add_trace(go.Scatter(x=df.index, y=df['MA_Low'], mode='lines', name='MA Low'))
-
-                    fig2.update_layout(title="Candlestick with Moving Averages High and Low",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price")
-
-                    st.plotly_chart(fig2)
             if pred_option_Technical_Indicators == "Price Volume Trend Indicator (PVI)":
                 st.success("This program allows you to visualize the PVI of a ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1511,64 +1371,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date  
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    returns = df["Adj Close"].pct_change()
-                    vol_increase = df["Volume"].shift(1) < df["Volume"]
-                    pvi = pd.Series(data=np.nan, index=df["Adj Close"].index, dtype="float64")
-
-                    pvi.iloc[0] = 1000
-                    for i in range(1, len(pvi)):
-                        if vol_increase.iloc[i]:
-                            pvi.iloc[i] = pvi.iloc[i - 1] * (1.0 + returns.iloc[i])
-                        else:
-                            pvi.iloc[i] = pvi.iloc[i - 1]
-
-                    pvi = pvi.replace([np.inf, -np.inf], np.nan).fillna(1000)
-
-                    df["PVI"] = pd.Series(pvi)
-
-                    # Line Chart with PVI
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["PVI"], mode='lines', name='Positive Volume Index'))
-
-                    fig1.update_layout(title="Adj Close and Positive Volume Index (PVI) Over Time",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price/PVI")
-
-                    st.plotly_chart(fig1)
-
-                    # Candlestick with PVI
-                    dfc = df.copy()
-                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-                    dfc = dfc.reset_index()
-                    dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
-
-                    fig2 = go.Figure()
-
-                    # Candlestick chart
-                    fig2.add_trace(go.Candlestick(x=dfc['Date'],
-                                    open=dfc['Open'],
-                                    high=dfc['High'],
-                                    low=dfc['Low'],
-                                    close=dfc['Adj Close'], name='Candlestick'))
-
-                    # Volume bars
-                    fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
-
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["PVI"], mode='lines', name='Positive Volume Index', line=dict(color='green')))
-
-                    fig2.update_layout(title="Candlestick Chart with Positive Volume Index (PVI)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    xaxis_rangeslider_visible=False)
-
-                    st.plotly_chart(fig2)
+                   norm_pvi(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Positive Volume Trend (PVT)":
                 st.success("This program allows you to view the PVT trend of a ticker")
@@ -1582,55 +1385,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    pass
 
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Price Volume Trend (PVT)
-                    df["Momentum_1D"] = (df["Adj Close"] - df["Adj Close"].shift(1)).fillna(0)
-                    df["PVT"] = (df["Momentum_1D"] / df["Adj Close"].shift(1)) * df["Volume"]
-                    df["PVT"] = df["PVT"] - df["PVT"].shift(1)
-                    df["PVT"] = df["PVT"].fillna(0)
-
-                    # Line Chart with PVT
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["PVT"], mode='lines', name='Price Volume Trend'))
-
-                    fig1.update_layout(title="Adj Close and Price Volume Trend (PVT) Over Time",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price/PVT")
-
-                    st.plotly_chart(fig1)
-
-                    # Candlestick with PVT
-                    dfc = df.copy()
-                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-                    dfc = dfc.reset_index()
-                    dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
-
-                    fig2 = go.Figure()
-
-                    # Candlestick chart
-                    fig2.add_trace(go.Candlestick(x=dfc['Date'],
-                                    open=dfc['Open'],
-                                    high=dfc['High'],
-                                    low=dfc['Low'],
-                                    close=dfc['Adj Close'], name='Candlestick'))
-
-                    # Volume bars
-                    fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
-
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["PVT"], mode='lines', name='Price Volume Trend', line=dict(color='blue')))
-
-                    fig2.update_layout(title="Candlestick Chart with Price Volume Trend (PVT)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    xaxis_rangeslider_visible=False)
-
-                    st.plotly_chart(fig2)
 
             if pred_option_Technical_Indicators == "Rate of Change (ROC)":
                 st.success("This program allows you to view the ROC of a ticker")
@@ -1644,53 +1400,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Rate of Change (ROC)
-                    n = 12
-                    df["ROC"] = ((df["Adj Close"] - df["Adj Close"].shift(n)) / df["Adj Close"].shift(n)) * 100
-
-                    # Line Chart with ROC
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["ROC"], mode='lines', name='Rate of Change'))
-
-                    fig1.update_layout(title="Adj Close and Rate of Change (ROC) Over Time",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price/ROC")
-
-                    st.plotly_chart(fig1)
-
-                    # Candlestick with ROC
-                    dfc = df.copy()
-                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-                    dfc = dfc.reset_index()
-                    dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
-
-                    fig2 = go.Figure()
-
-                    # Candlestick chart
-                    fig2.add_trace(go.Candlestick(x=dfc['Date'],
-                                    open=dfc['Open'],
-                                    high=dfc['High'],
-                                    low=dfc['Low'],
-                                    close=dfc['Adj Close'], name='Candlestick'))
-
-                    # Volume bars
-                    fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
-
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["ROC"], mode='lines', name='Rate of Change', line=dict(color='blue')))
-
-                    fig2.update_layout(title="Candlestick Chart with Rate of Change (ROC)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    xaxis_rangeslider_visible=False)
-
-                    st.plotly_chart(fig2)
+                    norm_roc(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Return on Investment (ROI)":
                 st.success("This program allows you to view the ROI over time of a ticker")
@@ -1704,55 +1414,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Return on Investment (ROI)
-                    df["ROI"] = ((df["Adj Close"] - df["Adj Close"].shift(1)) / df["Adj Close"].shift(1) * 100)
-
-                    # Line Chart with ROI
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["ROI"], mode='lines', name='Return on Investment'))
-
-                    fig1.update_layout(title="Adj Close and Return on Investment (ROI) Over Time",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price/ROI")
-
-                    st.plotly_chart(fig1)
-
-                    # Candlestick with ROI
-                    dfc = df.copy()
-                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-                    dfc = dfc.reset_index()
-                    dfc["Date"] = pd.to_datetime(dfc["Date"])
-                    dfc["Date"] = dfc["Date"].apply(mdates.date2num)
-
-                    fig2 = go.Figure()
-
-                    # Candlestick chart
-                    fig2.add_trace(go.Candlestick(x=dfc['Date'],
-                                    open=dfc['Open'],
-                                    high=dfc['High'],
-                                    low=dfc['Low'],
-                                    close=dfc['Adj Close'], name='Candlestick'))
-
-                    # Volume bars
-                    fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
-
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["ROI"], mode='lines', name='Return on Investment', line=dict(color='red')))
-
-                    fig2.update_layout(title="Candlestick Chart with Return on Investment (ROI)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    xaxis_rangeslider_visible=False)
-
-                    st.plotly_chart(fig2)
-
+                    norm_roi(ticker, start_date, end_date)
                     
             if pred_option_Technical_Indicators == "Relative Strength Index (RSI)":
                 st.success("This program allows you to view the RSI over time of a ticker")
