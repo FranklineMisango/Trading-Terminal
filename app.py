@@ -231,11 +231,12 @@ from TechnicalIndicators.pvi import tool_pvi, norm_pvi
 from TechnicalIndicators.pvt import tool_pvt, norm_pvt
 from TechnicalIndicators.roc import tool_roc,norm_roc
 from TechnicalIndicators.roi import tool_roi, norm_roi
-
-
-
-
-
+from TechnicalIndicators.rsi import tool_rsi, norm_rsi
+from TechnicalIndicators.rsi_bollinger_bands import tool_rsi_bollinger_bands, norm_rsi_bollinger_bands
+from TechnicalIndicators.vwap import tool_vwap, norm_vwap
+from TechnicalIndicators.wma import tool_wma, norm_wma
+from TechnicalIndicators.wsma import tool_wsma, norm_wsma
+from TechnicalIndicators.z_score_indicator import tool_z_score, norm_z_score
 
 
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
@@ -258,7 +259,8 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_alculate_stock_profit_loss,tool_alculate_stock_profit_loss,tool_view_stock_returns,
          tool_calculate_var,tool_analyze_stock_returns, tool_exponential_weighted_moving_averages,
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
-         tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi
+         tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
+         tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score
          ]
 
 
@@ -1428,60 +1430,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                    norm_rsi(ticker, start_date, end_date)
 
-                    n = 14  # Number of period
-                    change = df["Adj Close"].diff(1)
-                    df["Gain"] = change.mask(change < 0, 0)
-                    df["Loss"] = abs(change.mask(change > 0, 0))
-                    df["AVG_Gain"] = df.Gain.rolling(n).mean()
-                    df["AVG_Loss"] = df.Loss.rolling(n).mean()
-                    df["RS"] = df["AVG_Gain"] / df["AVG_Loss"]
-                    df["RSI"] = 100 - (100 / (1 + df["RS"]))
-
-                    # Create RSI plot
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["RSI"], mode='lines', name='Relative Strength Index'))
-
-                    fig1.update_layout(title=symbol + " Closing Price and Relative Strength Index (RSI)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price/RSI")
-
-                    st.plotly_chart(fig1)
-
-                    # Candlestick with RSI
-                    dfc = df.copy()
-                    dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-                    dfc = dfc.reset_index()
-                    dfc["Date"] = pd.to_datetime(dfc["Date"])
-                    dfc["Date"] = dfc["Date"].apply(mdates.date2num)
-
-                    fig2 = go.Figure()
-
-                    # Candlestick chart
-                    fig2.add_trace(go.Candlestick(x=dfc['Date'],
-                                    open=dfc['Open'],
-                                    high=dfc['High'],
-                                    low=dfc['Low'],
-                                    close=dfc['Adj Close'], name='Candlestick'))
-
-                    # Volume bars
-                    fig2.add_trace(go.Bar(x=dfc['Date'], y=dfc['Volume'], marker_color=dfc.VolumePositive.map({True: "green", False: "red"}), name='Volume'))
-
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["RSI"], mode='lines', name='Relative Strength Index', line=dict(color='blue')))
-
-                    fig2.update_layout(title=symbol + " Candlestick Chart with Relative Strength Index (RSI)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    xaxis_rangeslider_visible=False)
-
-                    st.plotly_chart(fig2)
 
             if pred_option_Technical_Indicators == "RSI BollingerBands":
                 st.success("This program allows you to view the RSI with emphasis on BollingerBands over time of a ticker")
@@ -1495,67 +1445,9 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                    norm_rsi_bollinger_bands(ticker, start_date, end_date)
 
-                    # Simple Line Chart
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig1.update_layout(title=symbol + " Closing Price", xaxis_title="Date", yaxis_title="Price")
 
-                    st.plotly_chart(fig1)
-
-                    # RSI
-                    rsi = ta.RSI(df["Adj Close"], timeperiod=14)
-                    rsi = rsi.dropna()
-
-                    # Bollinger Bands
-                    df["20 Day MA"] = df["Adj Close"].rolling(window=20).mean()
-                    df["20 Day STD"] = df["Adj Close"].rolling(window=20).std()
-                    df["Upper Band"] = df["20 Day MA"] + (df["20 Day STD"] * 2)
-                    df["Lower Band"] = df["20 Day MA"] - (df["20 Day STD"] * 2)
-
-                    fig2 = go.Figure()
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["20 Day MA"], mode='lines', name='20 Day MA'))
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["Upper Band"], mode='lines', name='Upper Band'))
-                    fig2.add_trace(go.Scatter(x=df.index, y=df["Lower Band"], mode='lines', name='Lower Band'))
-                    fig2.update_layout(title=f"30 Day Bollinger Band for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig2)
-
-                    dfc = df.reset_index()
-                    dfc["Date"] = pd.to_datetime(dfc["Date"])
-
-                    # Candlestick with Bollinger Bands
-                    fig3 = go.Figure()
-                    fig3.add_trace(go.Candlestick(x=dfc['Date'],
-                                    open=dfc['Open'],
-                                    high=dfc['High'],
-                                    low=dfc['Low'],
-                                    close=dfc['Adj Close'], name='Candlestick'))
-
-                    fig3.add_trace(go.Scatter(x=dfc['Date'], y=df["20 Day MA"], mode='lines', name='20 Day MA'))
-                    fig3.add_trace(go.Scatter(x=dfc['Date'], y=df["Upper Band"], mode='lines', name='Upper Band'))
-                    fig3.add_trace(go.Scatter(x=dfc['Date'], y=df["Lower Band"], mode='lines', name='Lower Band'))
-
-                    fig3.update_layout(title=f"{symbol.upper()} Candlestick Chart with Bollinger Bands", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig3)
-
-                    # Combine RSI and Bollinger Bands
-                    fig4 = go.Figure()
-
-                    fig4.add_trace(go.Scatter(x=df.index, y=df["20 Day MA"], mode='lines', name='20 Day MA'))
-                    fig4.add_trace(go.Scatter(x=df.index, y=df["Upper Band"], mode='lines', name='Upper Band'))
-                    fig4.add_trace(go.Scatter(x=df.index, y=df["Lower Band"], mode='lines', name='Lower Band'))
-
-                    fig4.add_trace(go.Scatter(x=df.index, y=rsi, mode='lines', name='RSI'))
-
-                    fig4.update_layout(title=f"Bollinger Bands & RSI for {symbol.upper()}", xaxis_title="Date", yaxis_title="Price/RSI")
-                    st.plotly_chart(fig4)
-                
             if pred_option_Technical_Indicators == "Volume Weighted Average Price (VWAP)":
                 st.success("This program allows you to view the VWAP over time of a ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1568,55 +1460,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    def VWAP(df):
-                        return (df["Adj Close"] * df["Volume"]).sum() / df["Volume"].sum()
-
-                    n = 14
-                    df["VWAP"] = pd.concat(
-                        [
-                            (pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]]))
-                            for i in range(len(df) - n)
-                        ]
-                    )
-                
-                    vwap_series = pd.concat([(pd.Series(VWAP(df.iloc[i : i + n]), index=[df.index[i + n]])) for i in range(len(df) - n)])
-                    vwap_series = vwap_series.dropna()
-
-
-                    # Simple Line Chart
-                    fig1 = go.Figure()
-                    fig1.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig1.add_trace(go.Scatter(x=vwap_series.index, y=vwap_series, mode='lines', name='VWAP'))
-                    fig1.update_layout(title="Volume Weighted Average Price for Stock", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig1)
-
-                    # Candlestick with VWAP
-                    df.loc[:, "VolumePositive"] = df["Open"] < df["Adj Close"]
-                
-                    df = df.dropna()
-                    df = df.reset_index()
-                    df["Date"] = pd.to_datetime(df["Date"])
-                    df["Date"] = df["Date"].apply(mdates.date2num)
-
-                    fig2 = go.Figure()
-
-                    fig2.add_trace(go.Candlestick(x=df['Date'],
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Adj Close'], name='Candlestick'))
-
-                    fig2.add_trace(go.Scatter(x=df['Date'], y=df["VWAP"], mode='lines', name='VWAP'))
-
-                    fig2.update_layout(title=f"Stock {symbol} Closing Price with VWAP", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig2)
+                    norm_vwap(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Weighted Moving Average (WMA)":
                 st.success("This program allows you to view the WMA over time of a ticker")
@@ -1630,44 +1474,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    def WMA(data, n):
-                        ws = np.zeros(data.shape[0])
-                        t_sum = sum(range(1, n + 1))
-                        for i in range(n - 1, data.shape[0]):
-                            ws[i] = sum(data[i - n + 1 : i + 1] * np.linspace(1, n, n)) / t_sum
-                        return ws
-
-                    df["WMA"] = WMA(df["Adj Close"], 5)
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.add_trace(go.Scatter(x=df.index[4:], y=df["WMA"][4:], mode='lines', name='WMA'))
-                    fig.add_trace(go.Bar(x=df.index, y=df['Volume'], name='Volume', marker_color='#0079a3', opacity=0.4))
-
-                    fig.update_layout(title=f'Stock {symbol} Closing Price', xaxis_title='Date', yaxis_title='Price')
-                    st.plotly_chart(fig)
-
-                    # Candlestick with WMA
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.add_trace(go.Scatter(x=df.index[4:], y=df["WMA"][4:], mode='lines', name='WMA'))
-
-                    fig.update_layout(title=f'Stock {symbol} Candlestick Chart with WMA', xaxis_title='Date', yaxis_title='Price')
-                    st.plotly_chart(fig)
+                    norm_wma(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Weighted Smoothing Moving Average (WSMA)":
                 st.success("This program allows you to view the WMA over time of a ticker")
@@ -1681,48 +1488,9 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                    
-                    def WSMA(df, column="Adj Close", n=14):
-                        ema = df[column].ewm(span=n, min_periods=n - 1).mean()
-                        K = 1 / n
-                        wsma = df[column] * K + ema * (1 - K)
-                        return wsma
+                    norm_wsma(ticker, start_date, end_date)
 
-                    df["WSMA"] = WSMA(df, column="Adj Close", n=14)
-                    df = df.dropna()
 
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["WSMA"], mode='lines', name="WSMA"))
-                    fig.update_layout(title="Wilder's Smoothing Moving Average for Stock",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick with WSMA
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["WSMA"], mode='lines', name="WSMA"))
-
-                    fig.update_layout(title=f"Stock {symbol} Candlestick Chart with WSMA",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)       
             if pred_option_Technical_Indicators == "Z Score Indicator (Z Score)":
                 st.success("This program allows you to view the WMA over time of a ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1735,52 +1503,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                    norm_z_score(ticker, start_date, end_date)
 
-                    from scipy.stats import zscore
-
-                    df["z_score"] = zscore(df["Adj Close"])
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    # Z-Score Chart
-                    fig.add_trace(go.Scatter(x=df.index, y=df["z_score"], mode='lines', name="Z-Score"))
-                    fig.update_layout(title="Z-Score for " + symbol,
-                                    xaxis_title="Date",
-                                    yaxis_title="Z-Score",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick with Z-Score
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["z_score"], mode='lines', name="Z-Score"))
-                    fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Z-Score",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    
-                    st.plotly_chart(fig)
             if pred_option_Technical_Indicators == "Absolute Price Oscillator (APO)":
                 st.success("This program allows you to view the WMA over time of a ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
