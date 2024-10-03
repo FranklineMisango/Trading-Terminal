@@ -240,7 +240,7 @@ from TechnicalIndicators.acceleration_bands import tool_accleration_bands, norm_
 from TechnicalIndicators.adl import tool_adl, norm_adl
 from TechnicalIndicators.aroon import tool_aroon, norm_aroon
 from TechnicalIndicators.aroon_oscillator import tool_aroon_oscillator, norm_aroon_oscillator
-
+from TechnicalIndicators.adx import tool_adx, norm_adx
 
 
 
@@ -271,7 +271,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
-         tool_adl, tool_aroon
+         tool_adl, tool_aroon, tool_adx
          ]
 
 
@@ -1602,57 +1602,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Simple Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    st.plotly_chart(fig)
-
-                    # ADX calculation
-                    adx = ta.ADX(df["High"], df["Low"], df["Adj Close"], timeperiod=14)
-                    adx = adx.dropna()
-
-                    # Line Chart with ADX
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=adx.index, y=adx, mode='lines', name='ADX'))
-                    fig.add_shape(type="line", x0=adx.index[0], y0=20, x1=adx.index[-1], y1=20, line=dict(color="red", width=1, dash="dash"))
-                    fig.add_shape(type="line", x0=adx.index[0], y0=50, x1=adx.index[-1], y1=50, line=dict(color="red", width=1, dash="dash"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with ADX
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.update_layout(title="Stock " + symbol + " Candlestick Chart with ADX",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=adx.index, y=adx, mode='lines', name='ADX'))
-                    fig.add_shape(type="line", x0=adx.index[0], y0=20, x1=adx.index[-1], y1=20, line=dict(color="red", width=1, dash="dash"))
-                    fig.add_shape(type="line", x0=adx.index[0], y0=50, x1=adx.index[-1], y1=50, line=dict(color="red", width=1, dash="dash"))
-                    st.plotly_chart(fig)
+                    norm_adx(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Average True Range (ATR)":
                 st.success("This program allows you to view the ATR of a ticker over time")
