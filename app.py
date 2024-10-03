@@ -243,7 +243,7 @@ from TechnicalIndicators.aroon_oscillator import tool_aroon_oscillator, norm_aro
 from TechnicalIndicators.adx import tool_adx, norm_adx
 from TechnicalIndicators.atr import tool_atr, norm_atr
 from TechnicalIndicators.bp import tool_bp, norm_bp
-
+from TechnicalIndicators.bi import tool_bi, norm_bi
 
 
 
@@ -272,7 +272,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
-         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp
+         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi
          ]
 
 
@@ -1647,50 +1647,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    market = "^GSPC"
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                    mk = yf.download(market, start, end)
-
-                    df["Returns"] = df["Adj Close"].pct_change().dropna()
-                    mk["Returns"] = mk["Adj Close"].pct_change().dropna()
-
-                    n = 5
-                    covar = df["Returns"].rolling(n).cov(mk["Returns"])
-                    variance = mk["Returns"].rolling(n).var()
-                    df["Beta"] = covar / variance
-
-                    # Stock Closing Price Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price")
-                    st.plotly_chart(fig)
-
-                    # Beta Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Beta"], mode='lines', name='Beta', line=dict(color='red')))
-                    fig.update_layout(title="Beta",
-                                    xaxis_title="Date",
-                                    yaxis_title="Beta")
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with Beta
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-                    fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Beta",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price")
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Beta"], mode='lines', name='Beta', line=dict(color='red')))
-                    st.plotly_chart(fig)
+                    norm_bi(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Bollinger Bands":
                 st.success("This program allows you to view the Acclerations bands of a ticker over time")
