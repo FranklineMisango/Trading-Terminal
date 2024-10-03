@@ -1664,7 +1664,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-               norm_bb(ticker, start_date, end_date)    
+                    norm_bb(ticker, start_date, end_date)    
 
             if pred_option_Technical_Indicators == "Bollinger Bandwidth":
                 st.success("This program allows you to view the Bollinger bandwidth of a ticker over time")
