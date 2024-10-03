@@ -7,7 +7,6 @@ from  project_about import about
 
 
 #Migrate to submodules for readability
-
 import yfinance as yf
 import scipy.optimize as sco
 import matplotlib.dates as mpl_dates
@@ -218,7 +217,7 @@ from StockAnalysis.stock_return_stastical_analysis import tool_analyze_stock_ret
 from StockAnalysis.stock_returns import tool_view_stock_returns, norm_view_stock_returns
 from StockAnalysis.var_analysis import tool_calculate_var, norm_calculate_var
 
-#Main tools for Technical Indicators
+#Main tools for Technical Indicators -> help
 from TechnicalIndicators.exponential_weighted_moving_averages import tool_exponential_weighted_moving_averages, norm_exponential_weighted_moving_averages
 from TechnicalIndicators.ema_volume import tool_ema_volume, norm_ema_volume
 from TechnicalIndicators.ema import tool_ema, norm_ema
@@ -237,7 +236,18 @@ from TechnicalIndicators.vwap import tool_vwap, norm_vwap
 from TechnicalIndicators.wma import tool_wma, norm_wma
 from TechnicalIndicators.wsma import tool_wsma, norm_wsma
 from TechnicalIndicators.z_score_indicator import tool_z_score, norm_z_score
+from TechnicalIndicators.acceleration_bands import tool_accleration_bands, norm_accleration_bands
+from TechnicalIndicators.adl import tool_adl, norm_adl
+from TechnicalIndicators.aroon import tool_aroon, norm_aroon
+from TechnicalIndicators.aroon_oscillator import tool_aroon_oscillator, norm_aroon_oscillator
 
+
+
+
+
+
+
+# Main tools for Algorithmic trading
 
 tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener, 
          tool_fundamental_screener, tool_rsi_tickers,tool_green_line_valuation, 
@@ -260,7 +270,8 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_calculate_var,tool_analyze_stock_returns, tool_exponential_weighted_moving_averages,
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
-         tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score
+         tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
+         tool_adl, tool_aroon
          ]
 
 
@@ -294,6 +305,7 @@ def main():
             about()
         if option == 'Find stocks':
             options = st.selectbox("Choose a stock finding method:", ["IDB_RS_Rating", "Correlated Stocks", "Finviz_growth_screener", "Fundamental_screener", "RSI_Stock_tickers", "Green_line Valuations", "Minervini_screener", "Pricing Alert Email", "Trading View Signals", "Twitter Screener", "Yahoo Recommendations"])
+           
             if options == "IDB_RS_Rating":
                 col1, col2 = st.columns([2, 2])
                 with col1:
@@ -1517,52 +1529,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df["HL"] = (df["High"] + df["Low"]) / 2
-                    df["HLC"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3
-                    df["HLCC"] = (df["High"] + df["Low"] + df["Adj Close"] + df["Adj Close"]) / 4
-                    df["OHLC"] = (df["Open"] + df["High"] + df["Low"] + df["Adj Close"]) / 4
-
-                    df["Long_Cycle"] = df["Adj Close"].rolling(20).mean()
-                    df["Short_Cycle"] = df["Adj Close"].rolling(5).mean()
-                    df["APO"] = df["Long_Cycle"] - df["Short_Cycle"]
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    # Absolute Price Oscillator (APO) Chart
-                    fig.add_trace(go.Scatter(x=df.index, y=df["APO"], mode='lines', name="Absolute Price Oscillator", line=dict(color='green')))
-                    fig.update_layout(title="Absolute Price Oscillator (APO) for " + symbol,
-                                    xaxis_title="Date",
-                                    yaxis_title="APO",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick with Absolute Price Oscillator (APO)
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["APO"], mode='lines', name="Absolute Price Oscillator", line=dict(color='green')))
-                    fig.update_layout(title="Stock " + symbol + " Candlestick Chart with APO",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
+                    norm_apo(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Acceleration Bands":
                 st.success("This program allows you to view the Acclerations bands of a ticker over time")
@@ -1576,50 +1543,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                
-
-                    n = 7
-                    UBB = df["High"] * (1 + 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
-                    df["Upper_Band"] = UBB.rolling(n, center=False).mean()
-                    df["Middle_Band"] = df["Adj Close"].rolling(n).mean()
-                    LBB = df["Low"] * (1 - 4 * (df["High"] - df["Low"]) / (df["High"] + df["Low"]))
-                    df["Lower_Band"] = LBB.rolling(n, center=False).mean()
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Upper_Band"], mode='lines', name='Upper Band'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Middle_Band"], mode='lines', name='Middle Band'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Lower_Band"], mode='lines', name='Lower Band'))
-                    fig.update_layout(title="Stock Closing Price of " + str(n) + "-Day Acceleration Bands",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Upper_Band"], mode='lines', name='Upper Band'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Middle_Band"], mode='lines', name='Middle Band'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Lower_Band"], mode='lines', name='Lower Band'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price with Acceleration Bands",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    
-                    st.plotly_chart(fig)
+                    norm_acceleration_bands(ticker, start_date, end_date)
 
 
             if pred_option_Technical_Indicators == "Accumulation Distribution Line":
@@ -1634,56 +1558,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                    
-                    df["MF Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (
-                        df["High"] - df["Low"]
-                    )
-                    df["MF Volume"] = df["MF Multiplier"] * df["Volume"]
-                    df["ADL"] = df["MF Volume"].cumsum()
-                    df = df.drop(["MF Multiplier", "MF Volume"], axis=1)
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["ADL"], mode='lines', name='Accumulation Distribution Line'))
-                    fig.update_layout(yaxis2=dict(title="Accumulation Distribution Line"))
-
-                    fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color='rgba(0, 0, 255, 0.4)'))
-                    fig.update_layout(yaxis3=dict(title="Volume"))
-
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["ADL"], mode='lines', name='Accumulation Distribution Line'))
-                    fig.update_layout(yaxis2=dict(title="Accumulation Distribution Line"))
-
-                    fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name="Volume", marker_color='rgba(0, 0, 255, 0.4)'))
-                    fig.update_layout(yaxis3=dict(title="Volume"))
-
-                    st.plotly_chart(fig)
+                    norm_adl(ticker, start_date, end_date)
                 
             if pred_option_Technical_Indicators == "Aroon":
                 st.success("This program allows you to view the Aroon of a ticker over time")
@@ -1696,69 +1571,8 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
-                if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    df = yf.download(symbol, start, end)
-
-                    n = 25
-                    high_max = lambda xs: np.argmax(xs[::-1])
-                    low_min = lambda xs: np.argmin(xs[::-1])
-
-                    df["Days since last High"] = (
-                        df["High"]
-                        .rolling(center=False, min_periods=0, window=n)
-                        .apply(func=high_max)
-                        .astype(int)
-                    )
-
-                    df["Days since last Low"] = (
-                        df["Low"]
-                        .rolling(center=False, min_periods=0, window=n)
-                        .apply(func=low_min)
-                        .astype(int)
-                    )
-
-                    df["Aroon_Up"] = ((25 - df["Days since last High"]) / 25) * 100
-                    df["Aroon_Down"] = ((25 - df["Days since last Low"]) / 25) * 100
-
-                    df = df.drop(["Days since last High", "Days since last Low"], axis=1)
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Up"], mode='lines', name='Aroon UP', line=dict(color='green')))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Down"], mode='lines', name='Aroon DOWN', line=dict(color='red')))
-                    fig.update_layout(yaxis2=dict(title="Aroon"))
-
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Up"], mode='lines', name='Aroon UP', line=dict(color='green')))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Down"], mode='lines', name='Aroon DOWN', line=dict(color='red')))
-                    fig.update_layout(yaxis2=dict(title="Aroon"))
-
-                    st.plotly_chart(fig)
+                if st.button("Check"):
+                    norm_aroon(ticker, start_date, end_date)
 
 
             if pred_option_Technical_Indicators == "Aroon Oscillator":
@@ -1772,83 +1586,10 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
-                if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                if st.button("Check"):  
+                    tool_aroon_oscillator(ticker, start_date, end_date)
 
-                    n = 25
-                    high_max = lambda xs: np.argmax(xs[::-1])
-                    low_min = lambda xs: np.argmin(xs[::-1])
-
-                    df["Days since last High"] = (
-                        df["High"]
-                        .rolling(center=False, min_periods=0, window=n)
-                        .apply(func=high_max)
-                        .astype(int)
-                    )
-
-                    df["Days since last Low"] = (
-                        df["Low"]
-                        .rolling(center=False, min_periods=0, window=n)
-                        .apply(func=low_min)
-                        .astype(int)
-                    )
-
-                    df["Aroon_Up"] = ((25 - df["Days since last High"]) / 25) * 100
-                    df["Aroon_Down"] = ((25 - df["Days since last Low"]) / 25) * 100
-
-                    df["Aroon_Oscillator"] = df["Aroon_Up"] - df["Aroon_Down"]
-
-                    df = df.drop(
-                        ["Days since last High", "Days since last Low", "Aroon_Up", "Aroon_Down"], axis=1
-                    )
-
-                    # Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Oscillator"], mode='lines', name='Aroon Oscillator', line=dict(color='green')))
-                    fig.add_trace(go.Scatter(x=df.index, y=[0]*len(df), mode='lines', name='Zero Line', line=dict(color='red', dash='dash')))
-                    st.plotly_chart(fig)
-
-                    # Bar Chart
-                    fig = go.Figure()
-                    df["Positive"] = df["Aroon_Oscillator"] > 0
-                    fig.add_trace(go.Bar(x=df.index, y=df["Aroon_Oscillator"], marker_color=df.Positive.map({True: "green", False: "red"})))
-                    fig.add_shape(type="line", x0=df.index[0], y0=0, x1=df.index[-1], y1=0, line=dict(color="red", width=1, dash="dash"))
-
-                    fig.update_layout(title="Aroon Oscillator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Aroon Oscillator",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart
-                    fig = go.Figure()
-
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Aroon_Oscillator"], mode='lines', name='Aroon Oscillator', line=dict(color='green')))
-                    fig.add_trace(go.Scatter(x=df.index, y=[0]*len(df), mode='lines', name='Zero Line', line=dict(color='red', dash='dash')))
-                    st.plotly_chart(fig)
-
+                   
             if pred_option_Technical_Indicators == "Average Directional Index (ADX)":
                 st.success("This program allows you to view the ADX  of a ticker over time")
                 ticker = st.text_input("Enter the ticker you want to monitor")
