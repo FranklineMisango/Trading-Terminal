@@ -242,6 +242,7 @@ from TechnicalIndicators.aroon import tool_aroon, norm_aroon
 from TechnicalIndicators.aroon_oscillator import tool_aroon_oscillator, norm_aroon_oscillator
 from TechnicalIndicators.adx import tool_adx, norm_adx
 from TechnicalIndicators.atr import tool_atr, norm_atr
+from TechnicalIndicators.bp import tool_bp, norm_bp
 
 
 
@@ -271,7 +272,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
-         tool_adl, tool_aroon, tool_adx, tool_atr
+         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp
          ]
 
 
@@ -1630,51 +1631,9 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
-                if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df["BOP"] = (df["Adj Close"] - df["Open"]) / (df["High"] - df["Low"])
-
-                    # Simple Line Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig.add_trace(go.Scatter(x=df.index, y=[df["Adj Close"].mean()] * len(df), mode='lines', name='Mean', line=dict(color='red')))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Low"], mode='lines', name='Low', line=dict(color='blue', dash='dash')))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["High"], mode='lines', name='High', line=dict(color='red', dash='dash')))
-                    fig.add_trace(go.Bar(x=df.index, y=df["Volume"], name='Volume', marker_color='#0079a3', opacity=0.4))
-
-                    fig.update_layout(title="Stock " + symbol + " Closing Price",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # BOP Bar Chart
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(x=df.index, y=df["BOP"], name='Balance of Power', marker_color=df["BOP"].apply(lambda x: 'green' if x >= 0 else 'red')))
-                    fig.update_layout(title="Balance of Power",
-                                    xaxis_title="Date",
-                                    yaxis_title="BOP",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with BOP
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["BOP"], mode='lines', name='Balance of Power', line=dict(color='black')))
-                    fig.update_layout(title="Stock " + symbol + " Candlestick Chart with BOP",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
+                if st.button("Check"): 
+                    norm_bp(ticker, start_date, end_date)   
+                    
 
             if pred_option_Technical_Indicators == "Beta Indicator":
                 st.success("This program allows you to view the Beta Indicator of a ticker over time")
