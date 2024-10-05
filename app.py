@@ -252,6 +252,7 @@ from TechnicalIndicators.cpr import tool_cpr, norm_cpr
 from TechnicalIndicators.cmf import tool_cmf, norm_cmf
 from TechnicalIndicators.co import tool_co, norm_co
 from TechnicalIndicators.cci import tool_cci, norm_cci
+from TechnicalIndicators.cc import tool_cc, norm_cc
 
 # Main tools for Algorithmic trading
 
@@ -278,7 +279,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
-         tool_cpr, tool_cmf, tool_co, tool_cci
+         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc
          ]
 
 
@@ -1782,26 +1783,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df1 = yf.download(symbol1, start, end)
-                    df2 = yf.download(symbol2, start, end)
-
-                    # Calculate correlation coefficient
-                    cc = df1["Adj Close"].corr(df2["Adj Close"])
-
-                    # Plot correlation coefficient
-                    cc_chart = go.Scatter(x=df1.index, y=cc, mode='lines', name='Correlation Coefficient')
-
-                    layout = go.Layout(title=f'Correlation Coefficient between {symbol1} and {symbol2}',
-                                    xaxis=dict(title='Date'),
-                                    yaxis=dict(title='Correlation Coefficient'),
-                                    showlegend=True)
-
-                    fig = go.Figure(data=[cc_chart], layout=layout)
-                    st.plotly_chart(fig)
+                  norm_cc(symbol1, symbol2, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "Covariance":
                 st.success("This program allows you to view the Covariance between two tickers over time")
