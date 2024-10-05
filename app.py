@@ -249,6 +249,7 @@ from TechnicalIndicators.bbw import tool_bbw, norm_bbw
 from TechnicalIndicators.bri import tool_bri, norm_bri
 from TechnicalIndicators.car import tool_car, norm_car
 from TechnicalIndicators.cpr import tool_cpr, norm_cpr
+from TechnicalIndicators.cmf import tool_cmf, norm_cmf
 
 
 # Main tools for Algorithmic trading
@@ -276,7 +277,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
-         tool_cpr
+         tool_cpr, tool_cmf
          ]
 
 
@@ -1737,30 +1738,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate CMF
-                    n = 20
-                    df["MF_Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (df["High"] - df["Low"])
-                    df["MF_Volume"] = df["MF_Multiplier"] * df["Volume"]
-                    df["CMF"] = df["MF_Volume"].rolling(n).sum() / df["Volume"].rolling(n).sum()
-                    df = df.drop(["MF_Multiplier", "MF_Volume"], axis=1)
-
-                    # Plot CMF
-                    cmf_chart = go.Scatter(x=df.index, y=df["CMF"], mode='lines', name='Chaikin Money Flow')
-
-                    layout = go.Layout(title=f'Chaikin Money Flow for Stock {symbol}',
-                                    xaxis=dict(title='Date'),
-                                    yaxis=dict(title='CMF'),
-                                    showlegend=True)
-
-                    fig = go.Figure(data=[cmf_chart], layout=layout)
-                    st.plotly_chart(fig)
+                   norm_cmf(ticker, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "Chaikin Oscillator":
                 st.success("This program allows you to view the Chaikin Oscillator of a ticker over time")
