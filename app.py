@@ -247,7 +247,7 @@ from TechnicalIndicators.bi import tool_bi, norm_bi
 from TechnicalIndicators.bb import tool_bb, norm_bb
 from TechnicalIndicators.bbw import tool_bbw, norm_bbw
 from TechnicalIndicators.bri import tool_bri, norm_bri
-
+from TechnicalIndicators.car import tool_car, norm_car
 
 
 
@@ -275,7 +275,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
-         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri
+         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car
          ]
 
 
@@ -1707,29 +1707,9 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
-                if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-            
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                    df["Absolute_Return"] = (
-                        100 * (df["Adj Close"] - df["Adj Close"].shift(1)) / df["Adj Close"].shift(1)
-                    )
+                if st.button("Check"):  
 
-                    # Plot the closing price
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode="lines", name="Closing Price"))
-                    fig.update_layout(title="Stock " + symbol + " Closing Price", xaxis_title="Date", yaxis_title="Price")
-                    st.plotly_chart(fig)
-
-                    # Plot the Absolute Return
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Absolute_Return"], mode="lines", name="Absolute Return", line=dict(color="red")))
-                    fig.update_layout(title="Absolute Return", xaxis_title="Date", yaxis_title="Absolute Return")
                     
-                    st.plotly_chart(fig)
             if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
                 st.success("This program allows you to view the CPR of a ticker over time")
                 ticker = st.text_input("Enter the ticker you want to monitor")
