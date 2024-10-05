@@ -264,7 +264,7 @@ from TechnicalIndicators.gri import tool_gri, norm_gri
 from TechnicalIndicators.gdc import tool_gdc, norm_gdc
 from TechnicalIndicators.hml import tool_hml, norm_hml
 from TechnicalIndicators.hma import tool_hma, norm_hma
-
+from TechnicalIndicators.kc import tool_kc, norm_kc
 
 
 # Main tools for Algorithmic trading
@@ -293,7 +293,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
-         tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma
+         tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc
          ]
    
 
@@ -1967,36 +1967,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Keltner Channels
-                    n = 20
-                    df["EMA"] = ta.EMA(df["Adj Close"], timeperiod=n)
-                    df["ATR"] = ta.ATR(df["High"], df["Low"], df["Adj Close"], timeperiod=10)
-                    df["Upper Line"] = df["EMA"] + 2 * df["ATR"]
-                    df["Lower Line"] = df["EMA"] - 2 * df["ATR"]
-
-                    # Plot Keltner Channels
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                                open=df['Open'],
-                                                high=df['High'],
-                                                low=df['Low'],
-                                                close=df['Adj Close'],
-                                                name='Candlestick'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df['EMA'], mode='lines', name='EMA'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df['Upper Line'], mode='lines', name='Upper Line'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df['Lower Line'], mode='lines', name='Lower Line'))
-                    fig.update_layout(title=f"Keltner Channels for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)
+                    norm_kc(ticker, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "Linear Regression":
                 st.success("This program allows you to visualize Linear Regression for a selected ticker")
