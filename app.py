@@ -269,6 +269,7 @@ from TechnicalIndicators.lr import tool_lr, norm_lr
 from TechnicalIndicators.lrs import tool_lrs, norm_lrs
 from TechnicalIndicators.lwma import tool_lwma, norm_lwma
 from TechnicalIndicators.mo import tool_mo, norm_mo
+from TechnicalIndicators.m import tool_m, norm_m
 
 
 # Main tools for Algorithmic trading
@@ -297,7 +298,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
-         tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo
+         tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m
          ]
    
 
@@ -2041,31 +2042,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Momentum
-                    period = 14
-                    df['Momentum'] = df['Adj Close'].diff(period)
-
-                    # Plot Momentum
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                                open=df['Open'],
-                                                high=df['High'],
-                                                low=df['Low'],
-                                                close=df['Adj Close'],
-                                                name='Candlestick'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df['Momentum'], mode='lines', name='Momentum'))
-                    fig.update_layout(title=f"Momentum for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)        
+                    norm_m(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Moving Average Envelopes":
                 st.success("This program allows you to visualize Moving Average Envelopes for a selected ticker")
