@@ -248,7 +248,7 @@ from TechnicalIndicators.bb import tool_bb, norm_bb
 from TechnicalIndicators.bbw import tool_bbw, norm_bbw
 from TechnicalIndicators.bri import tool_bri, norm_bri
 from TechnicalIndicators.car import tool_car, norm_car
-
+from TechnicalIndicators.cpr import tool_cpr, norm_cpr
 
 
 # Main tools for Algorithmic trading
@@ -275,7 +275,8 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_ema,tool_ema_volume, tool_gann_lines_angles, tool_gmma,
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
-         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car
+         tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
+         tool_cpr
          ]
 
 
@@ -1708,8 +1709,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):  
+                    norm_car(ticker, start_date, end_date)
 
-                    
             if pred_option_Technical_Indicators == "Central Pivot Range (CPR)":
                 st.success("This program allows you to view the CPR of a ticker over time")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -1722,39 +1723,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate CPR
-                    df["Pivot"] = (df["High"] + df["Low"] + df["Adj Close"]) / 3.0
-                    df["BC"] = (df["High"] + df["Low"]) / 2.0
-                    df["TC"] = (df["Pivot"] - df["BC"]) + df["Pivot"]
-
-                    # Plot candlestick with CPR
-                    candlestick = go.Candlestick(x=df.index,
-                                                open=df['Open'],
-                                                high=df['High'],
-                                                low=df['Low'],
-                                                close=df['Close'],
-                                                name='Candlestick')
-
-                    pivot = go.Scatter(x=df.index, y=df["Pivot"], mode='lines', name='Pivot')
-                    bc = go.Scatter(x=df.index, y=df["BC"], mode='lines', name='BC')
-                    tc = go.Scatter(x=df.index, y=df["TC"], mode='lines', name='TC')
-
-                    data = [candlestick, pivot, bc, tc]
-
-                    layout = go.Layout(title=f'Stock {symbol} Closing Price with Central Pivot Range (CPR)',
-                                    xaxis=dict(title='Date'),
-                                    yaxis=dict(title='Price'),
-                                    showlegend=True)
-
-                    fig = go.Figure(data=data, layout=layout)
-                    st.plotly_chart(fig)
+                    norm_cpr(ticker, start_date, end_date)   
 
             if pred_option_Technical_Indicators == "Chaikin Money Flow":
                 st.success("This program allows you to view the Chaikin Money Flow (CMF) of a ticker over time")
