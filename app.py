@@ -259,6 +259,7 @@ from TechnicalIndicators.dc import tool_dc, norm_dc
 from TechnicalIndicators.dema import tool_dema, norm_dema
 from TechnicalIndicators.dmi import tool_dmi, norm_dmi
 from TechnicalIndicators.evm import tool_evm, norm_evm
+from TechnicalIndicators.fi import tool_fi, norm_fi
 
 
 # Main tools for Algorithmic trading
@@ -287,7 +288,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm
-         
+         tool_fi
          ]
 
 
@@ -1890,35 +1891,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    n = 13
-                    df["FI_1"] = (df["Adj Close"] - df["Adj Close"].shift()) * df["Volume"]
-                    df["FI_13"] = df["FI_1"].ewm(ignore_na=False, span=n, min_periods=n, adjust=True).mean()
-
-                    # Plot Force Index
-                    fig = go.Figure(data=[
-                        go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Adj Close'],
-                                    name='Candlestick'),
-                        go.Scatter(x=df.index,
-                                y=df['FI_13'],
-                                mode='lines',
-                                name='Force Index')
-                    ])
-                    fig.update_layout(title=f"Force Index for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)
+                    norm_fi(ticker, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "Geometric Return Indicator":
                 st.success("This program allows you to view the Geometric Return Indicator of a ticker over time")
