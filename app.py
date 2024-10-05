@@ -1845,33 +1845,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df["EMA"] = ta.EMA(df["Adj Close"], timeperiod=5)
-                    df["EMA_S"] = ta.EMA(df["EMA"], timeperiod=5)
-                    df["DEMA"] = (2 * df["EMA"]) - df["EMA_S"]
-
-                    # Plot DEMA
-                    fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                                        open=df['Open'],
-                                                        high=df['High'],
-                                                        low=df['Low'],
-                                                        close=df['Adj Close'],
-                                                        name='Candlestick'),
-                                        go.Scatter(x=df.index,
-                                                    y=df['DEMA'],
-                                                    mode='lines',
-                                                    name='DEMA')])
-                    fig.update_layout(title=f"Double Exponential Moving Average (DEMA) for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)
+                    norm_dema(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Dynamic Momentum Index":
                 st.success("This program allows you to view the Dynamic Momentum Index (DMI) of a ticker over time")
