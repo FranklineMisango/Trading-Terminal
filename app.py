@@ -258,6 +258,7 @@ from TechnicalIndicators.dpo import tool_dpo, norm_dpo
 from TechnicalIndicators.dc import tool_dc, norm_dc
 from TechnicalIndicators.dema import tool_dema, norm_dema
 from TechnicalIndicators.dmi import tool_dmi, norm_dmi
+from TechnicalIndicators.evm import tool_evm, norm_evm
 
 
 # Main tools for Algorithmic trading
@@ -285,7 +286,8 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
-         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi
+         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm
+         
          ]
 
 
@@ -1874,49 +1876,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-                    # Create a function for Ease of Movement
-                    def EVM(data, ndays):
-                        dm = ((data["High"] + data["Low"]) / 2) - (
-                            (data["High"].shift(1) + data["Low"].shift(1)) / 2
-                        )
-                        br = (data["Volume"] / 100000000) / ((data["High"] - data["Low"]))
-                        EVM = dm / br
-                        EVM_MA = pd.Series(EVM.rolling(ndays).mean(), name="EVM")
-                        data = data.join(EVM_MA)
-                        return data
-
-                    # Compute the 14-day Ease of Movement for stock
-                    n = 14
-                    Stock_EVM = EVM(df, n)
-                    EVM = Stock_EVM["EVM"]
-
-                    # Compute EVM
-                    df = EVM(df, 14)
-
-                    # Plot EVM
-                    fig = go.Figure(data=[
-                        go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Adj Close'],
-                                    name='Candlestick'),
-                        go.Scatter(x=df.index,
-                                y=df['EVM'],
-                                mode='lines',
-                                name='Ease of Movement')
-                    ])
-                    fig.update_layout(title=f"Ease of Movement (EVM) for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)
+                   norm_evm(ticker, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "Force Index":
                 st.success("This program allows you to view the Force Index of a ticker over time")
