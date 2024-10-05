@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 
 
 @tool
+
 def tool_co(ticker:str, start_date: dt.time, end_date: dt.time):
     ''' This tool plots The Chaikin Oscillator (CO) of a stock along with the stock's closing price.'''
     symbol = ticker
