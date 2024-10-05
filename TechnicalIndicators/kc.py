@@ -7,7 +7,8 @@ from langchain_core.tools import tool
 
 @tool
 
-def tool_hma(ticker:str, start_date: dt.time, end_date: dt.time):
+def tool_kc(ticker:str, start_date: dt.time, end_date: dt.time):
+    ''' This program allows you to visualize Keltner Channels(KC) for a selected ticker '''
     symbol = ticker
     start = start_date
     end = end_date
@@ -39,7 +40,7 @@ def tool_hma(ticker:str, start_date: dt.time, end_date: dt.time):
                     template='plotly_dark')
     st.plotly_chart(fig)
 
-def norm_hma(ticker, start_date, end_date):
+def norm_kc(ticker, start_date, end_date):
     symbol = ticker
     start = start_date
     end = end_date
