@@ -254,6 +254,7 @@ from TechnicalIndicators.co import tool_co, norm_co
 from TechnicalIndicators.cci import tool_cci, norm_cci
 from TechnicalIndicators.cc import tool_cc, norm_cc
 from TechnicalIndicators.cov import tool_cov, norm_cov
+from TechnicalIndicators.dpo import tool_dpo, norm_dpo
 
 # Main tools for Algorithmic trading
 
@@ -280,7 +281,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
-         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov
+         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo
          ]
 
 
@@ -1813,32 +1814,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    n = 15
-                    df["DPO"] = (df["Adj Close"].shift(int((0.5 * n) + 1)) - df["Adj Close"].rolling(n).mean())
-
-                    # Plot DPO
-                    fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                                        open=df['Open'],
-                                                        high=df['High'],
-                                                        low=df['Low'],
-                                                        close=df['Adj Close'],
-                                                        name='Candlestick'),
-                                        go.Scatter(x=df.index,
-                                                    y=df['DPO'],
-                                                    mode='lines',
-                                                    name='DPO')])
-                    fig.update_layout(title=f"Detrended Price Oscillator (DPO) for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)
+                    norm_dpo(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Donchian Channel":
                 st.success("This program allows you to view the Donchian Channel of a ticker over time")
