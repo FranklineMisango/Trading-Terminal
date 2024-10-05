@@ -263,6 +263,8 @@ from TechnicalIndicators.fi import tool_fi, norm_fi
 from TechnicalIndicators.gri import tool_gri, norm_gri
 from TechnicalIndicators.gdc import tool_gdc, norm_gdc
 from TechnicalIndicators.hml import tool_hml, norm_hml
+from TechnicalIndicators.hma import tool_hma, norm_hma
+
 
 
 # Main tools for Algorithmic trading
@@ -291,7 +293,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
-         tool_fi, tool_gri, tool_gdc, tool_hml
+         tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma
          ]
    
 
@@ -1951,35 +1953,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Compute Hull Moving Average
-                    period = 20
-                    df['WMA'] = df['Adj Close'].rolling(window=period).mean()
-                    half_period = int(period / 2)
-                    sqrt_period = int(np.sqrt(period))
-                    df['Weighted_MA'] = df['Adj Close'].rolling(window=half_period).mean() * 2 - df['Adj Close'].rolling(window=period).mean()
-                    df['HMA'] = df['Weighted_MA'].rolling(window=sqrt_period).mean()
-
-                    # Plot Hull Moving Average with Candlestick graph
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                                open=df['Open'],
-                                                high=df['High'],
-                                                low=df['Low'],
-                                                close=df['Adj Close'],
-                                                name='Candlestick'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df['HMA'], mode='lines', name='Hull Moving Average'))
-                    fig.update_layout(title=f"Hull Moving Average (HMA) for {symbol}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price',
-                                    template='plotly_dark')
-                    st.plotly_chart(fig)
+                    norm_hma(ticker, start_date, end_date)   
 
             if pred_option_Technical_Indicators == "Keltner Channels":
                 st.success("This program allows you to visualize Keltner Channels for a selected ticker")
