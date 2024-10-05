@@ -250,6 +250,7 @@ from TechnicalIndicators.bri import tool_bri, norm_bri
 from TechnicalIndicators.car import tool_car, norm_car
 from TechnicalIndicators.cpr import tool_cpr, norm_cpr
 from TechnicalIndicators.cmf import tool_cmf, norm_cmf
+from TechnicalIndicators.co import tool_co, norm_co
 
 
 # Main tools for Algorithmic trading
@@ -277,7 +278,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
-         tool_cpr, tool_cmf
+         tool_cpr, tool_cmf, tool_co
          ]
 
 
@@ -1752,32 +1753,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Chaikin Oscillator
-                    df["MF_Multiplier"] = (2 * df["Adj Close"] - df["Low"] - df["High"]) / (df["High"] - df["Low"])
-                    df["MF_Volume"] = df["MF_Multiplier"] * df["Volume"]
-                    df["ADL"] = df["MF_Volume"].cumsum()
-                    df["ADL_3_EMA"] = df["ADL"].ewm(ignore_na=False, span=3, min_periods=2, adjust=True).mean()
-                    df["ADL_10_EMA"] = df["ADL"].ewm(ignore_na=False, span=10, min_periods=9, adjust=True).mean()
-                    df["Chaikin_Oscillator"] = df["ADL_3_EMA"] - df["ADL_10_EMA"]
-                    df = df.drop(["MF_Multiplier", "MF_Volume", "ADL", "ADL_3_EMA", "ADL_10_EMA"], axis=1)
-
-                    # Plot Chaikin Oscillator
-                    co_chart = go.Scatter(x=df.index, y=df["Chaikin_Oscillator"], mode='lines', name='Chaikin Oscillator')
-
-                    layout = go.Layout(title=f'Chaikin Oscillator for Stock {symbol}',
-                                    xaxis=dict(title='Date'),
-                                    yaxis=dict(title='Chaikin Oscillator'),
-                                    showlegend=True)
-
-                    fig = go.Figure(data=[co_chart], layout=layout)
-                    st.plotly_chart(fig)
+                  norm_co(ticker, start_date, end_date)  
 
             if pred_option_Technical_Indicators == "Commodity Channel Index (CCI)":
                 st.success("This program allows you to view the Commodity Channel Index (CCI) of a ticker over time")
