@@ -256,6 +256,8 @@ from TechnicalIndicators.cc import tool_cc, norm_cc
 from TechnicalIndicators.cov import tool_cov, norm_cov
 from TechnicalIndicators.dpo import tool_dpo, norm_dpo
 from TechnicalIndicators.dc import tool_dc, norm_dc
+from TechnicalIndicators.dema import tool_dema, norm_dema
+
 
 # Main tools for Algorithmic trading
 
@@ -282,7 +284,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_macd,tool_mfi,tool_ma_high_low,tool_pvi, tool_pvt, tool_roc,tool_roi, tool_rsi,
          tool_rsi_bollinger_bands,tool_vwap,tool_wma,tool_wsma,tool_z_score, tool_accleration_bands,
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
-         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc
+         tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema
          ]
 
 
