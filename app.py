@@ -272,6 +272,7 @@ from TechnicalIndicators.mo import tool_mo, norm_mo
 from TechnicalIndicators.m import tool_m, norm_m
 from TechnicalIndicators.mae import tool_mae, norm_mae
 from TechnicalIndicators.mahl import tool_mahl, norm_mahl
+from TechnicalIndicators.mar import tool_mar, norm_mar
 
 
 # Main tools for Algorithmic trading
@@ -301,7 +302,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, 
+         tool_mahl, tool_mar
          ]
    
 
@@ -2087,34 +2088,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df["MA10"] = df["Adj Close"].rolling(10).mean()
-                    df["MA20"] = df["Adj Close"].rolling(20).mean()
-                    df["MA30"] = df["Adj Close"].rolling(30).mean()
-                    df["MA40"] = df["Adj Close"].rolling(40).mean()
-                    df["MA50"] = df["Adj Close"].rolling(50).mean()
-                    df["MA60"] = df["Adj Close"].rolling(60).mean()
-
-                    # Plot Line Chart with Moving Average Ribbon
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["MA10"], mode='lines', name='MA10'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["MA20"], mode='lines', name='MA20'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["MA30"], mode='lines', name='MA30'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["MA40"], mode='lines', name='MA40'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["MA50"], mode='lines', name='MA50'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["MA60"], mode='lines', name='MA60'))
-                    fig_line.update_layout(title=f"Stock {symbol} Moving Average Ribbon",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
+                    norm_mar(ticker, start_date, end_date)  
 
             if pred_option_Technical_Indicators == "Moving Average Envelopes (MMA)":
                 st.success("This program allows you to visualize Moving Average Envelopes (MMA) for a selected ticker")
