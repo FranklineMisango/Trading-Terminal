@@ -3,7 +3,7 @@ import yfinance as yf
 import streamlit as st
 import plotly.graph_objects as go
 from langchain_core.tools import tool
-
+import pandas as pd
 
 @tool
 def tool_dc(ticker:str, start_date: dt.time, end_date: dt.time):
