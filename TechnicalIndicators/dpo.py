@@ -33,7 +33,7 @@ def tool_dpo(ticker:str, start_date: dt.time, end_date: dt.time):
                     xaxis_title='Date',
                     yaxis_title='Price',
                     template='plotly_dark')
-st.plotly_chart(fig) 
+    st.plotly_chart(fig) 
 
 def norm_dpo(ticker, start_date, end_date):
     symbol = ticker
@@ -61,4 +61,4 @@ def norm_dpo(ticker, start_date, end_date):
                     xaxis_title='Date',
                     yaxis_title='Price',
                     template='plotly_dark')
-st.plotly_chart(fig) 
+    st.plotly_chart(fig) 
