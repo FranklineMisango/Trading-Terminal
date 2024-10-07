@@ -8,7 +8,7 @@ from langchain_core.tools import tool
 @tool
 def tool_atr(ticker:str, start_date: dt.time, end_date: dt.time):
     '''This tool is for ATR of a stock'''
-   symbol = ticker
+    symbol = ticker
     start = start_date
     end = end_date
     # Read data
@@ -63,7 +63,7 @@ def tool_atr(ticker:str, start_date: dt.time, end_date: dt.time):
 
 def norm_atr(ticker, start_date, end_date):
     '''This tool is for ATR of a stock'''
-   symbol = ticker
+    symbol = ticker
     start = start_date
     end = end_date
     # Read data
