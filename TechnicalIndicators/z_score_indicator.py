@@ -11,6 +11,7 @@ import numpy as np
 
 @tool
 def tool_z_score(ticker:str, start_date:dt.time, end_date:dt.time):
+    '''This tool is for calculating the zscore'''
     symbol = ticker
     start = start_date
     end = end_date
