@@ -56,7 +56,7 @@ def tool_bb(ticker:str, start_date: dt.time, end_date: dt.time):
     st.plotly_chart(fig) 
 
 
-    def norm_bb(ticker, start_date, end_date):
+def norm_bb(ticker, start_date, end_date):
         symbol = ticker
         start = start_date
         end = end_date
