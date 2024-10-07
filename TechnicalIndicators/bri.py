@@ -3,6 +3,9 @@ import yfinance as yf
 import streamlit as st
 import plotly.graph_objects as go
 from langchain_core.tools import tool
+import ta_functions as ta
+import pandas as pd
+import quandl as q
 
 
 @tool
