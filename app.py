@@ -275,6 +275,7 @@ from TechnicalIndicators.mahl import tool_mahl, norm_mahl
 from TechnicalIndicators.mar import tool_mar, norm_mar
 from TechnicalIndicators.mma import tool_mma, norm_mma
 from TechnicalIndicators.mlr import tool_mlr, norm_mlr
+from TechnicalIndicators.nhnl import tool_nhnl, norm_nhnl
 
 
 # Main tools for Algorithmic trading
@@ -304,7 +305,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar, tool_mma, tool_mlr
+         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl
          ]
    
 
@@ -2132,26 +2133,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_nhnl(ticker, start_date, end_date)   
 
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df['52wHigh'] = df['Adj Close'].rolling(window=252).max()
-                    df['52wLow'] = df['Adj Close'].rolling(window=252).min()
-
-                    # Plot Line Chart with New Highs/New Lows
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["52wHigh"], mode='lines', name='52 Weeks High', line=dict(color='green')))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["52wLow"], mode='lines', name='52 Weeks Low', line=dict(color='red')))
-                    fig_line.update_layout(title=f"Stock {symbol} New Highs/New Lows",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
 
             if pred_option_Technical_Indicators == "Pivot Point":
                 st.success("This program allows you to visualize Pivot Points for a selected ticker")
