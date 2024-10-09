@@ -274,6 +274,7 @@ from TechnicalIndicators.mae import tool_mae, norm_mae
 from TechnicalIndicators.mahl import tool_mahl, norm_mahl
 from TechnicalIndicators.mar import tool_mar, norm_mar
 from TechnicalIndicators.mma import tool_mma, norm_mma
+from TechnicalIndicators.mlr import tool_mlr, norm_mlr
 
 
 # Main tools for Algorithmic trading
@@ -303,7 +304,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar, tool_mma
+         tool_mahl, tool_mar, tool_mma, tool_mlr
          ]
    
 
@@ -2117,24 +2118,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df['Slope'] = ta.LINEARREG_SLOPE(df['Adj Close'], timeperiod=14)
-
-                    # Plot Line Chart with Moving Linear Regression
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Slope"], mode='lines', name='Slope', line=dict(color='red')))
-                    fig_line.update_layout(title=f"Stock {symbol} Moving Linear Regression",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
+                    norm_mlr(ticker, start_date, end_date)   
 
             if pred_option_Technical_Indicators == "New Highs/New Lows":
                 st.success("This program allows you to visualize New Highs/New Lows for a selected ticker")
