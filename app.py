@@ -277,6 +277,7 @@ from TechnicalIndicators.mma import tool_mma, norm_mma
 from TechnicalIndicators.mlr import tool_mlr, norm_mlr
 from TechnicalIndicators.nhnl import tool_nhnl, norm_nhnl
 from TechnicalIndicators.pp import tool_pp, norm_pp
+from TechnicalIndicators.pc import tool_pc, norm_pc
 
 
 # Main tools for Algorithmic trading
@@ -306,7 +307,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp
+         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc
          ]
    
 
@@ -2163,33 +2164,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_pc(ticker, start_date, end_date)  
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Price Channels
-                    rolling_high = dataset['High'].rolling(window=20).max()
-                    rolling_low = dataset['Low'].rolling(window=20).min()
-                    midline = (rolling_high + rolling_low) / 2
-
-                    # Plot Price Channels
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=rolling_high, mode='lines', name='Upper Channel'),
-                                        go.Scatter(x=dataset.index, y=rolling_low, mode='lines', name='Lower Channel'),
-                                        go.Scatter(x=dataset.index, y=midline, mode='lines', name='Midline')])
-                    fig.update_layout(title=f"{symbol} Price Channels",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig)
 
             if pred_option_Technical_Indicators == "Price Relative":
                 st.success("This program allows you to visualize Price Relative for a selected ticker")
