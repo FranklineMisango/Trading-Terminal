@@ -273,6 +273,7 @@ from TechnicalIndicators.m import tool_m, norm_m
 from TechnicalIndicators.mae import tool_mae, norm_mae
 from TechnicalIndicators.mahl import tool_mahl, norm_mahl
 from TechnicalIndicators.mar import tool_mar, norm_mar
+from TechnicalIndicators.mma import tool_mma, norm_mma
 
 
 # Main tools for Algorithmic trading
@@ -302,7 +303,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar
+         tool_mahl, tool_mar, tool_mma
          ]
    
 
@@ -2102,28 +2103,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df["20SMA"] = ta.SMA(df["Adj Close"], timeperiod=20)
-                    df["Upper_Envelope"] = df["20SMA"] + (df["20SMA"] * 0.025)
-                    df["Lower_Envelope"] = df["20SMA"] - (df["20SMA"] * 0.025)
-
-                    # Plot Line Chart with Moving Average Envelopes (MMA)
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
-                    fig_line.update_layout(title=f"Stock {symbol} Moving Average Envelopes (MMA)",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
+                    norm_mma(ticker, start_date, end_date)   
 
             if pred_option_Technical_Indicators == "Moving Linear Regression":
                 st.success("This program allows you to visualize Moving Linear Regression for a selected ticker")
