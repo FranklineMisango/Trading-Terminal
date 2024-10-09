@@ -276,6 +276,7 @@ from TechnicalIndicators.mar import tool_mar, norm_mar
 from TechnicalIndicators.mma import tool_mma, norm_mma
 from TechnicalIndicators.mlr import tool_mlr, norm_mlr
 from TechnicalIndicators.nhnl import tool_nhnl, norm_nhnl
+from TechnicalIndicators.pp import tool_pp, norm_pp
 
 
 # Main tools for Algorithmic trading
@@ -305,7 +306,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl
+         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp
          ]
    
 
@@ -2148,42 +2149,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_pp(ticker, start_date, end_date)  
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Pivot Points
-                    PP = (dataset["High"] + dataset["Low"] + dataset["Close"]) / 3
-                    R1 = 2 * PP - dataset["Low"]
-                    S1 = 2 * PP - dataset["High"]
-                    R2 = PP + dataset["High"] - dataset["Low"]
-                    S2 = PP - dataset["High"] + dataset["Low"]
-                    R3 = dataset["High"] + 2 * (PP - dataset["Low"])
-                    S3 = dataset["Low"] - 2 * (dataset["High"] - PP)
-
-                    # Plot Pivot Points
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=PP, mode='lines', name='Pivot Point'),
-                                        go.Scatter(x=dataset.index, y=R1, mode='lines', name='R1'),
-                                        go.Scatter(x=dataset.index, y=S1, mode='lines', name='S1'),
-                                        go.Scatter(x=dataset.index, y=R2, mode='lines', name='R2'),
-                                        go.Scatter(x=dataset.index, y=S2, mode='lines', name='S2'),
-                                        go.Scatter(x=dataset.index, y=R3, mode='lines', name='R3'),
-                                        go.Scatter(x=dataset.index, y=S3, mode='lines', name='S3')])
-                    fig.update_layout(title=f"{symbol} Pivot Points",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig)
-        
             if pred_option_Technical_Indicators == "Price Channels":
                 st.success("This program allows you to visualize Price Channels for a selected ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
