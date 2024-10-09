@@ -278,6 +278,7 @@ from TechnicalIndicators.mlr import tool_mlr, norm_mlr
 from TechnicalIndicators.nhnl import tool_nhnl, norm_nhnl
 from TechnicalIndicators.pp import tool_pp, norm_pp
 from TechnicalIndicators.pc import tool_pc, norm_pc
+from TechnicalIndicators.pr import tool_pr, norm_pr
 
 
 # Main tools for Algorithmic trading
@@ -307,7 +308,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc
+         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc, tool_pr
          ]
    
 
@@ -2180,26 +2181,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    benchmark = benchmark_ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-                    benchmark_data = yf.download(benchmark, start, end)
-
-                    # Calculate Price Relative
-                    price_relative = dataset['Adj Close'] / benchmark_data['Adj Close']
-
-                    # Plot Price Relative
-                    fig = go.Figure(data=[go.Scatter(x=price_relative.index, y=price_relative, mode='lines', name='Price Relative')])
-                    fig.update_layout(title=f"{symbol} Price Relative to {benchmark}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price Relative')
-                    
-                    st.plotly_chart(fig)
-
+                     norm_pr(ticker, start_date, end_date)
+                       
 
             if pred_option_Technical_Indicators == "Realized Volatility":
                 st.success("This program allows you to visualize Realized Volatility for a selected ticker")
