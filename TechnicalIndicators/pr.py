@@ -49,3 +49,4 @@ def norm_pr(ticker, start_date, end_date):
                     yaxis_title='Price Relative')
     
     st.plotly_chart(fig)
+    

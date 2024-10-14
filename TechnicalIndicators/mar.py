@@ -8,7 +8,7 @@ from langchain_core.tools import tool
 @tool
 
 def tool_mar(ticker:str, start_date: dt.time, end_date: dt.time):
-    ''' This program allows you to visualize Moving Average Ribbon(MAR) for a selected ticker. '''
+    ''' This program allows you to visualize Moving Average Ribbon for a selected ticker. '''
     symbol = ticker
     start = start_date
     end = end_date
