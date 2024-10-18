@@ -293,6 +293,7 @@ from TechnicalIndicators.tsi import tool_tsi, norm_tsi
 from TechnicalIndicators.uo import tool_uo, norm_uo
 from TechnicalIndicators.vi import tool_vi, norm_vi
 from TechnicalIndicators.vpci import tool_vpci, norm_vpci
+from TechnicalIndicators.vwma import tool_vwma, norm_vwma
 
 
 # Main tools for Algorithmic trading
@@ -323,7 +324,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
          tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc, tool_pr, tool_rv, tool_rvi, tool_sma, tool_srl,
-         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, 
+         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma
         ]
    
 
@@ -2411,38 +2412,9 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                     norm_vwma(ticker, start_date, end_date)
 
-                    # Calculate Volume Weighted Moving Average (VWMA)
-                    df["Volume_x_Close"] = df["Volume"] * df["Close"]
-                    df["VWMA"] = df["Volume_x_Close"].rolling(window=14).sum() / df["Volume"].rolling(window=14).sum()
 
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode='lines', name='Closing Price'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
-                    fig.update_layout(title="Stock " + symbol + " Volume Weighted Moving Average (VWMA)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Value",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with Volume Weighted Moving Average (VWMA)
-                    fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['Open'],
-                                            high=df['High'],
-                                            low=df['Low'],
-                                            close=df['Close'], name='Candlestick')])
-                    fig_candle.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
-                    fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Weighted Moving Average (VWMA)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig_candle)
         elif option =='Portfolio Strategies':
             pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                     'Astral Timing signals',
