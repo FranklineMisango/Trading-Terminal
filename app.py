@@ -298,7 +298,8 @@ from TechnicalIndicators.vwma import tool_vwma, norm_vwma
 # Main tools from Portfolio Strategies
 
 from PortfolioStrategies.astral_signals import tool_astral_signals, norm_astral_signals
-
+from PortfolioStrategies.sma_backtesting import tool_sma_strategy, norm_sma_strategy
+from PortfolioStrategies.sma_crossover import tool_sma_crossover, norm_sma_crossover
 
 # Main tools for Algorithmic trading
 
@@ -329,7 +330,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
          tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc, tool_pr, tool_rv, tool_rvi, tool_sma, tool_srl,
          tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma,
-         tool_astral_signals
+         tool_astral_signals,tool_sma_strategy,tool_sma_crossover
         ]
    
 
@@ -2424,9 +2425,7 @@ def main():
 
             pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                     'Astral Timing signals',
-                                                                    'Lumibot Backtesting strategy',
-                                                                    'Backtest Strategies',
-                                                                    'Backtrader Backtest',
+                                                                    'SMA Crossover Backtrader Backtest',
                                                                     'Best Moving Averages Analysis',
                                                                     'EMA Crossover Strategy',
                                                                     'Factor Analysis',
@@ -2451,6 +2450,7 @@ def main():
                                                                     'Support Resistance Finder'])
             
             if pred_option_portfolio_strategies == "Astral Timing signals":
+
                 st.success("This program allows you to start backtesting using Astral Timing signals")
                 ticker = st.text_input("Enter the ticker you want to monitor")
                 if ticker:
@@ -2468,9 +2468,8 @@ def main():
                     #To define a new comprehensive function for the astral signals
                     norm_astral_signals(ticker, start_date, end_date)
 
-                   
-
-            if pred_option_portfolio_strategies == "Backtest Strategies":
+                
+            if pred_option_portfolio_strategies == "SMA backtesting Strategy":
                 st.success("This portion allows you backtest a ticker for a period using SMA Logic ")
                 ticker = st.text_input("Enter the ticker for investigation")
                 if ticker:
@@ -2490,129 +2489,11 @@ def main():
                 st.success(f"years captured : {years}")
                 
                 if st.button("Check"):
-
-                    # Function to fetch stock data
-                    def get_stock_data(stock, start, end):
-                        """
-                        Fetches stock data from Yahoo Finance.
-                        """
-                        return yf.download(stock, start, end)
-
-                    # Trading statistics calculation
-                    def calculate_trading_statistics(df, buy_sell_logic, additional_logic=None):
-                            """
-                            Calculates trading statistics based on buy/sell logic.
-                            """
-                            position = 0
-                            percentChange = []
-                            buyP = sellP = 0  # Initialize buyP and sellP
-                            for i in df.index:
-                                close = df.loc[i, "Adj Close"]
-                                if buy_sell_logic(df, i, position):
-                                    position = 0 if position == 1 else 1
-                                    buyP = close if position == 1 else buyP
-                                    sellP = close if position == 0 else sellP
-                                    if position == 0:
-                                        perc = (sellP / buyP - 1) * 100
-                                        percentChange.append(perc)
-                                if additional_logic: additional_logic(df, i)
-                            return calculate_statistics_from_percent_change(percentChange)
-
-                    # Compute statistics from percent change
-                    def calculate_statistics_from_percent_change(percentChange):
-                        """
-                        Computes statistics from percentage change in stock prices.
-                        """
-                        gains = sum(p for p in percentChange if p > 0)
-                        losses = sum(p for p in percentChange if p < 0)
-                        numGains = sum(1 for p in percentChange if p > 0)
-                        numLosses = sum(1 for p in percentChange if p < 0)
-                        totReturn = round(np.prod([((p / 100) + 1) for p in percentChange]) * 100 - 100, 2)
-                        avgGain = gains / numGains if numGains > 0 else 0
-                        avgLoss = losses / numLosses if numLosses > 0 else 0
-                        maxReturn = max(percentChange) if numGains > 0 else 0
-                        maxLoss = min(percentChange) if numLosses > 0 else 0
-                        ratioRR = -avgGain / avgLoss if numLosses > 0 else "inf"
-                        batting_avg = numGains / (numGains + numLosses) if numGains + numLosses > 0 else 0
-                        return {
-                            "total_return": totReturn,
-                            "avg_gain": avgGain,
-                            "avg_loss": avgLoss,
-                            "max_return": maxReturn,
-                            "max_loss": maxLoss,
-                            "gain_loss_ratio": ratioRR,
-                            "num_trades": numGains + numLosses,
-                            "batting_avg": batting_avg
-                        }
-
-                    # SMA strategy logic
-                    def sma_strategy_logic(df, i, position):
-                        """
-                        Logic for Simple Moving Average (SMA) trading strategy.
-                        """
-                        SMA_short, SMA_long = df["SMA_20"], df["SMA_50"]
-                        return (SMA_short[i] > SMA_long[i] and position == 0) or (SMA_short[i] < SMA_long[i] and position == 1)
-
-                
-                    stock = ticker
-                    num_of_years = years
-                    start = start_date
-                    end = end_date
-                    df = get_stock_data(stock, start, end)
-
-                    # Implementing SMA strategy
-                    df["SMA_20"] = df["Adj Close"].rolling(window=20).mean()
-                    df["SMA_50"] = df["Adj Close"].rolling(window=50).mean()
-                    sma_stats = calculate_trading_statistics(df, sma_strategy_logic)
-                    st.write("Simple Moving Average Strategy Stats:", sma_stats)
-
-            if pred_option_portfolio_strategies == "Lumibot Backtesting strategy":
-                st.success("This portion allows you backtest a ticker for a period using Lumibot YahooBacktesting strategy ")
-                ticker = st.text_input("Enter the ticker for investigation")
-                if ticker:
-                    message = (f"Ticker captured : {ticker}")
-                    st.success(message)
-                portfolio = st.number_input("Enter the portfolio size in USD")
-                if portfolio:
-                    st.write(f"The portfolio size in USD Captured is : {portfolio}")
-                quantities = st.number_input("Enter the quantities of the ticker to buy")
-                if quantities:
-                    st.write(f"The noted quantities are : {quantities}")
-                min_date = datetime(1980, 1, 1)
-                # Date input widget with custom minimum date
-                col1, col2 = st.columns([2, 2])
-                with col1:
-                    start_date = st.date_input("Start date:", min_value=min_date)
-                with col2:
-                    end_date = st.date_input("End Date:")
-                years = end_date.year - start_date.year
-                st.success(f"years captured : {years}")
-                if st.button("Check"):
-                    start = start_date
-                    end = end_date
-                    class MyStrategy(Strategy):
-                        def on_trading_iteration(self):
-                            if self.first_iteration:
-                                order = self.create_order(ticker, quantity=quantities, side="buy")
-                                self.submit_order(order)
-
-                    # Create a backtest
-                    backtesting_start = start
-                    backtesting_end = end
-
-                    # The benchmark asset to use for the backtest to compare to
-                    benchmark_asset = Asset(symbol="QQQ", asset_type="stock")
-
-                    backtest = MyStrategy.backtest(
-                        datasource_class=YahooDataBacktesting,
-                        backtesting_start=backtesting_start,
-                        backtesting_end=backtesting_end,
-                        benchmark_asset=benchmark_asset,
-                    )
+                    norm_sma_strategy(ticker, years, start_date, end_date, portfolio)
 
 
                 
-            if pred_option_portfolio_strategies == "Backtrader Backtest":
+            if pred_option_portfolio_strategies == "SMA Crossover Backtrader Backtest":
                 ticker = st.text_input("Enter the ticker for investigation")
                 if ticker:
                     message = (f"Ticker captured : {ticker}")
@@ -2630,241 +2511,7 @@ def main():
                 years = end_date.year - start_date.year
                 st.success(f"years captured : {years}")
                 if st.button("Check"):
-
-                    # Setting chart resolution
-                    plt.rcParams['figure.dpi'] = 140
-
-                    # API credentials
-                    API_KEY = API_KEY_ALPACA
-                    SECRET_KEY = SECRET_KEY_ALPACA
-
-                    # Initialize REST API
-                    rest_api = REST(API_KEY, SECRET_KEY, 'https://paper-api.alpaca.markets/v2')
-
-                    def run_backtest(strategy, symbol, start, end, timeframe=TimeFrame.Day, cash=10000):
-                        cerebro = bt.Cerebro(stdstats=True)
-                        cerebro.broker.setcash(cash)
-                        cerebro.addstrategy(strategy)
-
-                        # Adding analyzers
-                        cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trade_analyzer')
-                        cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe_ratio')
-
-                        # Loading data
-                        data = rest_api.get_bars(symbol, timeframe, start, end, adjustment='all').df
-                        bt_data = bt.feeds.PandasData(dataname=data, name=symbol)
-                        cerebro.adddata(bt_data)
-
-                        # Running the backtest
-                        initial_value = cerebro.broker.getvalue()
-                        st.write(f'Starting Portfolio Value: {initial_value}')
-                        results = cerebro.run()
-                        final_value = cerebro.broker.getvalue()
-                        st.write(f'Final Portfolio Value: {round(final_value, 2)}')
-
-                        strategy_return = 100 * (final_value - initial_value)/initial_value
-                        st.write(f'Strategy Return: {round(strategy_return, 2)}%')
-
-                        # Display results
-                        strategy_statistics(results, initial_value, data)
-
-                        # Plotting the results
-                        cerebro.plot(iplot=False)
-                    
-                    def strategy_statistics(results, initial_value, data):
-                        # Analyzing the results
-                        strat = results[0]
-                        trade_analysis = strat.analyzers.trade_analyzer.get_analysis()
-
-                        # Sharpe Ratio
-                        sharpe_ratio = round(strat.analyzers.sharpe_ratio.get_analysis()['sharperatio'], 2)
-
-                        # Total number of trades
-                        total_trades = trade_analysis.total.closed
-
-                        # Win Rate
-                        win_rate = round((trade_analysis.won.total / total_trades) * 100, 2) if total_trades > 0 else 0
-
-                        # Average Percent Gain and Loss
-                        avg_percent_gain = round(trade_analysis.won.pnl.average / initial_value * 100, 2) if trade_analysis.won.total > 0 else 0
-                        avg_percent_loss = round(trade_analysis.lost.pnl.average / initial_value * 100, 2) if trade_analysis.lost.total > 0 else 0
-
-                        # Profit Factor
-                        profit_factor = round((avg_percent_gain * win_rate) / (avg_percent_loss * (1 - win_rate)), 2) if avg_percent_loss != 0 else float('inf')
-
-                        # Gain/Loss Ratio
-                        gain_loss_ratio = round(avg_percent_gain / -avg_percent_loss, 2) if avg_percent_loss != 0 else float('inf')
-
-                        # Max Return and Max Loss as Percentages
-                        max_return = round(trade_analysis.won.pnl.max / initial_value * 100, 2) if trade_analysis.won.total > 0 else 0
-                        max_loss = round(trade_analysis.lost.pnl.max / initial_value * 100, 2) if trade_analysis.lost.total > 0 else 0
-
-                        # Buy and Hold Return
-                        buy_and_hold_return = round((data['close'].iloc[-1] / data['close'].iloc[0] - 1) * 100, 2)
-
-                        # Displaying results
-                        st.write(f'Buy and Hold Return: {buy_and_hold_return}%')
-                        st.write('Sharpe Ratio:', sharpe_ratio)
-                        st.write('Total Trades:', total_trades)
-                        st.write('Win Rate (%):', win_rate)
-                        st.write('Average % Gain per Trade:', avg_percent_gain)
-                        st.write('Average % Loss per Trade:', avg_percent_loss)
-                        st.write('Profit Factor:', profit_factor)
-                        st.write('Gain/Loss Ratio:', gain_loss_ratio)
-                        st.write('Max % Return on a Trade:', max_return)
-                        st.write('Max % Loss on a Trade:', max_loss)
-
-                    # Class for SMA Crossover strategy
-                    class SmaCross(bt.Strategy):
-                        params = dict(pfast=13, pslow=25)
-
-                        # Define trading strategy
-                        def __init__(self):
-                            sma1 = bt.ind.SMA(period=self.p.pfast)
-                            sma2 = bt.ind.SMA(period=self.p.pslow)
-                            self.crossover = bt.ind.CrossOver(sma1, sma2)
-
-                            # Custom trade tracking
-                            self.trade_data = []
-
-                        # Execute trades
-                        def next(self):
-                            # Trading the entire portfolio
-                            size = int(self.broker.get_cash() / self.data.close[0])
-
-                            if not self.position:
-                                if self.crossover > 0:
-                                    self.buy(size=size)
-                                    self.entry_bar = len(self)  # Record entry bar index
-                            elif self.crossover < 0:
-                                self.close()
-
-                        # Record trade details
-                        def notify_trade(self, trade):
-                            if trade.isclosed:
-                                exit_bar = len(self)
-                                holding_period = exit_bar - self.entry_bar
-                                trade_record = {
-                                    'entry': self.entry_bar,
-                                    'exit': exit_bar,
-                                    'duration': holding_period,
-                                    'profit': trade.pnl
-                                }
-                                self.trade_data.append(trade_record)
-
-                        # Caclulating holding periods
-                        def stop(self):
-                            # Calculate and st.write average holding periods
-                            total_holding = sum([trade['duration'] for trade in self.trade_data])
-                            total_trades = len(self.trade_data)
-                            avg_holding_period = round(total_holding / total_trades) if total_trades > 0 else 0
-
-                            # Calculating for winners and losers separately
-                            winners = [trade for trade in self.trade_data if trade['profit'] > 0]
-                            losers = [trade for trade in self.trade_data if trade['profit'] < 0]
-                            avg_winner_holding = round(sum(trade['duration'] for trade in winners) / len(winners))if winners else 0
-                            avg_loser_holding = round(sum(trade['duration'] for trade in losers) / len(losers)) if losers else 0
-
-                            # Display average holding period statistics
-                            st.write('Average Holding Period:', avg_holding_period)
-                            st.write('Average Winner Holding Period:', avg_winner_holding)
-                            st.write('Average Loser Holding Period:', avg_loser_holding)
-
-                        # Run backtest
-                    run_backtest(SmaCross, ticker, start_date, end_date, TimeFrame.Day, portfolio)
-            
-            if pred_option_portfolio_strategies == "Best Moving Averages Analysis":
-                st.success("This portion allows you backtest a ticker for a period using the best moving averages Logic ")
-                ticker = st.text_input("Enter the ticker for investigation")
-                if ticker:
-                    message = (f"Ticker captured : {ticker}")
-                    st.success(message)
-                min_date = datetime(1980, 1, 1)
-                # Date input widget with custom minimum date
-                col1, col2 = st.columns([2, 2])
-                with col1:
-                    start_date = st.date_input("Start date:", min_value=min_date)
-                with col2:
-                    end_date = st.date_input("End Date:")
-                years = end_date.year - start_date.year
-                st.success(f"years captured : {years}")
-                if st.button("Check"):
-                    # Define stock symbol and historical data range
-                    symbol = ticker
-                    num_of_years = years
-                    start_date = start_date
-                    end_date = end_date
-
-                    # Fetch stock data using yfinance
-                    data = yf.download(symbol, start=start_date, end=end_date)
-
-                    # Calculate Simple Moving Averages (SMAs) for different periods
-                    data['SMA_20'] = data['Close'].rolling(window=20).mean()
-                    data['SMA_50'] = data['Close'].rolling(window=50).mean()
-                    data['SMA_200'] = data['Close'].rolling(window=200).mean()
-
-                    # Create interactive plot for stock price and its SMAs
-                    fig_stock = go.Figure()
-                    fig_stock.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Price'))
-                    fig_stock.add_trace(go.Scatter(x=data.index, y=data['SMA_20'], mode='lines', name='20-period SMA'))
-                    fig_stock.add_trace(go.Scatter(x=data.index, y=data['SMA_50'], mode='lines', name='50-period SMA'))
-                    fig_stock.add_trace(go.Scatter(x=data.index, y=data['SMA_200'], mode='lines', name='200-period SMA'))
-
-                    fig_stock.update_layout(title=f'{symbol} Stock Price and SMAs',
-                                            xaxis_title='Date',
-                                            yaxis_title='Price')
-
-                    # Display the interactive plot
-                    st.plotly_chart(fig_stock)
-
-                    # Analysis to find the best SMA for predicting future returns
-                    days_forward = 10
-                    results = []
-
-                    # Testing different SMA lengths
-                    for sma_length in range(20, 500):
-                        data['SMA'] = data['Close'].rolling(sma_length).mean()
-                        data['Position'] = data['Close'] > data['SMA']
-                        data['Forward Close'] = data['Close'].shift(-days_forward)
-                        data['Forward Return'] = (data['Forward Close'] - data['Close']) / data['Close']
-                        
-                        # Splitting into training and test datasets
-                        train_data = data[:int(0.6 * len(data))]
-                        test_data = data[int(0.6 * len(data)):]
-                        
-                        # Calculating average forward returns
-                        train_return = train_data[train_data['Position']]['Forward Return'].mean()
-                        test_return = test_data[test_data['Position']]['Forward Return'].mean()
-                        
-                        # Statistical test
-                        p_value = ttest_ind(train_data[train_data['Position']]['Forward Return'],
-                                            test_data[test_data['Position']]['Forward Return'],
-                                            equal_var=False)[1]
-                        
-                        results.append({'SMA Length': sma_length, 
-                                        'Train Return': train_return, 
-                                        'Test Return': test_return, 
-                                        'p-value': p_value})
-
-                    # Sorting results and printing the best SMA
-                    best_result = sorted(results, key=lambda x: x['Train Return'], reverse=True)[0]
-                    st.write(f"Best SMA Length: {best_result['SMA Length']}")
-                    st.write(f"Train Return: {best_result['Train Return']:.4f}")
-                    st.write(f"Test Return: {best_result['Test Return']:.4f}")
-                    st.write(f"p-value: {best_result['p-value']:.4f}")
-
-                    # Create interactive plot for the best SMA
-                    data['Best SMA'] = data['Close'].rolling(best_result['SMA Length']).mean()
-                    fig_best_sma = go.Figure()
-                    fig_best_sma.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Price'))
-                    fig_best_sma.add_trace(go.Scatter(x=data.index, y=data['Best SMA'], mode='lines', name=f"{best_result['SMA Length']} periods SMA"))
-
-                    fig_best_sma.update_layout(title=f'{symbol} Stock Price and Best SMA',
-                                                xaxis_title='Date',
-                                                yaxis_title='Price')
-
-                    # Display the interactive plot for the best SMA
-                    st.plotly_chart(fig_best_sma)
+                   norm_sma_crossover(ticker, years, start_date, end_date, portfolio)
 
             if pred_option_portfolio_strategies == "EMA Crossover Strategy":
                 tickers = []
@@ -3038,6 +2685,7 @@ def main():
                         st.write("\nFactor Analysis Results:")
                         st.write("\nCommunalities:\n", communalities)
                         st.write("\nFactor Loadings:\n", loadings)
+
                 if more_input == "No":
                     st.error("The EMA crossover cannot proceed without a comparison")
 
@@ -4547,7 +4195,7 @@ def main():
         
         with right_column:
             # Now you can use the key in your code
-            prompt = hub.pull("hwchase17/openai-tools-agent")
+            prompt = hub.pull("hwchase17/openai-tools-agent", api_key=os.environ.get("LANGSMITH_KEY"))
             llm = ChatOpenAI(model="gpt-3.5-turbo-0125", openai_api_key=os.environ.get("OPEN_AI_API"))
             agent = create_tool_calling_agent(llm, tools, prompt)
             agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
