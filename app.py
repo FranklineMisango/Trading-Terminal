@@ -3158,6 +3158,7 @@ def main():
                     st.write("Simple Moving Average Strategy Stats:", sma_stats)
 
             if pred_option_portfolio_strategies == "Lumibot Backtesting strategy":
+                
                 st.success("This portion allows you backtest a ticker for a period using Lumibot YahooBacktesting strategy ")
                 ticker = st.text_input("Enter the ticker for investigation")
                 if ticker:
@@ -3885,6 +3886,7 @@ def main():
                 years = end_date.year - start_date.year
                 st.success(f"years captured : {years}")
                 if st.button("Check"):
+
                     def fetch_stock_data(symbol, start, end):
                         return yf.download(symbol, start, end)
 
@@ -3892,6 +3894,7 @@ def main():
                     def lump_sum_investment(df, invest_date, principal):
                         invest_price = df.loc[invest_date]['Adj Close']
                         current_price = df['Adj Close'][-1]
+                        print(f"Invest Date: {invest_date}, Invest Price: {invest_price}, Current Price: {current_price}")
                         return principal * ((current_price / invest_price) - 1)
 
                     # Dollar-Cost Averaging Function
@@ -5834,8 +5837,6 @@ def main():
                                 backtesting_end,
                                 benchmark_asset="SPY",
                             )
-
-
 
 
             if AI_option_trading == 'Lumibots : Diversified Leverage':
