@@ -4830,8 +4830,8 @@ def main():
                     start_date = st.date_input("Start date:", min_value=min_date)
                 with col2:
                     end_date = st.date_input("End Date:")
-                years = end_date.year - start_date.year
-                st.success(f"years captured : {years}")
+                rwb_years = end_date.year - start_date.year
+                st.success(f"years captured : {rwb_years}")
                 if st.button("Check"):
                     emas_used = [3, 5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60]
 
@@ -4863,12 +4863,7 @@ def main():
                             num += 1
                         return percent_change
 
-                    st.title("RWB Strategy Visualization")
-
-                    stock = st.text_input("Enter a ticker:", "AAPL")
-                    num_of_years = st.number_input("Enter number of years:", min_value=1, max_value=10, step=1, value=5)
-
-                    df = get_stock_data(stock, num_of_years)
+                    df = get_stock_data(ticker, rwb_years)
                     percent_change = rwb_strategy(df)
 
                     gains = sum(i for i in percent_change if i > 0)
@@ -4876,7 +4871,7 @@ def main():
                     total_trades = len(percent_change)
                     total_return = round((np.prod([1 + i/100 for i in percent_change]) - 1) * 100, 2)
 
-                    st.write(f"Results for {stock.upper()} going back to {num_of_years} years:")
+                    st.write(f"Results for {ticker.upper()} going back to {rwb_years} years:")
                     st.write(f"Number of Trades: {total_trades}")
                     st.write(f"Total return: {total_return}%")
 
@@ -4884,7 +4879,7 @@ def main():
                     for ema in emas_used:
                         fig.add_trace(go.Scatter(x=df.index, y=df[f"Ema_{ema}"], mode='lines', name=f"Ema_{ema}"))
                     fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name="Adj Close", line=dict(color='green')))
-                    fig.update_layout(title=f"RWB Strategy for {stock.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
+                    fig.update_layout(title=f"RWB Strategy for {ticker.upper()}", xaxis_title="Date", yaxis_title="Price", template='plotly_dark')
                     st.plotly_chart(fig)
 
 
