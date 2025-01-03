@@ -332,7 +332,7 @@ def main():
     left_column, right_column = st.columns([2, 2])
 
     with left_column:
-        option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions'))
+        option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', "Portfolio Strategies"))
         if option =='About':
             about()
         if option == 'Find stocks':
@@ -2961,6 +2961,7 @@ def main():
                                     yaxis_title="Price",
                                     legend=dict(x=0, y=1, traceorder="normal"))
                     st.plotly_chart(fig_candle)
+        
         elif option =='Portfolio Strategies':
             pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                     'Astral Timing signals',
