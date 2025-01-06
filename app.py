@@ -294,6 +294,8 @@ from TechnicalIndicators.uo import tool_uo, norm_uo
 from TechnicalIndicators.vi import tool_vi, norm_vi
 from TechnicalIndicators.vpci import tool_vpci, norm_vpci
 from TechnicalIndicators.vwma import tool_vwma, norm_vwma
+from TechnicalIndicators.apo import tool_apo, norm_apo
+from TechnicalIndicators.acceleration_bands import tool_acceleration_bands, norm_acceleration_bands
 
 # Main tools for Algorithmic trading
 
@@ -323,7 +325,7 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
          tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc, tool_pr, tool_rv, tool_rvi, tool_sma, tool_srl,
-         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma,
+         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma,tool_acceleration_bands,
 ]
    
 
