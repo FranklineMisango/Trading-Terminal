@@ -69,14 +69,15 @@ def tool_ema(start_date : dt.time, end_date : dt.time, ticker:str):
 
 
 
-def norm_ema(start_date : dt.time, end_date : dt.time, ticker:str):
+def norm_ema(start_date, end_date, ticker):
     ''' This tool plots the candlestick chart of a stock along with the Exponential Moving Average (EMA) of the stock's closing price.'''
+    
     symbol = ticker
     start = start_date
     end = end_date
 
     # Read data
-    df = yf.download(symbol, start, end)
+    df = yf.download(start,end,symbol)
 
     n = 15
     df["EMA"] = (
@@ -85,9 +86,7 @@ def norm_ema(start_date : dt.time, end_date : dt.time, ticker:str):
 
     dfc = df.copy()
     dfc["VolumePositive"] = dfc["Open"] < dfc["Adj Close"]
-    # dfc = dfc.dropna()
     dfc = dfc.reset_index()
-    dfc["Date"] = mdates.date2num(dfc["Date"].tolist())
     dfc["Date"] = pd.to_datetime(dfc["Date"])  # Convert Date column to datetime
     dfc["Date"] = dfc["Date"].apply(mdates.date2num)
 
@@ -111,18 +110,17 @@ def norm_ema(start_date : dt.time, end_date : dt.time, ticker:str):
 
     trace_ema = go.Scatter(x=df.index, y=df["EMA"], mode='lines', name='EMA')
 
-
     trace_volume = go.Bar(x=dfc.index, y=dfc['Volume'], marker=dict(color=dfc['VolumePositive'].map({True: 'green', False: 'red'})),
                         name='Volume')
 
-    layout_candlestick = go.Layout(title="Stock " + symbol + " Closing Price",
+    layout_candlestick = go.Layout(title="Stock " + str(symbol) + " Closing Price",
                                 xaxis=dict(title="Date", type='date', tickformat='%d-%m-%Y'),
                                 yaxis=dict(title="Price"),
                                 yaxis2=dict(title="Volume", overlaying='y', side='right'))
     fig_candlestick = go.Figure(data=[trace_candlestick, trace_ema, trace_volume], layout=layout_candlestick)
 
-
     # Display Plotly figures in Streamlit
     st.plotly_chart(fig_ma)
     st.warning("Click candlestick, EMA or Volume to tinker with the graph")
-    st.plotly_chart(fig_candlestick)                          
+    st.plotly_chart(fig_candlestick)                        
+
