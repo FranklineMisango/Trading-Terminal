@@ -128,9 +128,6 @@ import alpaca_trade_api as alpaca
 #Env variables
 from dotenv import load_dotenv
 load_dotenv()
-
-
-#secrets the application
 EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')
 API_FMPCLOUD = os.environ.get("API_FMPCLOUD")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
@@ -141,6 +138,14 @@ SECRET_KEY_ALPACA =os.environ.get("SECRET_KEY_ALPACA")
 KRAKEN_CONFIG =  "PASS"
 ALPACA_CONFIG = alpaca.REST(API_KEY_ALPACA, SECRET_KEY_ALPACA, base_url= BASE_URL, api_version = 'v2')
 
+#AI bot
+
+from openai import OpenAI
+from langchain import hub
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+import getpass
+from langchain_openai import ChatOpenAI
+import os
 
 #Al Trading recs
 from lumibot.brokers import Alpaca
@@ -295,7 +300,7 @@ from TechnicalIndicators.vi import tool_vi, norm_vi
 from TechnicalIndicators.vpci import tool_vpci, norm_vpci
 from TechnicalIndicators.vwma import tool_vwma, norm_vwma
 from TechnicalIndicators.apo import tool_apo, norm_apo
-from TechnicalIndicators.acceleration_bands import tool_acceleration_bands, norm_acceleration_bands
+from TechnicalIndicators.acceleration_bands import tool_accleration_bands, norm_accleration_bands
 
 # Main tools for Algorithmic trading
 
@@ -325,27 +330,11 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
          tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc, tool_pr, tool_rv, tool_rvi, tool_sma, tool_srl,
-         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma,tool_acceleration_bands,
+         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma,tool_accleration_bands,
 ]
-   
-# Multimodial agent bot configuration
-from openai import OpenAI
-from langchain import hub
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-import getpass
-from langchain_openai import ChatOpenAI
-# Set your API key here
-api_key = os.environ.get("LANGSMITH_KEY")
-if 'conversation' not in st.session_state:
-    st.session_state.conversation = ""
 
-
-
-##Terminal config
-import time 
 
 def main():
-    #Main app
     st.title("📈 Frankline and Co. LP Trading Terminal Beta")
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     # Create a two-column layout
@@ -2456,27 +2445,23 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-                    # Apply Astral Timing signals to stock data.
                     def astral(data, completion, step, step_two, what, high, low, where_long, where_short):
-                        data['long_signal'] = 0
-                        data['short_signal'] = 0
+                            data['long_signal'] = 0
+                            data['short_signal'] = 0
 
-                        # Iterate through the DataFrame
-                        for i in range(len(data)):
-                            # Long signal logic
-                            if data.iloc[i][what] < data.iloc[i - step][what] and data.iloc[i][low] < data.iloc[i - step_two][low]:
-                                data.at[data.index[i], 'long_signal'] = -1
-                            elif data.iloc[i][what] >= data.iloc[i - step][what]:
-                                data.at[data.index[i], 'long_signal'] = 0
+                            # Iterate through the DataFrame
+                            for i in range(len(data)):
+                                if (data.iloc[i][what] < data.iloc[i - step][what]).all() and (data.iloc[i][low] < data.iloc[i - step_two][low]).all():
+                                    data.at[data.index[i], 'long_signal'] = -1
+                                elif (data.iloc[i][what] >= data.iloc[i - step][what]).all():
+                                    data.at[data.index[i], 'long_signal'] = 0
 
-                            # Short signal logic
-                            if data.iloc[i][what] > data.iloc[i - step][what] and data.iloc[i][high] > data.iloc[i - step_two][high]:
-                                data.at[data.index[i], 'short_signal'] = 1
-                            elif data.iloc[i][what] <= data.iloc[i - step][what]:
-                                data.at[data.index[i], 'short_signal'] = 0
-
-                        return data
-
+                                # Short signal logic
+                                if (data.iloc[i][what] > data.iloc[i - step][what]).all() and (data.iloc[i][high] > data.iloc[i - step_two][high]).all():
+                                    data.at[data.index[i], 'short_signal'] = 1
+                                elif (data.iloc[i][what] <= data.iloc[i - step][what]).all():
+                                    data.at[data.index[i], 'short_signal'] = 0
+                            return data
                     # Define stock ticker and date range
                 
                     start = start_date
@@ -5906,7 +5891,5 @@ def main():
                     except Exception as e:
                         st.error(f"An error occurred: {str(e)}")
 
-if __name__ == "__main__":
-    main()
 if __name__ == "__main__":
     main()
