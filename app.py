@@ -128,9 +128,6 @@ import alpaca_trade_api as alpaca
 #Env variables
 from dotenv import load_dotenv
 load_dotenv()
-
-
-#secrets the application
 EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')
 API_FMPCLOUD = os.environ.get("API_FMPCLOUD")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
@@ -141,6 +138,14 @@ SECRET_KEY_ALPACA =os.environ.get("SECRET_KEY_ALPACA")
 KRAKEN_CONFIG =  "PASS"
 ALPACA_CONFIG = alpaca.REST(API_KEY_ALPACA, SECRET_KEY_ALPACA, base_url= BASE_URL, api_version = 'v2')
 
+#AI bot
+
+from openai import OpenAI
+from langchain import hub
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+import getpass
+from langchain_openai import ChatOpenAI
+import os
 
 #Al Trading recs
 from lumibot.brokers import Alpaca
@@ -273,7 +278,29 @@ from TechnicalIndicators.m import tool_m, norm_m
 from TechnicalIndicators.mae import tool_mae, norm_mae
 from TechnicalIndicators.mahl import tool_mahl, norm_mahl
 from TechnicalIndicators.mar import tool_mar, norm_mar
-
+from TechnicalIndicators.mma import tool_mma, norm_mma
+from TechnicalIndicators.mlr import tool_mlr, norm_mlr
+from TechnicalIndicators.nhnl import tool_nhnl, norm_nhnl
+from TechnicalIndicators.pp import tool_pp, norm_pp
+from TechnicalIndicators.pc import tool_pc, norm_pc
+from TechnicalIndicators.pr import tool_pr, norm_pr
+from TechnicalIndicators.rv import tool_rv, norm_rv
+from TechnicalIndicators.rvi import tool_rvi, norm_rvi
+from TechnicalIndicators.sma import tool_sma, norm_sma
+from TechnicalIndicators.srl import tool_srl, norm_srl
+from TechnicalIndicators.sdv import tool_sdv, norm_sdv
+from TechnicalIndicators.srsi import tool_srsi, norm_srsi
+from TechnicalIndicators.sf import tool_sf, norm_sf
+from TechnicalIndicators.sfu import tool_sfu, norm_sfu
+from TechnicalIndicators.ss import tool_ss, norm_ss
+from TechnicalIndicators.st import tool_st, norm_st
+from TechnicalIndicators.tsi import tool_tsi, norm_tsi
+from TechnicalIndicators.uo import tool_uo, norm_uo
+from TechnicalIndicators.vi import tool_vi, norm_vi
+from TechnicalIndicators.vpci import tool_vpci, norm_vpci
+from TechnicalIndicators.vwma import tool_vwma, norm_vwma
+from TechnicalIndicators.apo import tool_apo, norm_apo
+from TechnicalIndicators.acceleration_bands import tool_accleration_bands, norm_accleration_bands
 
 # Main tools for Algorithmic trading
 
@@ -302,37 +329,19 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
          tool_adl, tool_aroon, tool_adx, tool_atr, tool_bp, tool_bi, tool_bb, tool_bbw, tool_bri, tool_car,
          tool_cpr, tool_cmf, tool_co, tool_cci, tool_cc, tool_cov, tool_dpo, tool_dc, tool_dema, tool_dmi, tool_evm,
          tool_fi, tool_gri, tool_gdc, tool_hml, tool_hma, tool_kc, tool_lr, tool_lrs, tool_lwma, tool_mo, tool_m, tool_mae,
-         tool_mahl, tool_mar
-         ]
-   
+         tool_mahl, tool_mar, tool_mma, tool_mlr, tool_nhnl, tool_pp, tool_pc, tool_pr, tool_rv, tool_rvi, tool_sma, tool_srl,
+         tool_sdv, tool_srsi, tool_sf, tool_sfu, tool_ss, tool_st, tool_tsi, tool_uo, tool_vi, tool_vpci, tool_vwma,tool_accleration_bands,
+]
 
-
-
-# Multimodial agent bot configuration
-from openai import OpenAI
-from langchain import hub
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-import getpass
-from langchain_openai import ChatOpenAI
-# Set your API key here
-api_key = os.environ.get("LANGSMITH_KEY")
-if 'conversation' not in st.session_state:
-    st.session_state.conversation = ""
-
-
-
-##Terminal config
-import time 
 
 def main():
-    #Main app
     st.title("📈 Frankline and Co. LP Trading Terminal Beta")
     st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
     # Create a two-column layout
     left_column, right_column = st.columns([2, 2])
 
     with left_column:
-        option = st.sidebar.radio("Make a choice",('About',"Algorithmic Trading",'Find stocks','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions', "Portfolio Strategies"))
+        option = st.sidebar.radio("Make a choice",('About','Find stocks', 'Portfolio Strategies','Stock Data', 'Stock Analysis','Technical Indicators', 'Stock Predictions'))
         if option =='About':
             about()
         if option == 'Find stocks':
@@ -2102,28 +2111,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df["20SMA"] = ta.SMA(df["Adj Close"], timeperiod=20)
-                    df["Upper_Envelope"] = df["20SMA"] + (df["20SMA"] * 0.025)
-                    df["Lower_Envelope"] = df["20SMA"] - (df["20SMA"] * 0.025)
-
-                    # Plot Line Chart with Moving Average Envelopes (MMA)
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Upper_Envelope"], mode='lines', name='Upper Envelope', line=dict(color='blue')))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Lower_Envelope"], mode='lines', name='Lower Envelope', line=dict(color='red')))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"].rolling(20).mean(), mode='lines', name='Moving Average', line=dict(color='orange', dash='dash')))
-                    fig_line.update_layout(title=f"Stock {symbol} Moving Average Envelopes (MMA)",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
+                    norm_mma(ticker, start_date, end_date)   
 
             if pred_option_Technical_Indicators == "Moving Linear Regression":
                 st.success("This program allows you to visualize Moving Linear Regression for a selected ticker")
@@ -2137,24 +2125,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df['Slope'] = ta.LINEARREG_SLOPE(df['Adj Close'], timeperiod=14)
-
-                    # Plot Line Chart with Moving Linear Regression
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Slope"], mode='lines', name='Slope', line=dict(color='red')))
-                    fig_line.update_layout(title=f"Stock {symbol} Moving Linear Regression",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
+                    norm_mlr(ticker, start_date, end_date)   
 
             if pred_option_Technical_Indicators == "New Highs/New Lows":
                 st.success("This program allows you to visualize New Highs/New Lows for a selected ticker")
@@ -2168,26 +2139,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_nhnl(ticker, start_date, end_date)   
 
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    df['52wHigh'] = df['Adj Close'].rolling(window=252).max()
-                    df['52wLow'] = df['Adj Close'].rolling(window=252).min()
-
-                    # Plot Line Chart with New Highs/New Lows
-                    fig_line = go.Figure()
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Adj Close'))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["52wHigh"], mode='lines', name='52 Weeks High', line=dict(color='green')))
-                    fig_line.add_trace(go.Scatter(x=df.index, y=df["52wLow"], mode='lines', name='52 Weeks Low', line=dict(color='red')))
-                    fig_line.update_layout(title=f"Stock {symbol} New Highs/New Lows",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig_line)
 
             if pred_option_Technical_Indicators == "Pivot Point":
                 st.success("This program allows you to visualize Pivot Points for a selected ticker")
@@ -2201,42 +2154,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_pp(ticker, start_date, end_date)  
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Pivot Points
-                    PP = (dataset["High"] + dataset["Low"] + dataset["Close"]) / 3
-                    R1 = 2 * PP - dataset["Low"]
-                    S1 = 2 * PP - dataset["High"]
-                    R2 = PP + dataset["High"] - dataset["Low"]
-                    S2 = PP - dataset["High"] + dataset["Low"]
-                    R3 = dataset["High"] + 2 * (PP - dataset["Low"])
-                    S3 = dataset["Low"] - 2 * (dataset["High"] - PP)
-
-                    # Plot Pivot Points
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=PP, mode='lines', name='Pivot Point'),
-                                        go.Scatter(x=dataset.index, y=R1, mode='lines', name='R1'),
-                                        go.Scatter(x=dataset.index, y=S1, mode='lines', name='S1'),
-                                        go.Scatter(x=dataset.index, y=R2, mode='lines', name='R2'),
-                                        go.Scatter(x=dataset.index, y=S2, mode='lines', name='S2'),
-                                        go.Scatter(x=dataset.index, y=R3, mode='lines', name='R3'),
-                                        go.Scatter(x=dataset.index, y=S3, mode='lines', name='S3')])
-                    fig.update_layout(title=f"{symbol} Pivot Points",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig)
-        
             if pred_option_Technical_Indicators == "Price Channels":
                 st.success("This program allows you to visualize Price Channels for a selected ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -2249,33 +2168,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_pc(ticker, start_date, end_date)  
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Price Channels
-                    rolling_high = dataset['High'].rolling(window=20).max()
-                    rolling_low = dataset['Low'].rolling(window=20).min()
-                    midline = (rolling_high + rolling_low) / 2
-
-                    # Plot Price Channels
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=rolling_high, mode='lines', name='Upper Channel'),
-                                        go.Scatter(x=dataset.index, y=rolling_low, mode='lines', name='Lower Channel'),
-                                        go.Scatter(x=dataset.index, y=midline, mode='lines', name='Midline')])
-                    fig.update_layout(title=f"{symbol} Price Channels",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price')
-                    
-                    st.plotly_chart(fig)
 
             if pred_option_Technical_Indicators == "Price Relative":
                 st.success("This program allows you to visualize Price Relative for a selected ticker")
@@ -2290,25 +2184,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    benchmark = benchmark_ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-                    benchmark_data = yf.download(benchmark, start, end)
-
-                    # Calculate Price Relative
-                    price_relative = dataset['Adj Close'] / benchmark_data['Adj Close']
-
-                    # Plot Price Relative
-                    fig = go.Figure(data=[go.Scatter(x=price_relative.index, y=price_relative, mode='lines', name='Price Relative')])
-                    fig.update_layout(title=f"{symbol} Price Relative to {benchmark}",
-                                    xaxis_title='Date',
-                                    yaxis_title='Price Relative')
-                    
-                    st.plotly_chart(fig)
+                     norm_pr(ticker, start_date, end_date)
 
 
             if pred_option_Technical_Indicators == "Realized Volatility":
@@ -2323,25 +2199,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Realized Volatility
-                    returns = dataset["Adj Close"].pct_change().dropna()
-                    realized_volatility = returns.std() * np.sqrt(252)  # Annualized volatility assuming 252 trading days
-
-                    # Plot Realized Volatility
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=returns.index, y=returns, mode='lines', name='Daily Returns'))
-                    fig.add_trace(go.Scatter(x=returns.index, y=np.ones(len(returns)) * realized_volatility, mode='lines', name='Realized Volatility', line=dict(color='red', dash='dash')))
-                    fig.update_layout(title=f"{symbol} Daily Returns and Realized Volatility",
-                                    xaxis_title="Date",
-                                    yaxis_title="Returns / Realized Volatility")
-                    st.plotly_chart(fig)
+                    norm_rv(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Relative Volatility Index":
                 st.success("This program allows you to visualize Relative Volatility Index for a selected ticker")
@@ -2354,33 +2212,8 @@ def main():
                     start_date = st.date_input("Start date:")
                 with col2:
                     end_date = st.date_input("End Date:")
-                if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Relative Volatility Index (RVI)
-                    n = 14  # Number of period
-                    change = dataset["Adj Close"].diff(1)
-                    gain = change.mask(change < 0, 0)
-                    loss = abs(change.mask(change > 0, 0))
-                    avg_gain = gain.rolling(n).std()
-                    avg_loss = loss.rolling(n).std()
-                    RS = avg_gain / avg_loss
-                    RVI = 100 - (100 / (1 + RS))
-
-                    # Plot RVI
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=RVI.index, y=RVI, mode='lines', name='Relative Volatility Index', line=dict(color='blue')))
-                    fig.add_shape(type="line", x0=RVI.index[0], y0=60, x1=RVI.index[-1], y1=60, line=dict(color="red", width=1, dash="dash"), name="Overbought")
-                    fig.add_shape(type="line", x0=RVI.index[0], y0=40, x1=RVI.index[-1], y1=40, line=dict(color="green", width=1, dash="dash"), name="Oversold")
-                    fig.update_layout(title=f"{symbol} Relative Volatility Index",
-                                    xaxis_title="Date",
-                                    yaxis_title="RVI")
-                    st.plotly_chart(fig)
+                if st.button("Check"):  
+                    norm_rvi(ticker, start_date, end_date)  
 
 
             if pred_option_Technical_Indicators == "Smoothed Moving Average":
@@ -2395,28 +2228,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    n = 7
-                    dataset["SMMA"] = dataset["Adj Close"].ewm(alpha=1 / float(n)).mean()
-
-                    # Plot Smoothed Moving Average
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["SMMA"], mode='lines', name='Smoothed Moving Average', line=dict(color='red'))])
-                    fig.update_layout(title=f"{symbol} Smoothed Moving Average",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price")
-                    st.plotly_chart(fig)
+                    norm_sma(ticker, start_date, end_date)  
 
             if pred_option_Technical_Indicators == "Speed Resistance Lines":
                 st.success("This program allows you to visualize Speed Resistance Lines for a selected ticker")
@@ -2430,29 +2242,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    dataset["Middle_Line"] = dataset["Low"] + (dataset["High"] - dataset["Low"]) * 0.667
-                    dataset["Lower_Line"] = dataset["Low"] + (dataset["High"] - dataset["Low"]) * 0.333
-
-                    # Plot Speed Resistance Lines
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["Middle_Line"], mode='lines', name='Middle Line', line=dict(color='red')),
-                                        go.Scatter(x=dataset.index, y=dataset["Lower_Line"], mode='lines', name='Lower Line', line=dict(color='green'))])
-                    fig.update_layout(title=f"{symbol} Speed Resistance Lines",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price")
-                    st.plotly_chart(fig)
+                    norm_srl(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Standard Deviation Volatility":
                 st.success("This program allows you to visualize Standard Deviation Volatility for a selected ticker")
@@ -2466,27 +2256,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    dataset["STD"] = dataset["Adj Close"].rolling(10).std()
-
-                    # Plot Standard Deviation Volatility
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["STD"], mode='lines', name='Standard Deviation Volatility', line=dict(color='red'))])
-                    fig.update_layout(title=f"{symbol} Standard Deviation Volatility",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price")
-                    st.plotly_chart(fig)
+                   norm_sdv(ticker, start_date, end_date) 
 
             if pred_option_Technical_Indicators == "Stochastic RSI":
                 st.success("This program allows you to visualize Stochastic RSI for a selected ticker")
@@ -2500,40 +2270,9 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_srsi(ticker, start_date, end_date) 
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
 
-                    # Calculate RSI
-                    n = 14
-                    change = dataset["Adj Close"].diff(1)
-                    gain = change.mask(change < 0, 0)
-                    loss = abs(change.mask(change > 0, 0))
-                    avg_gain = gain.rolling(n).mean()
-                    avg_loss = loss.rolling(n).mean()
-                    RS = avg_gain / avg_loss
-                    RSI = 100 - (100 / (1 + RS))
-
-                    # Calculate Stochastic RSI
-                    LL_RSI = RSI.rolling(14).min()
-                    HH_RSI = RSI.rolling(14).max()
-                    dataset["Stoch_RSI"] = (RSI - LL_RSI) / (HH_RSI - LL_RSI)
-
-                    # Plot Stochastic RSI
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["Stoch_RSI"], mode='lines', name='Stochastic RSI', line=dict(color='red'))])
-                    fig.update_layout(title=f"{symbol} Stochastic RSI",
-                                    xaxis_title="Date",
-                                    yaxis_title="Stochastic RSI")
-                    st.plotly_chart(fig)
             if pred_option_Technical_Indicators == "Stochastic Fast":
                 st.success("This program allows you to visualize Stochastic Fast for a selected ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -2546,32 +2285,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_sf(ticker, start_date, end_date) 
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Stochastic Fast
-                    low_min = dataset['Low'].rolling(window=14).min()
-                    high_max = dataset['High'].rolling(window=14).max()
-                    dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
-                    dataset['%D'] = dataset['%K'].rolling(window=3).mean()
-
-                    # Plot Stochastic Fast
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Fast %K', line=dict(color='red')),
-                                        go.Scatter(x=dataset.index, y=dataset["%D"], mode='lines', name='Stochastic Fast %D', line=dict(color='blue'))])
-                    fig.update_layout(title=f"{symbol} Stochastic Fast",
-                                    xaxis_title="Date",
-                                    yaxis_title="Stochastic Fast")
-                    st.plotly_chart(fig)
             if pred_option_Technical_Indicators == "Stochastic Full":
                 st.success("This program allows you to visualize Stochastic Full for a selected ticker")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -2584,33 +2299,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
+                    norm_sfu(ticker, start_date, end_date) 
 
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Stochastic Full
-                    low_min = dataset['Low'].rolling(window=14).min()
-                    high_max = dataset['High'].rolling(window=14).max()
-                    dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
-                    dataset['%D'] = dataset['%K'].rolling(window=3).mean()
-                    dataset['%D_full'] = dataset['%D'].rolling(window=3).mean()
-
-                    # Plot Stochastic Full
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Full %K', line=dict(color='red')),
-                                        go.Scatter(x=dataset.index, y=dataset["%D_full"], mode='lines', name='Stochastic Full %D', line=dict(color='blue'))])
-                    fig.update_layout(title=f"{symbol} Stochastic Full",
-                                    xaxis_title="Date",
-                                    yaxis_title="Stochastic Full")
-                    st.plotly_chart(fig)
 
             if pred_option_Technical_Indicators == "Stochastic Slow":
                 st.success("This program allows you to visualize Stochastic Slow for a selected ticker")
@@ -2624,34 +2314,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-
-                    # Read data
-                    dataset = yf.download(symbol, start, end)
-
-                    # Calculate Stochastic Slow
-                    low_min = dataset['Low'].rolling(window=14).min()
-                    high_max = dataset['High'].rolling(window=14).max()
-                    dataset['%K'] = 100 * (dataset['Close'] - low_min) / (high_max - low_min)
-                    dataset['%D'] = dataset['%K'].rolling(window=3).mean()
-
-                    # Plot Stochastic Slow
-                    fig = go.Figure(data=[go.Candlestick(x=dataset.index,
-                                                        open=dataset['Open'],
-                                                        high=dataset['High'],
-                                                        low=dataset['Low'],
-                                                        close=dataset['Close'],
-                                                        name='Candlesticks'),
-                                        go.Scatter(x=dataset.index, y=dataset["%K"], mode='lines', name='Stochastic Slow %K', line=dict(color='red')),
-                                        go.Scatter(x=dataset.index, y=dataset["%D"], mode='lines', name='Stochastic Slow %D', line=dict(color='blue'))])
-                    fig.update_layout(title=f"{symbol} Stochastic Slow",
-                                    xaxis_title="Date",
-                                    yaxis_title="Stochastic Slow")
-                    st.plotly_chart(fig)
-
-            
+                   norm_ss(ticker, start_date, end_date) 
             
             if pred_option_Technical_Indicators == "Super Trend":
                 st.success("This program allows you to view the Super Trend of a ticker over time")
@@ -2665,59 +2328,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    n = 7  # Number of periods
-                    df["H-L"] = abs(df["High"] - df["Low"])
-                    df["H-PC"] = abs(df["High"] - df["Adj Close"].shift(1))
-                    df["L-PC"] = abs(df["Low"] - df["Adj Close"].shift(1))
-                    df["TR"] = df[["H-L", "H-PC", "L-PC"]].max(axis=1)
-                    df["ATR"] = df["TR"].rolling(n).mean()
-
-                    df["Upper Basic"] = (df["High"] + df["Low"]) / 2 + (2 * df["ATR"])
-                    df["Lower Basic"] = (df["High"] + df["Low"]) / 2 - (2 * df["ATR"])
-
-                    df["Upper Band"] = df["Upper Basic"]
-                    df["Lower Band"] = df["Lower Basic"]
-
-                    for i in range(n, len(df)):
-                        if df["Close"][i - 1] <= df["Upper Band"][i - 1]:
-                            df["Upper Band"][i] = min(df["Upper Basic"][i], df["Upper Band"][i - 1])
-                        else:
-                            df["Upper Band"][i] = df["Upper Basic"][i]
-
-                    for i in range(n, len(df)):
-                        if df["Close"][i - 1] >= df["Lower Band"][i - 1]:
-                            df["Lower Band"][i] = max(df["Lower Basic"][i], df["Lower Band"][i - 1])
-                        else:
-                            df["Lower Band"][i] = df["Lower Basic"][i]
-
-                    df["SuperTrend"] = 0.00
-                    for i in range(n, len(df)):
-                        if df["Close"][i] <= df["Upper Band"][i]:
-                            df["SuperTrend"][i] = df["Upper Band"][i]
-                        elif df["Close"][i] > df["Upper Band"][i]:
-                            df["SuperTrend"][i] = df["Lower Band"][i]
-
-                    # Candlestick Chart with Super Trend
-                    fig = go.Figure()
-                    fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'], name='Candlestick'))
-
-                    fig.update_layout(title="Stock " + symbol + " Candlestick Chart with Super Trend",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-
-                    fig.add_trace(go.Scatter(x=df.index, y=df["SuperTrend"], mode='lines', name='SuperTrend'))
-                    st.plotly_chart(fig)
+                    norm_st(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "True Strength Index":
                 st.success("This program allows you to view the True Strength Index (TSI) of a ticker over time")
@@ -2731,45 +2342,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                    norm_tsi(ticker, start_date, end_date)
 
-                    # Calculate True Strength Index (TSI)
-                    df["PC"] = df["Adj Close"] - df["Adj Close"].shift()
-                    df["EMA_FS"] = df["PC"].ewm(span=25, min_periods=25, adjust=True).mean()
-                    df["EMA_SS"] = df["EMA_FS"].ewm(span=13, min_periods=13, adjust=True).mean()
-                    df["Absolute_PC"] = abs(df["Adj Close"] - df["Adj Close"].shift())
-                    df["Absolute_FS"] = df["Absolute_PC"].ewm(span=25, min_periods=25).mean()
-                    df["Absolute_SS"] = df["Absolute_FS"].ewm(span=13, min_periods=13).mean()
-                    df["TSI"] = 100 * df["EMA_SS"] / df["Absolute_SS"]
-                    df = df.drop(["PC", "EMA_FS", "EMA_SS", "Absolute_PC", "Absolute_FS", "Absolute_SS"], axis=1)
-
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["TSI"], mode='lines', name='True Strength Index'))
-                    fig.update_layout(title="Stock " + symbol + " True Strength Index",
-                                    xaxis_title="Date",
-                                    yaxis_title="Value",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with True Strength Index
-                    fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['Open'],
-                                            high=df['High'],
-                                            low=df['Low'],
-                                            close=df['Close'], name='Candlestick')])
-                    fig_candle.add_trace(go.Scatter(x=df.index, y=df["TSI"], mode='lines', name='True Strength Index'))
-                    fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with True Strength Index",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig_candle)
-        
             if pred_option_Technical_Indicators == "Ultimate Oscillator":
                 st.success("This program allows you to view the Ultimate Oscillator of a ticker over time")
                 ticker = st.text_input("Enter the ticker you want to monitor")
@@ -2782,44 +2356,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Ultimate Oscillator
-                    df["Prior Close"] = df["Adj Close"].shift()
-                    df["BP"] = df["Adj Close"] - df[["Low", "Prior Close"]].min(axis=1)
-                    df["TR"] = df[["High", "Prior Close"]].max(axis=1) - df[["Low", "Prior Close"]].min(axis=1)
-                    df["Average7"] = df["BP"].rolling(7).sum() / df["TR"].rolling(7).sum()
-                    df["Average14"] = df["BP"].rolling(14).sum() / df["TR"].rolling(14).sum()
-                    df["Average28"] = df["BP"].rolling(28).sum() / df["TR"].rolling(28).sum()
-                    df["UO"] = 100 * (4 * df["Average7"] + 2 * df["Average14"] + df["Average28"]) / (4 + 2 + 1)
-                    df = df.drop(["Prior Close", "BP", "TR", "Average7", "Average14", "Average28"], axis=1)
-
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["UO"], mode='lines', name='Ultimate Oscillator'))
-                    fig.update_layout(title="Stock " + symbol + " Ultimate Oscillator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Value",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with Ultimate Oscillator
-                    fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['Open'],
-                                            high=df['High'],
-                                            low=df['Low'],
-                                            close=df['Close'], name='Candlestick')])
-                    fig_candle.add_trace(go.Scatter(x=df.index, y=df["UO"], mode='lines', name='Ultimate Oscillator'))
-                    fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Ultimate Oscillator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig_candle)
+                    norm_uo(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Variance Indicator":
                 st.success("This program allows you to view the Variance Indicator of a ticker over time")
@@ -2833,38 +2370,7 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
-
-                    # Calculate Variance Indicator
-                    n = 14
-                    df["Variance"] = df["Adj Close"].rolling(n).var()
-
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Variance"], mode='lines', name='Variance Indicator'))
-                    fig.update_layout(title="Stock " + symbol + " Variance Indicator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Value",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with Variance Indicator
-                    fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['Open'],
-                                            high=df['High'],
-                                            low=df['Low'],
-                                            close=df['Close'], name='Candlestick')])
-                    fig_candle.add_trace(go.Scatter(x=df.index, y=df["Variance"], mode='lines', name='Variance Indicator'))
-                    fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Variance Indicator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig_candle)
+                    norm_vi(ticker, start_date, end_date)
 
             if pred_option_Technical_Indicators == "Volume Price Confirmation Indicator":
                 st.success("This program allows you to view the Volume Price Confirmation Indicator of a ticker over time")
@@ -2878,44 +2384,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                    norm_vpci(ticker, start_date, end_date)
 
-                    # Calculate Volume Price Confirmation Indicator
-                    short_term = 5
-                    long_term = 20
-                    vwma_lt = ((df["Adj Close"] * df["Volume"]) + (df["Adj Close"].shift(1) * df["Volume"].shift(1)) + (df["Adj Close"].shift(2) * df["Volume"].shift(2))) / (df["Volume"].rolling(long_term).sum())
-                    vwma_st = ((df["Adj Close"] * df["Volume"]) + (df["Adj Close"].shift(1) * df["Volume"].shift(1)) + (df["Adj Close"].shift(2) * df["Volume"].shift(2))) / (df["Volume"].rolling(short_term).sum())
-                    vpc = vwma_lt - df["Adj Close"].rolling(long_term).mean()
-                    vpr = vwma_st / df["Adj Close"].rolling(short_term).mean()
-                    vm = df["Adj Close"].rolling(short_term).mean() / df["Adj Close"].rolling(long_term).mean()
-                    vpci = vpc * vpr * vm
-
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Adj Close"], mode='lines', name='Closing Price'))
-                    fig.add_trace(go.Scatter(x=df.index, y=vpci, mode='lines', name='Volume Price Confirmation Indicator'))
-                    fig.update_layout(title="Stock " + symbol + " Volume Price Confirmation Indicator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Value",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with Volume Price Confirmation Indicator
-                    fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['Open'],
-                                            high=df['High'],
-                                            low=df['Low'],
-                                            close=df['Close'], name='Candlestick')])
-                    fig_candle.add_trace(go.Scatter(x=df.index, y=vpci, mode='lines', name='Volume Price Confirmation Indicator'))
-                    fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Price Confirmation Indicator",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig_candle)
 
             if pred_option_Technical_Indicators == "Volume Weighted Moving Average (VWMA)":
                 st.success("This program allows you to view the Volume Weighted Moving Average (VWMA) of a ticker over time")
@@ -2929,39 +2399,8 @@ def main():
                 with col2:
                     end_date = st.date_input("End Date:")
                 if st.button("Check"):    
-                    symbol = ticker
-                    start = start_date
-                    end = end_date
-                    # Read data
-                    df = yf.download(symbol, start, end)
+                     norm_vwma(ticker, start_date, end_date)
 
-                    # Calculate Volume Weighted Moving Average (VWMA)
-                    df["Volume_x_Close"] = df["Volume"] * df["Close"]
-                    df["VWMA"] = df["Volume_x_Close"].rolling(window=14).sum() / df["Volume"].rolling(window=14).sum()
-
-                    # Plotting
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df.index, y=df["Close"], mode='lines', name='Closing Price'))
-                    fig.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
-                    fig.update_layout(title="Stock " + symbol + " Volume Weighted Moving Average (VWMA)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Value",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig)
-
-                    # Candlestick Chart with Volume Weighted Moving Average (VWMA)
-                    fig_candle = go.Figure(data=[go.Candlestick(x=df.index,
-                                            open=df['Open'],
-                                            high=df['High'],
-                                            low=df['Low'],
-                                            close=df['Close'], name='Candlestick')])
-                    fig_candle.add_trace(go.Scatter(x=df.index, y=df["VWMA"], mode='lines', name='Volume Weighted Moving Average (VWMA)'))
-                    fig_candle.update_layout(title="Stock " + symbol + " Candlestick Chart with Volume Weighted Moving Average (VWMA)",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price",
-                                    legend=dict(x=0, y=1, traceorder="normal"))
-                    st.plotly_chart(fig_candle)
-        
         elif option =='Portfolio Strategies':
             pred_option_portfolio_strategies = st.selectbox('Make a choice', [
                                                                     'Astral Timing signals',
@@ -3006,27 +2445,23 @@ def main():
                     end_date = st.date_input("End Date:")
 
                 if st.button("Check"):
-                    # Apply Astral Timing signals to stock data.
                     def astral(data, completion, step, step_two, what, high, low, where_long, where_short):
-                        data['long_signal'] = 0
-                        data['short_signal'] = 0
+                            data['long_signal'] = 0
+                            data['short_signal'] = 0
 
-                        # Iterate through the DataFrame
-                        for i in range(len(data)):
-                            # Long signal logic
-                            if data.iloc[i][what] < data.iloc[i - step][what] and data.iloc[i][low] < data.iloc[i - step_two][low]:
-                                data.at[data.index[i], 'long_signal'] = -1
-                            elif data.iloc[i][what] >= data.iloc[i - step][what]:
-                                data.at[data.index[i], 'long_signal'] = 0
+                            # Iterate through the DataFrame
+                            for i in range(len(data)):
+                                if (data.iloc[i][what] < data.iloc[i - step][what]).all() and (data.iloc[i][low] < data.iloc[i - step_two][low]).all():
+                                    data.at[data.index[i], 'long_signal'] = -1
+                                elif (data.iloc[i][what] >= data.iloc[i - step][what]).all():
+                                    data.at[data.index[i], 'long_signal'] = 0
 
-                            # Short signal logic
-                            if data.iloc[i][what] > data.iloc[i - step][what] and data.iloc[i][high] > data.iloc[i - step_two][high]:
-                                data.at[data.index[i], 'short_signal'] = 1
-                            elif data.iloc[i][what] <= data.iloc[i - step][what]:
-                                data.at[data.index[i], 'short_signal'] = 0
-
-                        return data
-
+                                # Short signal logic
+                                if (data.iloc[i][what] > data.iloc[i - step][what]).all() and (data.iloc[i][high] > data.iloc[i - step_two][high]).all():
+                                    data.at[data.index[i], 'short_signal'] = 1
+                                elif (data.iloc[i][what] <= data.iloc[i - step][what]).all():
+                                    data.at[data.index[i], 'short_signal'] = 0
+                            return data
                     # Define stock ticker and date range
                 
                     start = start_date
