@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Terminal - JS Version</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .sidebar { float: left; width: 200px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .main { margin-left: 220px; }
+        .chart-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        #tvchart { width: 100%; height: 600px; }
+        .menu { list-style: none; padding: 0; }
+        .menu li { margin-bottom: 10px; }
+        .menu a { text-decoration: none; color: #333; padding: 10px; display: block; border-radius: 4px; }
+        .menu a:hover { background-color: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Frankline and Co. LP Analysis Terminal</h1>
+            <p>Welcome to the JS-powered TA and Fundamental Analysis App</p>
+        </div>
+        <div class="sidebar">
+            <ul class="menu">
+                <li><a href="#about">About</a></li>
+                <li><a href="#find-stocks">Find Stocks</a></li>
+                <li><a href="#portfolio-strategies">Portfolio Strategies</a></li>
+                <li><a href="#stock-data">Stock Data</a></li>
+                <li><a href="#stock-analysis">Stock Analysis</a></li>
+                <li><a href="#technical-indicators">Technical Indicators</a></li>
+                <li><a href="#stock-predictions">Stock Predictions</a></li>
+            </ul>
+        </div>
+        <div class="main">
+            <div class="chart-container">
+                <h2>TradingView-Style Chart</h2>
+                <div id="tvchart"></div>
+            </div>
+            <div id="content">
+                <p>Select an option from the sidebar to view analysis tools.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in a real app, fetch from API
+        const sampleData = [
+            { time: '2023-01-01', open: 100, high: 110, low: 95, close: 105, volume: 1000000 },
+            { time: '2023-01-02', open: 105, high: 115, low: 100, close: 110, volume: 1200000 },
+            // Add more data points...
+        ];
+
+        // Initialize TradingView Chart
+        const chart = LightweightCharts.createChart(document.getElementById('tvchart'), {
+            width: document.getElementById('tvchart').clientWidth,
+            height: 600,
+            layout: {
+                backgroundColor: '#ffffff',
+                textColor: '#333',
+            },
+            grid: {
+                vertLines: { color: '#e1ecf2' },
+                horzLines: { color: '#e1ecf2' },
+            },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: '#cccccc' },
+            timeScale: { borderColor: '#cccccc' },
+        });
+
+        const candlestickSeries = chart.addCandlestickSeries({
+            upColor: '#00C853',
+            downColor: '#FF1744',
+            borderVisible: false,
+            wickUpColor: '#00C853',
+            wickDownColor: '#FF1744',
+        });
+
+        // Convert time to timestamp
+        const data = sampleData.map(d => ({
+            time: new Date(d.time).getTime() / 1000,
+            open: d.open,
+            high: d.high,
+            low: d.low,
+            close: d.close,
+            volume: d.volume
+        }));
+
+        candlestickSeries.setData(data);
+
+        // Add volume
+        const volumeSeries = chart.addHistogramSeries({
+            color: '#26a69a',
+            priceFormat: { type: 'volume' },
+            priceScaleId: '',
+            scaleMargins: { top: 0.7, bottom: 0 },
+        });
+        volumeSeries.setData(data.map(d => ({
+            time: d.time,
+            value: d.volume,
+            color: d.close > d.open ? '#00C853' : '#FF1744'
+        })));
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            chart.applyOptions({ width: document.getElementById('tvchart').clientWidth });
+        });
+
+        // Simple navigation (expand with actual content)
+        document.querySelectorAll('.menu a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = e.target.getAttribute('href').substring(1);
+                document.getElementById('content').innerHTML = `<h2>${section.replace('-', ' ').toUpperCase()}</h2><p>Content for ${section} will be implemented here.</p>`;
+            });
+        });
+    </script>
+</body>
+</html>

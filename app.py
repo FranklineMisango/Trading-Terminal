@@ -123,41 +123,20 @@ import math
 import mplfinance as mpl
 import subprocess
 import smtplib
-import alpaca_trade_api as alpaca
-
-#Env variables
 from dotenv import load_dotenv
 load_dotenv()
 EMAIL_ADDRESS = os.environ.get('EMAIL_ADDRESS')
 API_FMPCLOUD = os.environ.get("API_FMPCLOUD")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
-BASE_URL = os.environ.get("BASE_URL")
-API_KEY_ALPACA = os.environ.get("API_KEY_ALPACA")
-SECRET_KEY_ALPACA =os.environ.get("SECRET_KEY_ALPACA")
 
 KRAKEN_CONFIG =  "PASS"
-ALPACA_CONFIG = alpaca.REST(API_KEY_ALPACA, SECRET_KEY_ALPACA, base_url= BASE_URL, api_version = 'v2')
 
 #AI bot
 
 from openai import OpenAI
-from langchain import hub
-from langchain.agents import AgentExecutor, create_tool_calling_agent
 import getpass
 from langchain_openai import ChatOpenAI
 import os
-
-#Al Trading recs
-from lumibot.brokers import Alpaca
-from lumibot.entities import Asset, Order
-from lumibot.strategies import Strategy
-from lumibot.traders import Trader
-from lumibot.backtesting import YahooDataBacktesting #TODO - Move to strategies
-from lumibot.backtesting import CcxtBacktesting
-from lumibot.example_strategies.crypto_important_functions import ImportantFunctions
-from lumibot.entities import TradingFee
-
-
 
 #Main tools for stock finding
 from langchain_core.tools import tool
@@ -335,8 +314,8 @@ tools = [tool_analyze_idb_rs_rating,tool_correlated_stocks, tool_growth_screener
 
 
 def main():
-    st.title("📈 Frankline and Co. LP Trading Terminal Beta")
-    st.sidebar.info('Welcome to my Algorithmic Trading App. Choose your options below. This application is backed over by 100 mathematically powered algorithms handpicked from the internet and modified for different Trading roles')
+    st.title("📈 Frankline and Co. LP Analysis Terminal Beta")
+    st.sidebar.info('Welcome to my TA and Fundamental Analysis App. Choose your options below. This application is backed over by 100 mathematically powered algorithms for analysis.')
     # Create a two-column layout
     left_column, right_column = st.columns([2, 2])
 
@@ -4568,7 +4547,7 @@ def main():
                     levels = identify_levels(df)
                     plot_support_resistance(df, levels)
 
-        elif option == "Algorithmic Trading":
+        if False:  # Removed Algorithmic Trading section
             AI_option_trading = st.selectbox('Make a choice', ["Lumibots : Diversified Leverage", "Lumibots : Stock Bracket Strategy","Lumibots : Hold to Expiry","Lumibots : Important functions (Crypto)", "Lumibots : Stock Limit & Trailing Stops","Lumibots : Momentum Strategy","Lumibots : Stock OCO Strategy","Lumibots : CCXT Backtesting Strategy","Lumibots : Buy & Hold Strategy", "Lumibots : GLD signal", "Lumibots : Trend Strategy", "Lumibots : Swing High Strategy"])
             if AI_option_trading == 'Lumibots : Buy & Hold Strategy':
                 st.write("Lumibots buy hold strategy for Long term investors")

@@ -1,6 +1,7 @@
 from langchain_core.tools import tool
 import yfinance as yf
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.graph_objects as go
 import datetime as dt
 import time
@@ -22,7 +23,79 @@ def tool_arima_time_series(start_date : dt.date, end_date : dt.date, ticker: str
  # Fetch data
     data = yf.download(ticker, start_date, end_date)
 
-    # Create closing price plot with Plotly
+    # TradingView Chart Integration (Hybrid: JS-based Trading Chart with Custom Data)
+    st.subheader(f"TradingView-Style Chart for {ticker.upper()} (Powered by Your Python Data)")
+    # Prepare data for TradingView Lightweight Charts (custom OHLCV from yfinance)
+    data_ohlcv = data[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
+    data_ohlcv['time'] = (data_ohlcv.index.astype(int) // 10**9).astype(int)  # Convert to Unix timestamp
+    chart_data = data_ohlcv[['time', 'open', 'high', 'low', 'close', 'volume']].to_dict('records')
+    chart_data_json = str(chart_data).replace("'", '"')  # Simple JSON-like string for embedding
+
+    tradingview_html = f"""
+    <div id="tvchart"></div>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+        const chart = LightweightCharts.createChart(document.getElementById('tvchart'), {{
+            width: 980,
+            height: 610,
+            layout: {{
+                backgroundColor: '#ffffff',
+                textColor: '#333',
+            }},
+            grid: {{
+                vertLines: {{
+                    color: '#e1ecf2',
+                }},
+                horzLines: {{
+                    color: '#e1ecf2',
+                }},
+            }},
+            crosshair: {{
+                mode: LightweightCharts.CrosshairMode.Normal,
+            }},
+            rightPriceScale: {{
+                borderColor: '#cccccc',
+            }},
+            timeScale: {{
+                borderColor: '#cccccc',
+            }},
+        }});
+
+        const candlestickSeries = chart.addCandlestickSeries({{
+            upColor: '#00C853',
+            downColor: '#FF1744',
+            borderVisible: false,
+            wickUpColor: '#00C853',
+            wickDownColor: '#FF1744',
+        }});
+
+        // Load custom data from Python
+        const data = {chart_data_json};
+        candlestickSeries.setData(data);
+
+        // Add volume series
+        const volumeSeries = chart.addHistogramSeries({{
+            color: '#26a69a',
+            priceFormat: {{
+                type: 'volume',
+            }},
+            priceScaleId: '',
+            scaleMargins: {{
+                top: 0.7,
+                bottom: 0,
+            }},
+        }});
+        volumeSeries.setData(data.map(d => ({{
+            time: d.time,
+            value: d.volume,
+            color: d.close > d.open ? '#00C853' : '#FF1744'
+        }})));
+    </script>
+    """
+    components.html(tradingview_html, height=650)
+
+    # Original Plotly Chart for Custom Analysis
+    st.subheader(f"Custom Plotly Chart for {ticker.upper()}")
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close Prices'))
     fig.update_layout(title=f"{ticker} Closing Price", xaxis_title='Dates', yaxis_title='Close Prices')
